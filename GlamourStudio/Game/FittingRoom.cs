@@ -78,6 +78,7 @@ public static unsafe class FittingRoom
         phase = Phase.Idle;
         queue.Clear();
         done = null;
+        RestoreKeep();
     }
 
     public static void Tick()
@@ -122,8 +123,8 @@ public static unsafe class FittingRoom
                 {
                     var w = queue.Dequeue();
                     var ok = Send(w);
-                    Recorder.Log($"  tried on {Slots.Key(w.Slot)} {w.Item} {w.Dye1}/{w.Dye2} → {ok}");
-                    waitFrames = 2;
+                    Recorder.Log($"  tried on {Slots.Key(w.Slot)} {w.Item} {w.Dye1}/{w.Dye2} → {ok}, keep {(AgentTryon.Instance() != null && AgentTryon.Instance()->SaveDeleteOutfit)}");
+                    waitFrames = 1;
                     break;
                 }
                 phase = Phase.Checking;
@@ -176,7 +177,17 @@ public static unsafe class FittingRoom
     {
         try
         {
-            return AgentTryon.TryOn(0, w.Item, w.Dye1, w.Dye2, 0, false);
+            var agent = AgentTryon.Instance();
+            if (agent != null)
+            {
+                // Keep what's tried on already: without it each piece replaces the one before (the
+                // pieces cycled through the slots). Glamaholic sets it for each piece too.
+                savedKeep ??= agent->SaveDeleteOutfit;
+                agent->SaveDeleteOutfit = true;
+            }
+            var ok = AgentTryon.TryOn(0, w.Item, w.Dye1, w.Dye2, 0, false);
+            if (agent != null) agent->SaveDeleteOutfit = true;
+            return ok;
         }
         catch (Exception ex)
         {
@@ -192,8 +203,20 @@ public static unsafe class FittingRoom
         phase = Phase.Idle;
         queue.Clear();
         done = null;
+        RestoreKeep();
         Recorder.Log($"  TRY ON done: {shown} of {wanted} in the fitting room");
         callback?.Invoke(shown, wanted);
+    }
+
+    /// <summary>The fitting room's own keep-what's-tried-on setting before this try-on, put back after.</summary>
+    private static bool? savedKeep;
+
+    private static void RestoreKeep()
+    {
+        if (savedKeep is not { } keep) return;
+        savedKeep = null;
+        var agent = AgentTryon.Instance();
+        if (agent != null) agent->SaveDeleteOutfit = keep;
     }
 
     private static bool WindowShown

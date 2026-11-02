@@ -720,7 +720,7 @@ public sealed unsafe class Recorder : IDisposable
         var open = (AtkUnitBase*)Services.GameGui.GetAddonByName("Tryon").Address != null;
         if (!open) return "window closed";
         var v = &agent->CharaView;
-        return $"window open, loaded {v->CharacterLoaded}, state {v->State}, hide others {v->HideOtherEquipment}, headgear hidden {v->HeadgearHidden}, "
+        return $"window open, loaded {v->CharacterLoaded}, state {v->State}, keep tried on {agent->SaveDeleteOutfit}, hide others {v->HideOtherEquipment}, headgear hidden {v->HeadgearHidden}, "
                + $"weapon hidden {v->WeaponHidden}, {FittingRoom.Listed()}";
     }
 

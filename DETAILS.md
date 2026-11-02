@@ -205,7 +205,7 @@ recorder (`Game/Recorder.cs`): while on it writes down, with the time since it s
   wear, your bags, armoury, saddlebags and retainer pages (with quantities and dyes), the dye
   bottles in your bags, the dresser's window (tab, page, the piece right-clicked, search and filters,
   what it's doing), the armoire's window (category, the item picked), storing an outfit set (the
-  set, where its pieces are, into an existing outfit or not), the fitting room (loaded, its list and what its view draws),
+  set, where its pieces are, into an existing outfit or not), the fitting room (loaded, keeping what's tried on or not, its list and what its view draws),
   retainers (ready, the one picked), which glamour windows are open, and the plugin (linked,
   sending, the wardrobe, a shot);
 - `READ` each place the plugin reads anew, `SITE` each call to the site (its function, status, time,
@@ -307,8 +307,11 @@ your bags (off by default).
 time: the game draws only the last of the pieces sent in one frame (the second recording saw it say
 "You try on…" for all eleven and show only the weapon). So it opens the fitting room with the first
 piece (closing it first if it's open, so pieces tried on before don't stay), waits until the window
-shows and its character has loaded, sends the pieces a few frames apart, then checks what the
-window's view draws and sends any piece missing once more. The toast says how many pieces it shows;
+shows and its character has loaded, sends the pieces a frame apart, then checks what the
+window's view draws and sends any piece missing once more. For each piece it sets the fitting
+room's keep-what's-tried-on flag (`AgentTryon.SaveDeleteOutfit`, as Glamaholic does): without it
+each piece replaces the one before, and the look cycles through the slots instead of building up.
+Your own setting of it is put back when the try-on ends. The toast says how many pieces it shows;
 a piece your race or gender can't wear is the game's to refuse. **Wear it** sends
 `/gearset change <the gearset you're on> N` (`UIModule.ProcessChatBoxEntry`): the game has no
 command for a plate alone (`/glamourplate` isn't one), and allows this in a sanctuary, for a job
@@ -386,6 +389,12 @@ this one too, within a few minutes of a release.
 The workflows need Settings → Actions → General → Workflow permissions → Read and write.
 
 ## Release notes
+
+### 0.3.3
+
+- **Try it on** wears the look's pieces together: each piece kept the one before it out (the
+  fitting room cycled through the slots). The plugin now asks the fitting room to keep what's tried
+  on while it sends the look, and puts your setting back after.
 
 ### 0.3.2
 
