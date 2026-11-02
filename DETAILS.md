@@ -100,7 +100,6 @@ the site named "Plate 3" or "Koko's outfit", then Open it on the site), Try it o
 | Dye pieces with the dyes in your bags | off | A piece whose copy is dyed otherwise than the look gets the look's dyes from bottles in your bags (the game spends them when the plate is saved). New, and not yet watched in the game: off, the plugin says which pieces to dye in the plate editor. |
 | Open with the plate editor | on | Opening Glamour Plates opens the window. |
 | Keep it up to date by itself | on | Sends your closet as it changes (see [The site](#the-site)). |
-| Include my other characters | on | The closet sent is every character's this PC has read, each piece in its handiest place; off, only the one you're playing. |
 | Send my plates and outfit | on | Your plates and what you wear go along, with your character's name and world (only you see them). |
 | Forget this character | | Forgets what the plugin has read of the character you're playing (it's read again as you play). |
 
@@ -115,18 +114,21 @@ million).
 
 | Place | Read from | When the game has it |
 | --- | --- | --- |
-| Bags | `Inventory1`–`4` | always |
-| Armoury chest | `EquippedItems` and the `Armory*` containers | always |
-| Saddlebags | `SaddleBag1`–`2`, `PremiumSaddleBag1`–`2` | once you've opened them this session |
-| Glamour dresser | `MirageManager.PrismBoxItemIds` and its two stain arrays (800 places); an outfit set (`MirageStoreSetItem`) counts as its pieces stored in it (`IsSetSlotUnlocked`) | once you've opened it this session (`PrismBoxLoaded`) |
-| Armoire | each `Cabinet` row's item, if `UIState.Cabinet.IsItemInCabinet` | once you've opened it this session |
-| Retainers | `RetainerPage1`–`7` and `RetainerEquippedItems`, by the active retainer's id | while a retainer's inventory window is open |
-| Plates | `MirageManager.GlamourPlates` (20 plates of 12 slots: item and two stains each) | once you've opened them (`GlamourPlatesLoaded`) |
+| Bags | `Inventory1`–`4` | once every container is loaded |
+| Armoury chest | `EquippedItems` and the `Armory*` containers | once every container is loaded |
+| Saddlebags | `SaddleBag1`–`2`, `PremiumSaddleBag1`–`2` | once you've opened them since logging in (`InventoryBuddy`) |
+| Glamour dresser | `MirageManager.PrismBoxItemIds` and its two stain arrays (800 places); an outfit set (`MirageStoreSetItem`) counts as its pieces stored in it (`IsSetSlotUnlocked`) | once you've opened it (or Glamour Plates) since logging in, and `PrismBoxLoaded` |
+| Armoire | each `Cabinet` row's item, if `UIState.Cabinet.IsItemInCabinet` | once you've opened it since logging in, and `IsCabinetLoaded` |
+| Retainers | `RetainerPage1`–`7` and `RetainerEquippedItems`, by the active retainer's id | a second after a retainer's bags open (so the pages are its own), every page loaded |
+| Plates | `MirageManager.GlamourPlates` (20 plates of 12 slots: item and two stains each) | once you've opened Glamour Plates since logging in, and `GlamourPlatesLoaded` |
 | What you wear | `EquippedItems`: each slot's glamour (`GlamourId`) or the piece, and its stains | always |
 
-What's read is kept per character in `wardrobe.json` in the plugin's folder (written off the
-framework thread, numbered so an older write never lands last), so a place read yesterday still
-counts today. A character is kept by a key made from its id (SHA-256 of it, 22 letters of
+A place is only taken as read when the game has really sent it: its window seen open since this
+character logged in (the containers can say they're loaded while empty, or still hold the last
+character's), or every one of its containers loaded. A place not read keeps what was read before.
+What's read is kept per character in `wardrobe.json` in the plugin's folder (written 30 s after a
+change at the soonest, off the framework thread, numbered so an older write never lands last, and
+on unloading), so a place read yesterday still counts today. A character is kept by a key made from its id (SHA-256 of it, 22 letters of
 base64url: `Wardrobe.KeyOf`), never the id itself; its name and world go along for the site.
 
 The game's slot orders (`Core/Slots.cs`): a plate's slots go main hand, off hand, head, body,
@@ -180,14 +182,16 @@ runs them off the framework thread and takes the answers back to it.
 
 | Call | When | What |
 | --- | --- | --- |
-| `gs_plugin_sync` | your wardrobe changed and settled for 10 s, at most every 3 min (and only when what's sent changed); Send it now; linking | the closet (each piece once, its handiest place, 5000 at most), the places read in full, the character (key, name, world), its plates and what it wears |
+| `gs_plugin_sync` | your wardrobe changed and settled for 10 s, at most every 3 min (and only when what's sent changed); Send it now; linking | the character you're on (key, name, world), its pieces each where they are, the places read in full, its plates and what it wears |
 | `gs_plugin_looks` | the window opens, every 10 min while it's open, Refresh | your looks (300), the public ones you love (200), your shopping list's items |
 | `gs_plugin_inbox_list` | every minute while the window's open, every 5 otherwise | the looks sent to the game, each whole, with the plate meant |
 | `gs_plugin_inbox_remove` | a sent look went on a plate | it's off the list |
 | `gs_plugin_save_look` | Keep it as a look | a new private look of yours |
 
-On the site, a place the plugin read in full loses the pieces it put there that aren't there any
-more; pieces you ticked by hand stay yours until the plugin sees them somewhere. Plates and what
+On the site, each character's reads are kept apart (`gs_closet_reads`), and the plugin's pieces in
+your closet are made again from all of them, each in its handiest place. So another PC, or one
+character played alone, never takes another character's pieces off; pieces you ticked by hand stay
+yours until the plugin sees them somewhere. Plates and what
 you wear are kept per character (eight at most), and the site's Settings tab lists them, to forget.
 
 ## The code
@@ -214,6 +218,24 @@ this one too, within a few minutes of a release.
 The workflows need Settings → Actions → General → Workflow permissions → Read and write.
 
 ## Release notes
+
+### 0.1.1
+
+- Your closet on the site can't lose pieces any more by being read before the game has sent a
+  place: saddlebags, the dresser, the armoire and plates count only once you've opened them since
+  logging in, bags and the armoury chest once all their containers are there, a retainer a second
+  after its bags open. (0.1.0's empty saddlebags read too soon are forgotten.)
+- Each character's closet is sent on its own and kept apart on the site, so playing on two PCs, or
+  one character at a time, takes nothing off the others. Include my other characters is gone (it's
+  always so now).
+- After filling a plate, its card (and Wear plate N) stays once the plate editor's closed.
+- Steadier: answers for a token you've just changed are let go; a sent look you've put on a plate
+  doesn't come back for a moment; Keep it as a look remembers which character's plate it was.
+- Lighter: the plan for a plate, the plate editor's state and the lists are worked out once per
+  change, not every frame; wardrobe.json is written at most every 30 s; nothing is worked out again
+  to send when nothing changed; looks sent from the site are looked for every 15 minutes while the
+  window's closed (at once when it opens).
+- The window: no line over the title, and 490 wide at the least so the title fits.
 
 ### 0.1.0
 

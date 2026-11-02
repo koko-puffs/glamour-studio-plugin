@@ -59,7 +59,11 @@ public sealed partial class MainWindow : Window
     {
         screen = Screen.Home;
         IsOpen = true;
+        sync.Wake();
     }
+
+    /// <summary>The plate open in the game's plate editor this frame (0: it isn't open), looked up once a frame.</summary>
+    private int editorPlate;
 
     /// <summary>Opens Settings (Dalamud's cog, /gstudio settings).</summary>
     public void ShowSettings()
@@ -96,6 +100,7 @@ public sealed partial class MainWindow : Window
     {
         Kit.ResetFrame();
         Frame.ResetFrame();
+        editorPlate = PlateEditor.SelectedPlate;
         Theme.PushInside();
         try
         {

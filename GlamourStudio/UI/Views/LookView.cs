@@ -32,6 +32,21 @@ public sealed partial class MainWindow
         IsOpen = true;
     }
 
+    private (string Id, int Wardrobe, bool Armoire, bool Clear, bool Dye, IReadOnlyDictionary<byte, int> Bag) planFor;
+    private PlatePlan? plan;
+
+    /// <summary>The plan for a look, worked out again only when the wardrobe or the settings changed.</summary>
+    private PlatePlan PlanCached(Look look)
+    {
+        var key = (look.Id, wardrobe.Version, wardrobe.ArmoireLive, config.ClearBare, config.DyeFromBags, wardrobe.BagDyes);
+        if (plan == null || key != planFor)
+        {
+            planFor = key;
+            plan = PlanFor(look.Pieces);
+        }
+        return plan;
+    }
+
     /// <summary>How the look would go on the plate open now (or any plate: the dresser and armoire as last read).</summary>
     private PlatePlan PlanFor(IReadOnlyDictionary<Slot, Piece> pieces)
     {
@@ -61,8 +76,8 @@ public sealed partial class MainWindow
         Frame.EndHeader();
 
         Frame.BeginBody("##look", null, 18, 24);
-        var plate = PlateEditor.SelectedPlate;
-        var plan = PlanFor(look.Pieces);
+        var plate = editorPlate;
+        var plan = PlanCached(look);
         DrawPutOn(look, plate, plan);
         Kit.Gap(22);
         var ready = ReadinessOf(look);
@@ -81,7 +96,8 @@ public sealed partial class MainWindow
     private void DrawPutOn(Look look, int plate, PlatePlan plan)
     {
         var filled = lastFill is { } lf && lf.LookId == look.Id ? lf : ((string, FillResult, PlatePlan)?)null;
-        if (filled is { } f && f.Item2.Plate == plate && plate > 0)
+        // What was just filled stays (with Wear plate N) after the plate editor closes; a different plate open fills afresh.
+        if (filled is { } f && (plate == 0 || f.Item2.Plate == plate))
         {
             DrawFilled(f.Item2, f.Item3);
             return;

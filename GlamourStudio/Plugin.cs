@@ -106,6 +106,7 @@ public sealed class Plugin : IDalamudPlugin
         Safely(() => Services.Commands.RemoveHandler(Command));
         Safely(windows.RemoveAllWindows);
         Safely(() => sync?.Dispose());
+        Safely(() => wardrobe?.Flush());
         Safely(() => fonts?.Dispose());
     }
 

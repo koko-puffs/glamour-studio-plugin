@@ -19,7 +19,7 @@ public sealed partial class MainWindow
     private int openPlate = -1;
 
     /// <summary>A look kept from the game just now, by the plate it came from.</summary>
-    private readonly Dictionary<int, SavedLook> keptFrom = new();
+    private readonly Dictionary<(string Character, int Plate), SavedLook> keptFrom = new();
 
     private bool keeping;
 
@@ -49,8 +49,7 @@ public sealed partial class MainWindow
             Frame.EndBody();
             return;
         }
-        var all = sync.Library.Mine.Concat(sync.Library.Loved).ToList();
-        var match = Plates.Matching(pieces, all);
+        var match = PlateMatch(plate, pieces);
         if (match != null)
         {
             var runs = new[]
@@ -68,7 +67,7 @@ public sealed partial class MainWindow
         if (pieces.Count > 0 && match == null)
         {
             var name = plate == 0 ? (me.Name.Length > 0 ? $"{me.Name}'s outfit" : "My outfit") : $"Plate {plate}";
-            if (keptFrom.TryGetValue(plate, out var kept))
+            if (keptFrom.TryGetValue((me.Key, plate), out var kept))
             {
                 if (Kit.Button("##kept", row, "Open it on the site", Btn.Glass, BtnSize.Md, Icon.ExternalLink, 0, false, $"Kept as “{kept.Name}” in your looks"))
                     Dalamud.Utility.Util.OpenLink(SiteLink.DressingUrl(kept.Id));
@@ -82,12 +81,13 @@ public sealed partial class MainWindow
                 {
                     keeping = true;
                     var body = me.Body;
+                    var key = me.Key;
                     sync.SaveLook(name, body, pieces, r =>
                     {
                         keeping = false;
                         if (r.Ok)
                         {
-                            keptFrom[plate] = r.Value!;
+                            keptFrom[(key, plate)] = r.Value!;
                             Notify($"Kept as “{r.Value!.Name}” in your looks");
                         }
                         else Notify(r.Why ?? "The site said no");

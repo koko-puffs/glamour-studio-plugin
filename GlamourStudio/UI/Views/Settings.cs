@@ -110,13 +110,6 @@ public sealed partial class MainWindow
             config.AutoSync = !config.AutoSync;
             config.Save();
         }
-        if (SwitchRow(i++, "##chars", "Include my other characters", "What it has read of them, with this one's", config.AllCharacters,
-                "Your closet on the site is one: on, it's every character's gear the plugin has read on this PC (each piece where it's handiest). Off, only the one you're playing.",
-                !Linked))
-        {
-            config.AllCharacters = !config.AllCharacters;
-            config.Save();
-        }
         if (SwitchRow(i++, "##plates", "Send my plates and outfit", "For the site's Plates and Copy my outfit from the game", config.SendPlates,
                 "Your glamour plates and what you're wearing go along, with your character's name and world (only you see them on the site).",
                 !Linked))

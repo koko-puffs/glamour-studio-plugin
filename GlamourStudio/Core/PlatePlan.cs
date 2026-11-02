@@ -115,6 +115,7 @@ public static class PlatePlanner
         Func<uint, Place?> elsewhere,
         PlateOptions options)
     {
+        var byItem = dresser.ToLookup(d => LookJson.BaseId(d.Item));
         var used = new HashSet<int>();
         var usedArmoire = new HashSet<uint>();
         var bag = options.BagDyes?.ToDictionary(kv => kv.Key, kv => kv.Value) ?? new Dictionary<byte, int>();
@@ -133,8 +134,8 @@ public static class PlatePlanner
             var w2 = channels >= 2 ? want.Dye2 : (byte)0;
 
             // The dresser's copies of it, the one whose dyes match most first (then the one first in the dresser).
-            var copy = dresser
-                .Where(d => LookJson.BaseId(d.Item) == id && !used.Contains(d.Index))
+            var copy = byItem[id]
+                .Where(d => !used.Contains(d.Index))
                 .OrderByDescending(d => (d.Dye1 == w1 ? 1 : 0) + (d.Dye2 == w2 ? 1 : 0))
                 .ThenBy(d => d.InSet ? 1 : 0)
                 .ThenBy(d => d.Index)

@@ -25,7 +25,7 @@ public sealed class SiteSync : IDisposable
     private static readonly TimeSpan Settle = TimeSpan.FromSeconds(10);
     private static readonly TimeSpan LibraryEvery = TimeSpan.FromMinutes(10);
     private static readonly TimeSpan InboxOpen = TimeSpan.FromMinutes(1);
-    private static readonly TimeSpan InboxClosed = TimeSpan.FromMinutes(5);
+    private static readonly TimeSpan InboxClosed = TimeSpan.FromMinutes(15);
 
     private readonly Configuration config;
     private readonly WardrobeReader wardrobe;
@@ -34,6 +34,15 @@ public sealed class SiteSync : IDisposable
     private readonly ConcurrentQueue<Action> answers = new();
 
     private int versionSeen = -1;
+
+    /// <summary>Goes up with each link: an answer for an earlier one is let go.</summary>
+    private int generation;
+
+    /// <summary>Sent looks done with here, kept off the list until a read of it no longer has them.</summary>
+    private readonly HashSet<string> doneWith = new();
+
+    /// <summary>The wardrobe's version last sent (nothing's worked out again until it moves).</summary>
+    private int versionSent = -1;
     private DateTime changedAt;
     private DateTime nextAutoSync;
     private string lastSent = string.Empty;
@@ -78,6 +87,11 @@ public sealed class SiteSync : IDisposable
     /// <summary>The token was changed (linked, unlinked): start again.</summary>
     public void Relinked()
     {
+        // Answers still on their way are the old token's: let go of them.
+        generation++;
+        Syncing = false;
+        LibraryBusy = false;
+        doneWith.Clear();
         TokenRefused = false;
         Library = Library.Empty;
         LibraryAt = null;
@@ -87,9 +101,13 @@ public sealed class SiteSync : IDisposable
         LastSyncAt = null;
         SyncProblem = null;
         lastSent = string.Empty;
+        versionSent = -1;
         nextLibrary = nextInbox = nextAutoSync = DateTime.MinValue;
         Version++;
     }
+
+    /// <summary>The window opened: what's sent from the site is looked for at once.</summary>
+    public void Wake() => nextInbox = DateTime.MinValue;
 
     /// <summary>Framework thread: takes the answers in, and sends or asks what's due.</summary>
     public void Tick(bool windowOpen)
@@ -123,28 +141,34 @@ public sealed class SiteSync : IDisposable
             versionSeen = v;
             changedAt = now;
         }
-        if (now - changedAt >= Settle && now >= nextAutoSync && wardrobe.Current != null) SyncNow(auto: true);
+        if (now - changedAt >= Settle && now >= nextAutoSync && wardrobe.Current != null && v != versionSent) SyncNow(auto: true);
     }
 
     /// <summary>Sends your wardrobe now (or, <paramref name="auto"/>, only when it changed since the last send).</summary>
     public void SyncNow(bool auto = false)
     {
         if (!Linked || Syncing) return;
+        // The character you're on, only: the site keeps each character's reads apart and makes your
+        // closet from all of them, so another PC or character never takes this one's pieces off.
         var current = wardrobe.Current;
-        var characters = wardrobe.All;
-        if (current == null && characters.Count == 0) return;
-        var (closet, read) = Wardrobe.Closet(characters, config.AllCharacters ? null : current?.Key);
+        if (current == null) return;
+        var (closet, read) = Wardrobe.Closet(new[] { current }, current.Key);
         var character = config.SendPlates ? current : null;
+        var version = wardrobe.Version;
         var fingerprint = Wardrobe.Fingerprint(closet, read, character);
         nextAutoSync = DateTime.UtcNow + AutoSyncGap;
-        if (auto && fingerprint == lastSent) return;
+        if (auto && fingerprint == lastSent)
+        {
+            versionSent = version;
+            return;
+        }
         JsonObject args;
         if (character != null) args = Wardrobe.SyncArgs(closet, read, character);
         else
         {
             args = Wardrobe.SyncArgs(closet, read, null);
-            // Plates off: still says whose read it is, so the site can show when it was read.
-            if (current != null) args["p_character"] = new JsonObject { ["key"] = current.Key, ["name"] = current.Name, ["world"] = current.World };
+            // Plates off: still says whose read it is (the site keeps each character's closet apart).
+            args["p_character"] = new JsonObject { ["key"] = current.Key, ["name"] = current.Name, ["world"] = current.World };
         }
         Syncing = true;
         SyncProblem = null;
@@ -158,6 +182,7 @@ public sealed class SiteSync : IDisposable
                 LastSync = r.Value;
                 LastSyncAt = DateTime.UtcNow;
                 lastSent = fingerprint;
+                versionSent = version;
             }
             else
             {
@@ -198,7 +223,12 @@ public sealed class SiteSync : IDisposable
         if (!Linked) return;
         Run(SiteLink.InboxAsync(http, config.SiteToken, stopping.Token), r =>
         {
-            if (r.Ok) Inbox = r.Value!;
+            if (r.Ok)
+            {
+                // One done with here stays off, until the site's list no longer has it.
+                doneWith.IntersectWith(r.Value!.Select(s => s.Id));
+                Inbox = r.Value!.Where(s => !doneWith.Contains(s.Id)).ToList();
+            }
             else TokenRefused |= r.TokenRefused;
         });
     }
@@ -206,6 +236,7 @@ public sealed class SiteSync : IDisposable
     /// <summary>A look sent from the site is done with: off the list here at once, and on the site.</summary>
     public void DoneWith(string sentId)
     {
+        doneWith.Add(sentId);
         Inbox = Inbox.Where(s => s.Id != sentId).ToList();
         Version++;
         if (!Linked) return;
@@ -229,17 +260,27 @@ public sealed class SiteSync : IDisposable
         });
     }
 
-    private void Run<T>(Task<T> call, Action<T> then) =>
+    private void Run<T>(Task<T> call, Action<T> then)
+    {
+        var made = generation;
         call.ContinueWith(t =>
         {
-            if (t.IsCompletedSuccessfully) answers.Enqueue(() => then(t.Result));
+            if (t.IsCompletedSuccessfully)
+                answers.Enqueue(() =>
+                {
+                    if (made == generation) then(t.Result);
+                });
             else
             {
                 if (t.Exception != null) Services.Log.Warning(t.Exception, "Glamour Studio's call to the site failed");
                 // (The calls don't throw: should one, nothing's left waiting on it.)
-                answers.Enqueue(() => Syncing = LibraryBusy = false);
+                answers.Enqueue(() =>
+                {
+                    if (made == generation) Syncing = LibraryBusy = false;
+                });
             }
         }, TaskScheduler.Default);
+    }
 
     public void Dispose()
     {

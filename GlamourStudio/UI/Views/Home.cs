@@ -30,10 +30,35 @@ public sealed partial class MainWindow
     private HomeTab homeTab;
     private string search = string.Empty;
 
+    /// <summary>The open plate's pieces and the look they are, as last worked out.</summary>
+    private (IReadOnlyDictionary<Slot, Piece>? Pieces, int SyncVersion, Look? Look) editorMatch;
+
+    /// <summary>The looks shown, as last filtered and sorted, and what they were worked out from.</summary>
+    private (string Search, bool Loved, int Sync, int Wardrobe, bool Editor, List<Look> Looks)? shownLooks;
+
+    /// <summary>Each plate's (and the outfit's) look, by the plate (0 the outfit), for the versions they were worked out at.</summary>
+    private readonly Dictionary<int, Look?> plateMatches = new();
+
+    private (int Sync, int Wardrobe) plateMatchesFor = (-1, -1);
+
+    /// <summary>The look a plate of yours is (0: what you wear), worked out once per change.</summary>
+    private Look? PlateMatch(int plate, IReadOnlyDictionary<Slot, Piece> pieces)
+    {
+        var stamp = (sync.Version, wardrobe.Version);
+        if (stamp != plateMatchesFor)
+        {
+            plateMatchesFor = stamp;
+            plateMatches.Clear();
+        }
+        if (!plateMatches.TryGetValue(plate, out var match))
+            plateMatches[plate] = match = Plates.Matching(pieces, sync.Library.Mine.Concat(sync.Library.Loved));
+        return match;
+    }
+
     /// <summary>The header pill: what the plugin is doing now.</summary>
     private (string Text, Tone Tone, bool Pulse) StatusNow()
     {
-        if (PlateEditor.SelectedPlate is var plate and > 0) return ($"Plate editor open · plate {plate}", Tone.Live, true);
+        if (editorPlate > 0) return ($"Plate editor open · plate {editorPlate}", Tone.Live, true);
         if (!sync.Linked) return ("Not linked to Glamour Studio", Tone.Neutral, false);
         if (sync.TokenRefused) return ("Link again: the site doesn't know this token", Tone.Danger, false);
         if (sync.Syncing) return ("Sending your closet…", Tone.Live, true);
@@ -58,7 +83,7 @@ public sealed partial class MainWindow
         Frame.EndHeader();
 
         Frame.BeginBody("##home", null, 18, 24);
-        if (PlateEditor.SelectedPlate is var plate and > 0) DrawEditorCard(plate);
+        if (editorPlate > 0) DrawEditorCard(editorPlate);
         if (!sync.Linked) DrawGetStarted();
         DrawSent();
 
@@ -102,8 +127,10 @@ public sealed partial class MainWindow
         var ty = at.Y + Txt.Natural(Face.Mono, 11) + S(3);
         var th = Title(new Vector2(x, ty), $"Plate {plate}", tw, 20, 1);
         var current = PlateEditor.Current();
-        var all = sync.Library.Mine.Concat(sync.Library.Loved).Concat(sync.Inbox.Select(s => s.Look));
-        var match = Plates.Matching(current, all);
+        // The look it is, worked out again only when the plate or your looks change.
+        if (editorMatch.Pieces == null || editorMatch.SyncVersion != sync.Version || !Plates.Same(current, editorMatch.Pieces))
+            editorMatch = (current, sync.Version, Plates.Matching(current, sync.Library.Mine.Concat(sync.Library.Loved).Concat(sync.Inbox.Select(s => s.Look))));
+        var match = editorMatch.Look;
         var line = current.Count == 0
             ? "It's empty. Pick a look below and put it on."
             : match != null ? $"It's your look “{match.Name}”." : $"It has {Words.Count(current.Count, "piece")}. Pick a look below to put it on instead.";
@@ -168,11 +195,21 @@ public sealed partial class MainWindow
             return;
         }
         var q = search.Trim();
-        var shown = q.Length == 0
-            ? all.ToList()
-            : all.Where(l => l.Name.Contains(q, StringComparison.OrdinalIgnoreCase) || l.Maker.Contains(q, StringComparison.OrdinalIgnoreCase)
-                             || (l.Job?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false)
-                             || (l.Mood?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false)).ToList();
+        var editor = editorPlate > 0;
+        List<Look> shown;
+        if (shownLooks is { } c && c.Search == q && c.Loved == loved && c.Sync == sync.Version && c.Wardrobe == wardrobe.Version && c.Editor == editor)
+            shown = c.Looks;
+        else
+        {
+            shown = q.Length == 0
+                ? all.ToList()
+                : all.Where(l => l.Name.Contains(q, StringComparison.OrdinalIgnoreCase) || l.Maker.Contains(q, StringComparison.OrdinalIgnoreCase)
+                                 || (l.Job?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false)
+                                 || (l.Mood?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false)).ToList();
+            // With the plate editor open, the ones ready for a plate first, as they were among themselves.
+            if (editor) shown = shown.OrderByDescending(l => ReadinessOf(l).PlateReady).ToList();
+            shownLooks = (q, loved, sync.Version, wardrobe.Version, editor, shown);
+        }
         if (all.Count == 0)
         {
             Empty("##none", loved ? Icon.Heart : Icon.Sparkles, loved ? "No loved looks yet" : "No looks yet",
@@ -188,9 +225,6 @@ public sealed partial class MainWindow
             Txt.Note($"No look matches “{q}”.");
             return;
         }
-        // The ones ready for a plate first, as they were among themselves.
-        var editor = PlateEditor.SelectedPlate > 0;
-        if (editor) shown = shown.OrderByDescending(l => ReadinessOf(l).PlateReady).ToList();
         Kit.BeginPanel(loved ? "##loved" : "##mine", 6, 6, 6);
         for (var i = 0; i < shown.Count; i++)
         {
@@ -256,21 +290,20 @@ public sealed partial class MainWindow
             Txt.Note("Log in to a character to see its plates.");
             return;
         }
-        var all = sync.Library.Mine.Concat(sync.Library.Loved).ToList();
         Kit.BeginPanel("##plates", 6, 6, 6);
         var i = 0;
         // What you're wearing first: it can be kept as a look too.
         if (me.Outfit.Count > 0)
         {
             var worn = new Look("worn", "What you're wearing", me.Body, me.Outfit, "private", true, me.Name, 0, null);
-            var match = Plates.Matching(me.Outfit, all);
+            var match = PlateMatch(0, me.Outfit);
             if (LookRow("##worn", i++, worn, match != null ? $"Your look “{match.Name}”" : Words.Count(me.Outfit.Count, "piece")))
                 Later(() => OpenPlate(0));
         }
         foreach (var plate in me.Plates.Where(p => p.Pieces.Count > 0).OrderBy(p => p.Plate))
         {
             var look = new Look($"plate{plate.Plate}", $"Plate {plate.Plate}", me.Body, plate.Pieces, "private", true, me.Name, 0, null);
-            var match = Plates.Matching(plate.Pieces, all);
+            var match = PlateMatch(plate.Plate, plate.Pieces);
             var n = plate.Plate;
             if (LookRow($"##plate{n}", i++, look, match != null ? $"Your look “{match.Name}”" : Words.Count(plate.Pieces.Count, "piece")))
                 Later(() => OpenPlate(n));
@@ -367,11 +400,5 @@ public sealed partial class MainWindow
         if (Kit.Button("##open-closet", new Vector2(x2, row.Y), "Open my closet", Btn.Quiet, BtnSize.Md, Icon.ExternalLink))
             Dalamud.Utility.Util.OpenLink(SiteLink.ClosetUrl);
         Kit.Reserve(row, Kit.Width, Kit.ButtonHeight(BtnSize.Md));
-        var others = wardrobe.All.Where(c => c.Key != me.Key && c.Name.Length > 0).Select(c => c.Name).ToList();
-        if (config.AllCharacters && others.Count > 0)
-        {
-            Kit.Gap(12);
-            Txt.Note($"Also in what's sent: {Words.List(others)}'s gear, as last read.", Palette.Faint);
-        }
     }
 }

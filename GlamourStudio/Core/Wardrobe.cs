@@ -131,12 +131,18 @@ public sealed class CharacterWardrobe
 
     public DateTime? OutfitReadAt { get; set; }
 
+    /// <summary>The retainers merged into one place, kept until <see cref="RetainersChanged"/>.</summary>
+    private PlaceRead? retainers;
+
+    /// <summary>Say so when <see cref="Retainers"/> changed (its merged place is made again).</summary>
+    public void RetainersChanged() => retainers = null;
+
     /// <summary>A place as one read (the retainers together: every one seen), or null when it was never read.</summary>
     public PlaceRead? Get(Place place)
     {
         if (place != Place.Retainer) return Read.TryGetValue(place, out var r) ? r : null;
         if (Retainers.Count == 0) return null;
-        return new PlaceRead
+        return retainers ??= new PlaceRead
         {
             ReadAt = Retainers.Values.Max(r => r.ReadAt),
             Items = Retainers.Values.SelectMany(r => r.Items).ToHashSet(),
@@ -157,7 +163,8 @@ public sealed class CharacterWardrobe
 /// <summary>Every character's wardrobe, as kept in the plugin's folder (wardrobe.json).</summary>
 public sealed class Wardrobe
 {
-    public int Version { get; set; } = 1;
+    /// <summary>2 since 0.1.1 (0.1.0's saddlebags read before they were opened are dropped on loading).</summary>
+    public int Version { get; set; } = 2;
 
     public Dictionary<string, CharacterWardrobe> Characters { get; set; } = new();
 

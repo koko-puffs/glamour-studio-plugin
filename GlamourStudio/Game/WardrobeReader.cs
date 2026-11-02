@@ -27,6 +27,9 @@ public sealed unsafe class WardrobeReader
     /// <summary>Saved again at most this often when only the times changed.</summary>
     private static readonly TimeSpan SaveEvery = TimeSpan.FromMinutes(5);
 
+    /// <summary>A change is saved this long after it at the soonest (many changes close together are one write).</summary>
+    private static readonly TimeSpan SaveAfter = TimeSpan.FromSeconds(30);
+
     private static readonly InventoryType[] Bags = { InventoryType.Inventory1, InventoryType.Inventory2, InventoryType.Inventory3, InventoryType.Inventory4 };
 
     private static readonly InventoryType[] Armoury =
@@ -49,12 +52,28 @@ public sealed unsafe class WardrobeReader
 
     private static readonly string[] RetainerWindows = { "InventoryRetainer", "InventoryRetainerLarge" };
 
+    // The windows that show a place: the game sends a place when one is opened, and until then its
+    // containers can say they're loaded while empty (or still hold another character's).
+    private static readonly string[] SaddlebagWindows = { "InventoryBuddy", "InventoryBuddy2" };
+    private static readonly string[] DresserWindows = { "MiragePrismPrismBox", "MiragePrismMiragePlate" };
+    private static readonly string[] ArmoireWindows = { "Cabinet" };
+    private static readonly string[] PlateWindows = { "MiragePrismMiragePlate" };
+
+    /// <summary>The windows seen open since this character logged in.</summary>
+    private readonly HashSet<string> seenOpen = new();
+
+    /// <summary>The retainer whose bags are open, and since when (its pages are read a second after, so they're its own).</summary>
+    private (ulong Id, DateTime Since) retainerOpen;
+
     private readonly GameData data;
     private readonly string path;
     private readonly object writing = new();
     private Wardrobe store = new();
     private DateTime nextRead;
     private DateTime savedAt;
+    private bool dirty;
+    private IReadOnlyList<CharacterWardrobe>? all;
+    private (int Version, string? Key) allFor = (-1, null);
     private long saveNumber;
     private long writtenNumber;
     private int version;
@@ -66,6 +85,12 @@ public sealed unsafe class WardrobeReader
         try
         {
             if (File.Exists(path)) store = JsonSerializer.Deserialize<Wardrobe>(File.ReadAllText(path)) ?? new Wardrobe();
+            // 0.1.0 could take saddlebags as read (and empty) before they were opened: read again.
+            if (store.Version < 2)
+            {
+                foreach (var c in store.Characters.Values) c.Read.Remove(Place.Saddlebag);
+                store.Version = 2;
+            }
         }
         catch (Exception ex)
         {
@@ -81,8 +106,19 @@ public sealed unsafe class WardrobeReader
     public CharacterWardrobe? Current { get; private set; }
 
     /// <summary>Every character known, the one you're playing first.</summary>
-    public IReadOnlyList<CharacterWardrobe> All =>
-        store.Characters.Values.OrderByDescending(c => Current != null && c.Key == Current.Key).ThenBy(c => c.Name).ToList();
+    public IReadOnlyList<CharacterWardrobe> All
+    {
+        get
+        {
+            var stamp = (Version, Current?.Key);
+            if (all == null || stamp != allFor)
+            {
+                allFor = stamp;
+                all = store.Characters.Values.OrderByDescending(c => Current != null && c.Key == Current.Key).ThenBy(c => c.Name).ToList();
+            }
+            return all;
+        }
+    }
 
     /// <summary>The armoire's stored pieces now (item → its Cabinet row); empty until it's been opened this session.</summary>
     public IReadOnlyDictionary<uint, uint> ArmoireNow { get; private set; } = new Dictionary<uint, uint>();
@@ -119,6 +155,7 @@ public sealed unsafe class WardrobeReader
             Current = null;
             DresserLive = ArmoireLive = false;
             ArmoireNow = new Dictionary<uint, uint>();
+            seenOpen.Clear();
             return;
         }
         var key = Wardrobe.KeyOf(Services.PlayerState.ContentId);
@@ -131,8 +168,12 @@ public sealed unsafe class WardrobeReader
         {
             DresserLive = ArmoireLive = false;
             ArmoireNow = new Dictionary<uint, uint>();
+            seenOpen.Clear();
         }
         Current = me;
+        foreach (var w in SaddlebagWindows.Concat(DresserWindows).Concat(ArmoireWindows).Concat(PlateWindows))
+            if (!seenOpen.Contains(w) && IsOpen(w))
+                seenOpen.Add(w);
         var changed = false;
 
         var name = Services.PlayerState.CharacterName ?? string.Empty;
@@ -149,22 +190,37 @@ public sealed unsafe class WardrobeReader
         var mgr = InventoryManager.Instance();
         if (mgr != null)
         {
-            changed |= Keep(me.Read, Place.Inventory, Gear(mgr, Bags), at);
-            changed |= Keep(me.Read, Place.Armoury, Gear(mgr, Armoury), at);
-            if (Gear(mgr, Saddlebags, needLoaded: true) is { } saddle) changed |= Keep(me.Read, Place.Saddlebag, saddle, at);
+            // Every container of a place there, or the place isn't read this time (at login they come one by one).
+            changed |= Keep(me.Read, Place.Inventory, Gear(mgr, Bags, needLoaded: true), at);
+            changed |= Keep(me.Read, Place.Armoury, Gear(mgr, Armoury, needLoaded: true), at);
+            if (Seen(SaddlebagWindows) && Gear(mgr, Saddlebags, needLoaded: true) is { } saddle)
+                changed |= Keep(me.Read, Place.Saddlebag, saddle, at);
             changed |= ReadRetainer(me, mgr, at);
             changed |= ReadOutfit(me, mgr, at);
-            BagDyes = CountDyes(mgr);
+            var dyes = CountDyes(mgr);
+            // Only a new one when the count changed (the window keys its plate plan on it).
+            if (dyes.Count != BagDyes.Count || dyes.Any(kv => BagDyes.GetValueOrDefault(kv.Key) != kv.Value)) BagDyes = dyes;
         }
-        changed |= ReadDresser(me, at);
-        changed |= ReadArmoire(me, at);
-        changed |= ReadPlates(me, at);
+        if (Seen(DresserWindows)) changed |= ReadDresser(me, at);
+        if (Seen(ArmoireWindows)) changed |= ReadArmoire(me, at);
+        if (Seen(PlateWindows)) changed |= ReadPlates(me, at);
 
-        if (changed) Changed();
-        if (changed || at - savedAt > SaveEvery) Save(at);
+        if (changed)
+        {
+            Changed();
+            dirty = true;
+        }
+        // Written off the framework thread's hot path: a change after 30 s, the read times every 5 minutes.
+        if ((dirty && at - savedAt > SaveAfter) || at - savedAt > SaveEvery)
+        {
+            dirty = false;
+            Save(at);
+        }
     }
 
     private void Changed() => Interlocked.Increment(ref version);
+
+    private bool Seen(string[] windows) => windows.Any(seenOpen.Contains);
 
     /// <summary>Keeps a place as read now; true when its pieces changed.</summary>
     private static bool Keep(Dictionary<Place, PlaceRead> read, Place place, HashSet<uint>? items, DateTime at)
@@ -244,12 +300,23 @@ public sealed unsafe class WardrobeReader
     /// <summary>A retainer's bags while its inventory window is open (the game has them only then).</summary>
     private bool ReadRetainer(CharacterWardrobe me, InventoryManager* mgr, DateTime at)
     {
-        if (!RetainerWindows.Any(IsOpen)) return false;
+        if (!RetainerWindows.Any(IsOpen))
+        {
+            retainerOpen = default;
+            return false;
+        }
         var rm = RetainerManager.Instance();
         if (rm == null || !rm->IsReady) return false;
         var active = rm->GetActiveRetainer();
         if (active == null || active->RetainerId == 0) return false;
-        var items = Gear(mgr, RetainerBags, needLoaded: false);
+        // A second after its bags open, so the pages are this retainer's and not the last one's.
+        if (retainerOpen.Id != active->RetainerId)
+        {
+            retainerOpen = (active->RetainerId, at);
+            return false;
+        }
+        if (at - retainerOpen.Since < TimeSpan.FromSeconds(1)) return false;
+        var items = Gear(mgr, RetainerBags, needLoaded: true);
         if (items == null) return false;
         var id = active->RetainerId.ToString();
         if (me.Retainers.TryGetValue(id, out var was) && was.Items.SetEquals(items))
@@ -258,6 +325,7 @@ public sealed unsafe class WardrobeReader
             return false;
         }
         me.Retainers[id] = new PlaceRead { ReadAt = at, Items = items };
+        me.RetainersChanged();
         return true;
     }
 
@@ -378,6 +446,28 @@ public sealed unsafe class WardrobeReader
         if (Current?.Key == key) Current = null;
         Changed();
         Save(DateTime.UtcNow);
+    }
+
+    /// <summary>Writes what's unsaved now, and waits for it (the plugin unloading).</summary>
+    public void Flush()
+    {
+        if (!dirty) return;
+        dirty = false;
+        try
+        {
+            var json = JsonSerializer.Serialize(store);
+            lock (writing)
+            {
+                var temp = path + ".tmp";
+                File.WriteAllText(temp, json);
+                File.Move(temp, path, true);
+                writtenNumber = Interlocked.Increment(ref saveNumber);
+            }
+        }
+        catch (Exception ex)
+        {
+            Services.Log.Warning(ex, "Glamour Studio couldn't save your wardrobe");
+        }
     }
 
     private void Save(DateTime at)

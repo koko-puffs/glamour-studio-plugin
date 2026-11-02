@@ -15,9 +15,6 @@ public sealed class Configuration : IPluginConfiguration
     /// <summary>Keep your closet on the site up to date by itself (when something changes, at most every few minutes).</summary>
     public bool AutoSync { get; set; } = true;
 
-    /// <summary>Send every character's wardrobe the plugin knows, not just the one you're playing.</summary>
-    public bool AllCharacters { get; set; } = true;
-
     /// <summary>Send your glamour plates and what you're wearing too.</summary>
     public bool SendPlates { get; set; } = true;
 
