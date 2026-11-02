@@ -712,7 +712,7 @@ public sealed unsafe class Recorder : IDisposable
                + $"dresser index {d->PrismBoxIndex}, store into existing {d->StoreInExistingOutfit}, can store {d->EnableStoring}, sets {d->ItemSetCount}, pieces {d->NumItemsInSet}: {string.Join("; ", items)}";
     }
 
-    /// <summary>The fitting room: what it shows, slot by slot, and what's hidden.</summary>
+    /// <summary>The fitting room: its list, what its view draws, and what's hidden.</summary>
     private static string DescribeTryOn()
     {
         var agent = AgentTryon.Instance();
@@ -720,13 +720,8 @@ public sealed unsafe class Recorder : IDisposable
         var open = (AtkUnitBase*)Services.GameGui.GetAddonByName("Tryon").Address != null;
         if (!open) return "window closed";
         var v = &agent->CharaView;
-        var items = new List<string>();
-        foreach (ref var it in v->Items)
-        {
-            if (it.ItemId == 0 && it.GlamourItemId == 0) continue;
-            items.Add($"{it.SlotId}:{it.ItemId}{(it.GlamourItemId != 0 ? $" as {it.GlamourItemId}" : string.Empty)} {it.Stain0Id}/{it.Stain1Id}");
-        }
-        return $"window open, hide others {v->HideOtherEquipment}, headgear hidden {v->HeadgearHidden}, weapon hidden {v->WeaponHidden}, {items.Count} pieces: {string.Join("; ", items)}";
+        return $"window open, loaded {v->CharacterLoaded}, state {v->State}, hide others {v->HideOtherEquipment}, headgear hidden {v->HeadgearHidden}, "
+               + $"weapon hidden {v->WeaponHidden}, {FittingRoom.Listed()}";
     }
 
     /// <summary>Retainers: whether their list is ready, the one picked, how many items it holds.</summary>

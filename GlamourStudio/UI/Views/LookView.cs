@@ -422,9 +422,12 @@ public sealed partial class MainWindow
 
     private void TryOn(IReadOnlyDictionary<Slot, Piece> pieces)
     {
-        var n = PlateEditor.TryOn(pieces);
-        recorder.Note($"TRY ON {pieces.Count} pieces: {n} went to the fitting room");
-        Notify(n > 0 ? "In the fitting room" : "The fitting room didn't open");
+        recorder.Note($"TRY ON pressed: {pieces.Values.Count(p => p.Item != 0)} pieces");
+        Notify("Opening the fitting room");
+        FittingRoom.Start(pieces, (shown, wanted) => Notify(
+            shown == 0 ? "The fitting room didn't open"
+            : shown == wanted ? "In the fitting room"
+            : $"In the fitting room: {shown} of {wanted} pieces (the game wouldn't show the rest)"));
     }
 
     // ---------------------------------------------------------------------------------------------

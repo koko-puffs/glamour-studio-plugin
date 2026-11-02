@@ -165,7 +165,8 @@ far away (another zone, or out of range) if you can.
 
 | Id | Do this | DUMP |
 | --- | --- | --- |
-| F1 | In the plugin, open a look and press **Try it on**. | yes, with the fitting room open |
+| F1 | In the plugin, open a look and press **Try it on**. Wait for the toast ("In the fitting room…"), then MARK what the fitting room shows: every piece, or which are missing. | yes, with the fitting room open |
+| F1b | With the fitting room still open, open another look and press **Try it on** again. MARK whether the first look's pieces are gone. | |
 | F2 | Close it. Then right-click any gear in your bags → **Try On**, the game's way. | yes |
 | F3 | Close it. | |
 

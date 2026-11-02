@@ -205,7 +205,7 @@ recorder (`Game/Recorder.cs`): while on it writes down, with the time since it s
   wear, your bags, armoury, saddlebags and retainer pages (with quantities and dyes), the dye
   bottles in your bags, the dresser's window (tab, page, the piece right-clicked, search and filters,
   what it's doing), the armoire's window (category, the item picked), storing an outfit set (the
-  set, where its pieces are, into an existing outfit or not), the fitting room (what it shows),
+  set, where its pieces are, into an existing outfit or not), the fitting room (loaded, its list and what its view draws),
   retainers (ready, the one picked), which glamour windows are open, and the plugin (linked,
   sending, the wardrobe, a shot);
 - `READ` each place the plugin reads anew, `SITE` each call to the site (its function, status, time,
@@ -303,7 +303,13 @@ A dresser piece is `PrismBox` and its place; an armoire piece `Cabinet` and its 
 set's piece the set's dresser place with the piece's own item id. Not yet watched: the dyes from
 your bags (off by default).
 
-**Try it on** is `AgentTryon.TryOn` for each piece with its dyes; **Wear it** sends
+**Try it on** (`Game/FittingRoom.cs`) is `AgentTryon.TryOn` for each piece with its dyes, one at a
+time: the game draws only the last of the pieces sent in one frame (the second recording saw it say
+"You try on…" for all eleven and show only the weapon). So it opens the fitting room with the first
+piece (closing it first if it's open, so pieces tried on before don't stay), waits until the window
+shows and its character has loaded, sends the pieces a few frames apart, then checks what the
+window's view draws and sends any piece missing once more. The toast says how many pieces it shows;
+a piece your race or gender can't wear is the game's to refuse. **Wear it** sends
 `/gearset change <the gearset you're on> N` (`UIModule.ProcessChatBoxEntry`): the game has no
 command for a plate alone (`/glamourplate` isn't one), and allows this in a sanctuary, for a job
 whose gear the plate fits. Watched: it changes to the gearset and projects the plate in an inn, in a
@@ -380,6 +386,12 @@ this one too, within a few minutes of a release.
 The workflows need Settings → Actions → General → Workflow permissions → Read and write.
 
 ## Release notes
+
+### 0.3.2
+
+- **Try it on** shows the whole look: the pieces go to the fitting room one at a time once it's
+  open, not all at once (which left only the weapon, or an accessory). If the fitting room is open
+  already it starts afresh. The recording logs each piece sent and what the window shows.
 
 ### 0.3.1
 

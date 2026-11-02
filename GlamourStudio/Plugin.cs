@@ -149,6 +149,7 @@ public sealed class Plugin : IDalamudPlugin
         Step(() => sync.Tick(window.IsOpen), "the site");
         Step(shots.Tick, "the shot");
         Step(recorder.Tick, "the recording");
+        Step(FittingRoom.Tick, "the fitting room");
         Step(() =>
         {
             var editor = PlateEditor.IsOpen;
@@ -197,6 +198,7 @@ public sealed class Plugin : IDalamudPlugin
         Safely(() => Services.Commands.RemoveHandler(Command));
         Safely(windows.RemoveAllWindows);
         Safely(() => Core.SiteLink.Trace = null);
+        Safely(FittingRoom.Stop);
         Safely(() => recorder?.Dispose());
         Safely(() => shots?.Dispose());
         Safely(() => sync?.Dispose());

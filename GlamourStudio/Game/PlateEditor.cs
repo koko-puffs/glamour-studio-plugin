@@ -232,25 +232,6 @@ public static unsafe class PlateEditor
         return sb.ToString();
     }
 
-    /// <summary>Tries a look on in the game's fitting room (anywhere: no dresser needed).</summary>
-    public static int TryOn(IReadOnlyDictionary<Slot, Piece> pieces)
-    {
-        var shown = 0;
-        foreach (var slot in Slots.All)
-        {
-            if (!pieces.TryGetValue(slot, out var p) || p.Item == 0) continue;
-            try
-            {
-                if (AgentTryon.TryOn(0, LookJson.BaseId(p.Item), p.Dye1, p.Dye2, 0, false)) shown++;
-            }
-            catch (Exception ex)
-            {
-                Services.Log.Warning(ex, "Glamour Studio couldn't try a piece on");
-            }
-        }
-        return shown;
-    }
-
     /// <summary>
     /// Wears a glamour plate now, with the gearset you're on, as <c>/gearset change &lt;set&gt; &lt;plate&gt;</c>
     /// does (the game has no command for a plate alone: <c>/glamourplate</c> isn't one). In a
