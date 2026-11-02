@@ -32,9 +32,13 @@ plates to **gearsets**, and takes **shots** of a look for its page on the site.
 2. Open your glamour dresser and armoire once (at an inn): the game only shows them then, and the
    plugin remembers them.
 3. At a glamour dresser, open **Glamour Plates** and pick a plate. The plugin opens with your looks:
-   pick one and press **Put on plate**. Check it in the game's window, then press **Save** there.
+   pick one and press **Fill plate** (or **Put on plate**). Check it in the game's window, then press
+   **Save** there.
 
-The closet tab says what the plugin has read and when, and what to open so it can read the rest.
+Closet says what the plugin has read and when, and what to open so it can read the rest.
+
+Something not working? Settings → Making a report records what you do in the game (or
+`/gstudio record`), to copy or save and send along.
 
 **Please note:** plugins are against Square Enix's terms of service. This one reads what the game
 already shows you, and only changes things when you press a button for it: a plate (you save it
