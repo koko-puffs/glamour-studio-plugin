@@ -219,6 +219,7 @@ public sealed class SiteSync : IDisposable
                     Library = Library with { Wishes = left };
                     // (A read of your looks already on its way could bring them back: read again after it.)
                     nextLibrary = DateTime.MinValue;
+                    LastWishesGot = (got, DateTime.UtcNow);
                     WishesGot?.Invoke(got);
                 }
                 // What you could wear now may have changed with it.
@@ -236,6 +237,9 @@ public sealed class SiteSync : IDisposable
 
     /// <summary>Pieces a read took off your shopping list (you have them now): the plugin says so.</summary>
     public event Action<IReadOnlyList<uint>>? WishesGot;
+
+    /// <summary>The last pieces a read took off your shopping list, and when.</summary>
+    public (IReadOnlyList<uint> Items, DateTime At)? LastWishesGot { get; private set; }
 
     private DateTime nextWearable;
 

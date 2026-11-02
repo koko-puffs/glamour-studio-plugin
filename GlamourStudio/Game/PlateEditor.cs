@@ -114,6 +114,8 @@ public static unsafe class PlateEditor
                             data->SelectedItemIndex = (uint)index;
                             agent->SetSelectedItemData(step.Source == PlateSource.Dresser ? ItemSource.PrismBox : ItemSource.Cabinet,
                                 step.SourceId, step.Item != 0 ? step.Item : want.Item, step.Has1, step.Has2);
+                            Recorder.Log($"  SetSelectedItemData slot {index} ({Slots.Key(step.Slot)}): source {step.Source} {step.SourceId}, item {(step.Item != 0 ? step.Item : want.Item)}, stains {step.Has1}/{step.Has2}"
+                                         + $" → now {data->CurrentItems[index].ItemId} src {data->CurrentItems[index].Source}/{data->CurrentItems[index].SourceId} stains {data->CurrentItems[index].StainIds[0]}/{data->CurrentItems[index].StainIds[1]}");
                             set++;
                             if (step.DyeFromBags && Dye(agent, step, want, dyeItems)) dyed++;
                             break;
@@ -121,6 +123,7 @@ public static unsafe class PlateEditor
                             if (data->CurrentItems[index].ItemId == 0) break;
                             data->SelectedItemIndex = (uint)index;
                             agent->ClearItemData((uint)index);
+                            Recorder.Log($"  ClearItemData slot {index} ({Slots.Key(step.Slot)}) → now {data->CurrentItems[index].ItemId}");
                             cleared++;
                             break;
                     }
@@ -156,7 +159,43 @@ public static unsafe class PlateEditor
         agent->SetSelectedItemStains(
             b0, b0 != null ? want.Dye1 : step.Has1, b0 != null ? b0->GetBaseItemId() : 0,
             b1, b1 != null ? want.Dye2 : step.Has2, b1 != null ? b1->GetBaseItemId() : 0);
+        Recorder.Log($"  SetSelectedItemStains {Slots.Key(step.Slot)}: dye1 {(b0 != null ? $"{want.Dye1} from bottle {b0->GetBaseItemId()}" : $"kept {step.Has1}")}, dye2 {(b1 != null ? $"{want.Dye2} from bottle {b1->GetBaseItemId()}" : $"kept {step.Has2}")}");
         return true;
+    }
+
+    /// <summary>
+    /// The plate editor in words, for the recorder: closed, or the plate, the slot picked, whether
+    /// it's changed, how it was opened, and each slot (the item, where it came from, its dyes, and
+    /// with <paramref name="detail"/> its icon, flags and pending dyes).
+    /// </summary>
+    public static string Describe(GameData names, bool detail)
+    {
+        var a = (AtkUnitBase*)Services.GameGui.GetAddonByName(Window).Address;
+        var agent = AgentMiragePrismMiragePlate.Instance();
+        if (agent == null) return "no agent";
+        var window = a == null ? "window closed" : a->IsVisible ? "window open" : "window hidden";
+        if (agent->Data == null) return $"{window}, agent has no data";
+        var data = agent->Data;
+        var sb = new System.Text.StringBuilder();
+        sb.Append($"{window}, plate {data->SelectedMiragePlateIndex + 1}, slot {data->SelectedItemIndex}, changes {data->HasChanges}, mode {data->OpenMode}, gearset {data->GearsetId}");
+        var items = data->CurrentItems;
+        sb.Append(", slots:");
+        for (var i = 0; i < items.Length; i++)
+        {
+            ref var it = ref items[i];
+            var key = Slots.FromPlateIndex(i) is { } sl ? Slots.Key(sl) : i.ToString();
+            if (it.ItemId == 0)
+            {
+                if (detail) sb.Append($" {key}=empty;");
+                continue;
+            }
+            sb.Append($" {key}={it.ItemId} {names.ItemName(it.ItemId % 500000)} ({it.Source}:{it.SourceId}) {it.StainIds[0]}/{it.StainIds[1]}");
+            if (detail)
+                sb.Append($" icon {it.IconId} flags {it.Flags} cat {it.EquipSlotCategory} stainState {it.StainState} pending {it.PendingStainIds[0]}/{it.PendingStainIds[1]}"
+                          + $" bottles {it.PendingStainItemIds[0]}/{it.PendingStainItemIds[1]} at {it.PendingStainInventoryTypes[0]}:{it.PendingStainInventorySlots[0]}/{it.PendingStainInventoryTypes[1]}:{it.PendingStainInventorySlots[1]}");
+            sb.Append(';');
+        }
+        return sb.ToString();
     }
 
     /// <summary>Tries a look on in the game's fitting room (anywhere: no dresser needed).</summary>
@@ -187,6 +226,7 @@ public static unsafe class PlateEditor
         var text = Utf8String.FromString($"/glamourplate {plate}");
         try
         {
+            Recorder.Log($"WEAR /glamourplate {plate}");
             ui->ProcessChatBoxEntry(text, nint.Zero, false);
             return true;
         }

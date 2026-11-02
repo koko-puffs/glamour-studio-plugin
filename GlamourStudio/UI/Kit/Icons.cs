@@ -69,6 +69,8 @@ public enum Icon
     Paint,
     Archive,
     User,
+    ArrowRight,
+    Record,
 }
 
 /// <summary>
@@ -94,7 +96,7 @@ public static class Icons
         [Icon.List] = (new[] { "M8 6H21", "M8 12H21", "M8 18H21", "M3 6H3.01", "M3 12H3.01", "M3 18H3.01" }, false),
         [Icon.Sliders] = (new[]
         {
-            "M21 4H14", "M10 4H3", "M21 12H12", "M8 12H3", "M21 20H16", "M12 20H3", "M14 2V6", "M8 10V14", "M16 18V22",
+            "M4 21v-7", "M4 10V3", "M12 21v-9", "M12 8V3", "M20 21v-5", "M20 12V3", "M1 14h6", "M9 8h6", "M17 16h6",
         }, false),
         [Icon.X] = (new[] { "M18 6 6 18", "m6 6 12 12" }, false),
         [Icon.ChevronRight] = (new[] { "m9 18 6-6-6-6" }, false),
@@ -122,6 +124,8 @@ public static class Icons
         [Icon.Refresh] = (new[] { "M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8", "M3 3v5h5" }, false),
         [Icon.Check] = (new[] { "M20 6 9 17l-5-5" }, false),
         [Icon.ArrowLeft] = (new[] { "m12 19-7-7 7-7", "M19 12H5" }, false),
+        [Icon.ArrowRight] = (new[] { "M5 12h14", "m12 5 7 7-7 7" }, false),
+        [Icon.Record] = (new[] { Circle(12, 12, 6) }, true),
         [Icon.Shelf] = (new[] { Rect(4, 3, 16, 18, 1), "M4 9h16", "M4 15h16" }, false),
         [Icon.Minus] = (new[] { "M5 12h14" }, false),
         [Icon.Plus] = (new[] { "M5 12h14", "M12 5v14" }, false),

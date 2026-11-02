@@ -1,9 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Dalamud.Game.Command;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
+using GlamourStudio.Core;
 using GlamourStudio.Game;
 using GlamourStudio.Session;
 using GlamourStudio.UI;
@@ -25,6 +27,7 @@ public sealed class Plugin : IDalamudPlugin
     private readonly SiteSync sync;
     private readonly Fonts fonts;
     private readonly Shots shots;
+    private readonly Recorder recorder;
     private readonly WindowSystem windows = new("GlamourStudio");
     private readonly MainWindow window;
 
@@ -42,12 +45,20 @@ public sealed class Plugin : IDalamudPlugin
             sync = new SiteSync(config, wardrobe);
             fonts = new Fonts();
             shots = new Shots(sync.Http, () => config.SiteToken);
-            window = new MainWindow(config, data, wardrobe, sync, fonts, shots);
+            recorder = new Recorder(data)
+            {
+                Header = RecordingHeader,
+                PluginState = () =>
+                    $"linked {sync.Linked} (refused {sync.TokenRefused}), syncing {sync.Syncing}, last sync {(sync.LastSyncAt is { } at ? at.ToString("HH:mm:ss") : "never")}{(sync.SyncProblem != null ? $" problem \"{sync.SyncProblem}\"" : string.Empty)}, "
+                    + $"wardrobe v{wardrobe.Version} dresser live {wardrobe.DresserLive} armoire live {wardrobe.ArmoireLive}, shot {(shots.Capturing ? "capturing" : shots.Taken is { } t ? (t.Sending ? "sending" : t.Sent ? "sent" : "taken") : "none")}",
+            };
+            window = new MainWindow(config, data, wardrobe, sync, fonts, shots, recorder);
             windows.AddWindow(window);
 
             Services.Commands.AddHandler(Command, new CommandInfo(OnCommand)
             {
-                HelpMessage = "Open Glamour Studio. /gstudio settings opens Settings; /gstudio send sends your closet to the site now.",
+                HelpMessage = "Open Glamour Studio. /gstudio settings opens Settings; /gstudio send sends your closet now; "
+                              + "/gstudio record starts or stops a recording for a report; /gstudio mark <what you'll do> notes a step in it; /gstudio dump writes down the glamour windows' values; /gstudio save saves it as a file.",
             });
             Services.PluginInterface.UiBuilder.Draw += windows.Draw;
             Services.PluginInterface.UiBuilder.OpenMainUi += window.ShowMain;
@@ -65,7 +76,44 @@ public sealed class Plugin : IDalamudPlugin
 
     private void OnCommand(string command, string args)
     {
-        switch (args.Trim().ToLowerInvariant())
+        var trimmed = args.Trim();
+        var space = trimmed.IndexOf(' ');
+        var verb = (space < 0 ? trimmed : trimmed[..space]).ToLowerInvariant();
+        var rest = space < 0 ? string.Empty : trimmed[(space + 1)..].Trim();
+        switch (verb)
+        {
+            case "record":
+                if (recorder.Recording) recorder.Stop();
+                else recorder.Start();
+                Services.Chat.Print(recorder.Recording
+                    ? "Glamour Studio: recording. Before each step: /gstudio mark <what you'll do>. /gstudio record again stops it."
+                    : $"Glamour Studio: recording stopped ({recorder.LineCount:N0} lines). /gstudio save saves it as a file; Settings → Making a report copies it.");
+                return;
+            case "mark":
+                if (!recorder.Recording) recorder.Start();
+                recorder.Mark(rest);
+                Services.Chat.Print($"Glamour Studio: mark {recorder.Marks}{(rest.Length > 0 ? $": {rest}" : string.Empty)}");
+                return;
+            case "dump":
+                if (!recorder.Recording)
+                {
+                    Services.Chat.Print("Glamour Studio: start a recording first (/gstudio record).");
+                    return;
+                }
+                recorder.DumpWindows();
+                Services.Chat.Print("Glamour Studio: the glamour windows' values are written down.");
+                return;
+            case "save":
+                if (recorder.LineCount == 0)
+                {
+                    Services.Chat.Print("Glamour Studio: nothing recorded yet (/gstudio record).");
+                    return;
+                }
+                var path = recorder.Save(window.Diagnostics(), out var why);
+                Services.Chat.Print(path != null ? $"Glamour Studio: saved to {path}" : $"Glamour Studio: {why}");
+                return;
+        }
+        switch (verb)
         {
             case "settings":
             case "config":
@@ -88,6 +136,7 @@ public sealed class Plugin : IDalamudPlugin
         Step(() => wardrobe.Tick(), "reading");
         Step(() => sync.Tick(window.IsOpen), "the site");
         Step(shots.Tick, "the shot");
+        Step(recorder.Tick, "the recording");
         Step(() =>
         {
             var editor = PlateEditor.IsOpen;
@@ -135,10 +184,21 @@ public sealed class Plugin : IDalamudPlugin
         }
         Safely(() => Services.Commands.RemoveHandler(Command));
         Safely(windows.RemoveAllWindows);
+        Safely(() => recorder?.Dispose());
         Safely(() => shots?.Dispose());
         Safely(() => sync?.Dispose());
         Safely(() => wardrobe?.Flush());
         Safely(() => fonts?.Dispose());
+    }
+
+    /// <summary>A recording's first lines: the plugin, the character, the settings, what's been read.</summary>
+    private IEnumerable<string> RecordingHeader()
+    {
+        var me = wardrobe.Current;
+        yield return $"Character {(me != null ? $"{me.Name}@{me.World} key {me.Key}" : "none")}, linked {sync.Linked}, Dalamud API {Services.PluginInterface.AssemblyLocation.Name}";
+        yield return $"Settings: empty bare slots {config.ClearBare}, dye from bags {config.DyeFromBags}, open with editor {config.OpenWithEditor}, auto send {config.AutoSync}, send plates {config.SendPlates}, chat notes {config.ChatNotes}";
+        yield return me == null ? "Read: nothing" : "Read: " + string.Join(", ", Places.ByPriority.Select(p => $"{Places.Key(p)} {(me.Get(p) is { } r ? $"{r.Items.Count} at {r.ReadAt:HH:mm}" : "never")}"))
+                                                     + $", plates {(me.PlatesReadAt is { } pr ? pr.ToString("HH:mm") : "never")}, retainers {me.Retainers.Count}";
     }
 
     private static void Safely(Action action)

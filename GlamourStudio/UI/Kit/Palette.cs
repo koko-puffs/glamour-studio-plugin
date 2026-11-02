@@ -21,6 +21,8 @@ public static class Palette
     public static readonly Vector4 Field = Hex(0x151317);                  // fields (on a raised ground)
     public static readonly Vector4 Tile = Hex(0x1c191f);                   // --gs-soft: icon tiles and wells
     public static readonly Vector4 ButtonFill = Rgba(0, 0, 0, 0);          // an outlined pill's inside
+    public static readonly Vector4 Rail = Hex(0x08080a);                   // the navigation rail and the side panes
+    public static readonly Vector4 Divider = Hex(0x1a171c);                // between the header, the rail, the panes
     public static readonly Vector4 Picked = Hex(0xf3eff1);                 // --gs-chip: the picked one in a segmented group
     public static readonly Vector4 OnPicked = Hex(0x121113);               // --gs-on-chip
 
@@ -30,6 +32,7 @@ public static class Palette
     public static readonly Vector4 Soft = Hex(0xd3cdd0);                   // --gs-body: what you read
     public static readonly Vector4 Light = Hex(0xbdb7bb);                  // quiet buttons, links
     public static readonly Vector4 Muted = Hex(0xa7a1a6);                  // --gs-muted
+    public static readonly Vector4 Dim = Hex(0x8d868c);                    // counts, slot lines, small mono labels (readable at 11px)
     public static readonly Vector4 Faint = Hex(0x6f6970);                  // --gs-faint: what hardly needs reading
 
     // The rose: the thing to do, where you are, what's yours to get.
@@ -53,6 +56,10 @@ public static class Palette
     public static readonly Vector4 DangerEdge = Rgba(255, 79, 79, 0.45f);
     public static readonly Vector4 Success = Hex(0x5fd3a1);                // --gs-ok: yours, done, linked
     public static readonly Vector4 SuccessWash = Rgba(95, 211, 161, 0.1f);
+    public static readonly Vector4 SuccessChip = Rgba(95, 211, 161, 0.08f);  // a green chip's inside
+    public static readonly Vector4 SuccessEdge = Rgba(95, 211, 161, 0.4f);   // a green chip's and card's edge
+    public static readonly Vector4 RoseChip = Rgba(255, 79, 134, 0.08f);     // a rose chip's inside
+    public static readonly Vector4 RoseRow = Rgba(255, 79, 134, 0.1f);       // the row picked in a list
 
     // Lines.
     public static readonly Vector4 LineFaint = Rgba(255, 255, 255, 0.05f); // dividers in cards, hover fills

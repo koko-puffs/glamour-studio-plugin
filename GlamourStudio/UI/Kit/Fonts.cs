@@ -54,11 +54,12 @@ public sealed class Fonts : IDisposable
 
     private static readonly (Face Face, int Px)[] Wanted =
     {
-        (Face.Sans, 15), (Face.Sans, 14), (Face.Sans, 13), (Face.Sans, 12),
+        (Face.Sans, 15), (Face.Sans, 14), (Face.Sans, 13), (Face.Sans, 12), (Face.Sans, 11),
         (Face.SansMedium, 15), (Face.SansMedium, 14), (Face.SansMedium, 13), (Face.SansMedium, 12),
-        (Face.SansSemibold, 18), (Face.SansSemibold, 15), (Face.SansSemibold, 14), (Face.SansSemibold, 13),
+        (Face.SansSemibold, 18), (Face.SansSemibold, 15), (Face.SansSemibold, 14), (Face.SansSemibold, 13), (Face.SansSemibold, 12),
         (Face.SansBold, 14), (Face.SansBold, 13),
-        (Face.Display, 30), (Face.Display, 24), (Face.Display, 20), (Face.Display, 16),
+        (Face.Display, 30), (Face.Display, 28), (Face.Display, 26), (Face.Display, 24), (Face.Display, 22), (Face.Display, 20),
+        (Face.Display, 19), (Face.Display, 16), (Face.Display, 15),
         (Face.Mono, 12), (Face.Mono, 11), (Face.Mono, 10),
         (Face.MonoMedium, 12), (Face.MonoMedium, 11),
     };

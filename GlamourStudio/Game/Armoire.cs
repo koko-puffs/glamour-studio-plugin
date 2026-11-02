@@ -60,7 +60,9 @@ public static unsafe class Armoire
         {
             var ui = UIState.Instance();
             if (ui == null || !IsOpen || ui->Cabinet.IsItemInCabinet(cabinetRow)) return false;
-            return ui->Cabinet.StoreCabinetItem(cabinetRow);
+            var ok = ui->Cabinet.StoreCabinetItem(cabinetRow);
+            Recorder.Log($"StoreCabinetItem row {cabinetRow} → returned {ok}, in the armoire now {ui->Cabinet.IsItemInCabinet(cabinetRow)}");
+            return ok;
         }
         catch (Exception ex)
         {

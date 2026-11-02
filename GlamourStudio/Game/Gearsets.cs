@@ -50,6 +50,7 @@ public static unsafe class Gearsets
             var m = RaptureGearsetModule.Instance();
             if (m == null || !m->IsValidGearset(gearset)) return false;
             m->LinkGlamourPlate(gearset, (byte)plate);
+            Recorder.Log($"LinkGlamourPlate gearset {gearset + 1} plate {plate} → its link now {m->Entries[gearset].GlamourSetLink}");
             return true;
         }
         catch (Exception ex)
@@ -66,7 +67,9 @@ public static unsafe class Gearsets
         {
             var m = RaptureGearsetModule.Instance();
             if (m == null || !m->IsValidGearset(gearset)) return false;
-            return m->EquipGearset(gearset, 0) == 0;
+            var r = m->EquipGearset(gearset, 0);
+            Recorder.Log($"EquipGearset {gearset + 1} → returned {r}, current now {m->CurrentGearsetIndex + 1}");
+            return r == 0;
         }
         catch (Exception ex)
         {

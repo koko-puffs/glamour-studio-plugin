@@ -106,6 +106,7 @@ public sealed class Shots : IDisposable
         Discard();
         Problem = null;
         Capturing = true;
+        Game.Recorder.Log($"SHOT take for {lookName}: hud {(Services.GameGui.GameUiHidden ? "already hidden" : "shown, hiding it")}, gpose {Services.ClientState.IsGPosing}");
         if (!Services.GameGui.GameUiHidden && SetHud(false))
         {
             hidHud = true;
@@ -134,6 +135,7 @@ public sealed class Shots : IDisposable
         }
         grabFor = (lookId, lookName, ++generation);
         grabAt = DateTime.UtcNow;
+        Game.Recorder.Log($"SHOT grabbing the frame (hud hidden {Services.GameGui.GameUiHidden})");
         return true;
     }
 
@@ -200,6 +202,7 @@ public sealed class Shots : IDisposable
             return;
         }
         Taken = new Shot { LookId = lookId, LookName = lookName, Jpeg = m.Jpeg, Width = m.Width, Height = m.Height, Thumb = m.Thumb };
+        Game.Recorder.Log($"SHOT made: {m.Width}×{m.Height}, {m.Jpeg.Length:N0} bytes, hud hidden now {Services.GameGui.GameUiHidden}");
         // With the HUD hidden (or in Group Pose) Dalamud hides the plugin's windows too.
         if (Services.GameGui.GameUiHidden || Services.ClientState.IsGPosing)
             Services.Chat.Print("Glamour Studio: shot taken. Show the HUD again (or leave Group Pose) to see it and send it.");
@@ -207,6 +210,7 @@ public sealed class Shots : IDisposable
 
     private void Failed(string why)
     {
+        Game.Recorder.Log($"SHOT failed: {why}");
         Capturing = false;
         Problem = why;
         Services.Log.Warning($"Glamour Studio: no shot: {why}");

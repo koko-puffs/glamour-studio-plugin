@@ -145,12 +145,13 @@ public static partial class Kit
     private static (float Height, float Pad, int Px) Spec(BtnSize size) => size switch
     {
         BtnSize.Tiny => (30, 12, 13),
-        BtnSize.Sm => (30, 12, 13),
-        BtnSize.Lg => (44, 22, 14),
-        _ => (36, 16, 13),
+        BtnSize.Sm => (34, 14, 13),
+        BtnSize.Lg => (46, 22, 15),
+        _ => (40, 18, 14),
     };
 
-    private static Face FaceOf(Btn style) => style == Btn.Primary ? Face.SansBold : Face.SansSemibold;
+    /// <summary>Every pill's words in DM Sans 500, as the layout's (white on the rose one).</summary>
+    private static Face FaceOf(Btn style) => Face.SansMedium;
 
     public static float ButtonHeight(BtnSize size) => S(Spec(size).Height);
 
@@ -222,7 +223,7 @@ public static partial class Kit
         if (edge.W > 0) dl.AddRect(pos + new Vector2(0.5f), max - new Vector2(0.5f), Palette.U32(edge), r, ImDrawFlags.None, 1f);
 
         var face = FaceOf(style);
-        var iconPx = S(h >= S(40) ? 18 : 16);
+        var iconPx = S(16);
         // A label wider than a button of a set width is cut to fit (1.0.0: it ran past the pill and the window).
         if (width > 0 && label.Length > 0)
             label = Txt.Fit(label, face, px, MathF.Max(0, w - S(padCss) * 2 - (icon != null ? iconPx + S(8) : 0) + 1));
@@ -266,12 +267,15 @@ public static partial class Kit
         var max = pos + size;
         var r = size.Y / 2;
         var e = Ease(t);
-        if (e > 0) dl.AddRectFilled(pos, max, Palette.U32(Palette.WithAlpha(Palette.RoseFill, e)), r);
-        var edge = on ? Palette.RoseFill : hovered ? Palette.LineHover : Palette.LineStrong;
-        dl.AddRect(pos + new Vector2(0.5f), max - new Vector2(0.5f), Palette.U32(edge), r, ImDrawFlags.None, 1f);
-        var knob = pos + new Vector2(S(4 + 8) + S(20) * e, size.Y / 2);
-        var knobColor = Mix(Palette.Muted, Palette.OnRose, e);
-        dl.AddCircleFilled(knob, S(8), Palette.U32(knobColor), 24);
+        // Off: the line's dark track with the strong edge inside; on: the deep rose. A white knob either way.
+        dl.AddRectFilled(pos, max, Palette.U32(Mix(Palette.Line, Palette.RoseFill, e)), r);
+        if (e < 1)
+        {
+            var edge = hovered ? Palette.LineHover : Palette.LineStrong;
+            dl.AddRect(pos + new Vector2(0.5f), max - new Vector2(0.5f), Palette.U32(Palette.WithAlpha(edge, 1 - e)), r, ImDrawFlags.None, 1f);
+        }
+        var knob = pos + new Vector2(S(3 + 9) + S(20) * e, size.Y / 2);
+        dl.AddCircleFilled(knob, S(9), Palette.U32(Palette.White), 24);
         Palette.Opacity = old;
         FocusRing(pos, max, r);
         return clicked;
