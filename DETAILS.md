@@ -244,6 +244,8 @@ builds `main` when run by hand. Everything under 0.1.1 below is in this one.
   window's closed (at once when it opens).
 - The window: no line over the title, and 490 wide at the least so the title fits.
 - A link of several words (Settings' What's new) lights up as one when pointed at, not word by word.
+- The rose pill and switches in the site's deeper rose with white words, as its buttons and the
+  mark now are; rose words, icons and rings on the dark stay the bright rose.
 
 ### 0.1.0
 

@@ -7,7 +7,8 @@ namespace GlamourStudio.UI;
 /// Glamour Studio's colours, as the site has them (src/features/glamour-studio/styles/glamour.css,
 /// <c>--gs-*</c>): dark only, the night sky of near black, panels a shade lighter with hairline
 /// edges, quiet greys for words, and one rose that glows where it matters: the thing to do, where
-/// you are, what's yours to get.
+/// you are, what's yours to get. Filled, the rose is the favicon's deeper one with white words
+/// (<see cref="RoseFill"/>); the bright one is for words, icons, rings and glows on the dark.
 /// </summary>
 public static class Palette
 {
@@ -36,7 +37,9 @@ public static class Palette
     public static readonly Vector4 RoseHover = Hex(0xff6f9c);              // --gs-accent-hover
     public static readonly Vector4 RoseSoft = Hex(0xffc2d5);               // words on its wash
     public static readonly Vector4 RoseText = Hex(0xff8fb2);               // rose notes, easier to read than the accent
-    public static readonly Vector4 OnRose = Hex(0x1a0710);                 // --gs-on-accent
+    public static readonly Vector4 RoseFill = Hex(0xd0104c);               // --gs-accent-fill: what's filled rose (the rose pill, a switch that's on), the favicon's
+    public static readonly Vector4 RoseFillHover = Hex(0xe01d5b);          // --gs-accent-fill-hover
+    public static readonly Vector4 OnRose = Hex(0xffffff);                 // --gs-on-accent: white on the filled rose (5.1:1)
     public static readonly Vector4 RoseWash = Hex(0x22121a);               // --gs-blush: a highlighted card
     public static readonly Vector4 RoseTile = Hex(0x3a1a28);               // --gs-blush-2: the round wells behind its icons
     public static readonly Vector4 RosePicked = Rgba(255, 79, 134, 0.13f); // --gs-accent-soft

@@ -10,7 +10,7 @@ namespace GlamourStudio.UI;
 /// <summary>The four buttons of the design system.</summary>
 public enum Btn
 {
-    /// <summary>The one rose pill on a screen: what goes ahead (the site's <c>.gs-pill.is-accent</c>).</summary>
+    /// <summary>The one rose pill on a screen, deep rose with white words: what goes ahead (the site's <c>.gs-pill.is-accent</c>).</summary>
     Primary,
 
     /// <summary>An outline with the strong edge: everything else you press.</summary>
@@ -179,7 +179,7 @@ public static partial class Kit
         switch (style)
         {
             case Btn.Primary:
-                fill = held ? Palette.Rose : hovered ? Palette.RoseHover : Palette.Rose;
+                fill = hovered && !held ? Palette.RoseFillHover : Palette.RoseFill;
                 edge = fill;
                 ink = Palette.OnRose;
                 // The site's glow on the rose pill when pointed at.
@@ -247,7 +247,7 @@ public static partial class Kit
     // ---------------------------------------------------------------------------------------------
     // Switch, segmented pill, chips, pills.
 
-    /// <summary>The site's switch, 44×24: an outline with a grey knob, filled rose with a dark knob when on. Returns true when flipped.</summary>
+    /// <summary>The site's switch, 44×24: an outline with a grey knob, filled deep rose with a white knob when on. Returns true when flipped.</summary>
     public static bool Switch(string id, Vector2 pos, bool on, bool disabled = false)
     {
         var size = new Vector2(S(44), S(24));
@@ -266,8 +266,8 @@ public static partial class Kit
         var max = pos + size;
         var r = size.Y / 2;
         var e = Ease(t);
-        if (e > 0) dl.AddRectFilled(pos, max, Palette.U32(Palette.WithAlpha(Palette.Rose, e)), r);
-        var edge = on ? Palette.Rose : hovered ? Palette.LineHover : Palette.LineStrong;
+        if (e > 0) dl.AddRectFilled(pos, max, Palette.U32(Palette.WithAlpha(Palette.RoseFill, e)), r);
+        var edge = on ? Palette.RoseFill : hovered ? Palette.LineHover : Palette.LineStrong;
         dl.AddRect(pos + new Vector2(0.5f), max - new Vector2(0.5f), Palette.U32(edge), r, ImDrawFlags.None, 1f);
         var knob = pos + new Vector2(S(4 + 8) + S(20) * e, size.Y / 2);
         var knobColor = Mix(Palette.Muted, Palette.OnRose, e);
