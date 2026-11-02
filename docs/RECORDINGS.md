@@ -66,7 +66,7 @@ Saved files are in `%AppData%\XIVLauncher\pluginConfigs\GlamourStudio\recordings
 
 ## A · Glamour plates by hand, and filled by the plugin
 
-**Done (two recordings):** A1 to A12, A14 to A16. **Still to do:** A13 (needs a look on the site
+**Done (two recordings):** A1 to A10, A12, A14 to A16 (the plugin's fill was watched through A13's Put on plate). **Still to do:** A11 (Fill plate 3 from the plan, the recording you said you'd make on its own), A13 (needs a look on the site
 with a dyed piece whose dresser copy has other dyes, and Settings → Dye pieces with the dyes in your
 bags on) and A17.
 
