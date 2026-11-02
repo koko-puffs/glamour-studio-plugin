@@ -110,6 +110,9 @@ public static class LookJson
         return pieces;
     }
 
+    /// <summary>An item id as the site writes it (a number, or one in a string), normal quality; null when it isn't one.</summary>
+    public static uint? ItemId(JsonNode? n) => Long(n) is { } id and >= 1 and <= 9_999_999 ? BaseId((uint)id) : null;
+
     private static byte Dye(JsonNode? n) => Long(n) is { } d and >= 0 and <= 255 ? (byte)d : (byte)0;
 
     private static long? Long(JsonNode? n)

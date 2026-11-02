@@ -1,3 +1,4 @@
+using System.Linq;
 using System;
 using System.Collections.Generic;
 using System.Numerics;
@@ -69,6 +70,9 @@ public static class Txt
     /// Letter-spaced text (CSS letter-spacing, which also follows the last letter): eyebrows at
     /// .18em, stamps at .1em. Returns the width.
     /// </summary>
+    /// <summary>Each of the first 256 characters as a string, made once (spaced capitals are drawn a letter at a time, every frame).</summary>
+    private static readonly string[] OneChar = Enumerable.Range(0, 256).Select(c => ((char)c).ToString()).ToArray();
+
     public static float Spaced(ImDrawListPtr dl, Vector2 pos, string text, Face face, int px, Vector4 color, float em, bool draw = true)
     {
         using (Fonts.Push(face, px))
@@ -78,7 +82,7 @@ public static class Txt
             var col = Palette.U32(color);
             foreach (var ch in text)
             {
-                var s = ch.ToString();
+                var s = ch < OneChar.Length ? OneChar[ch] : ch.ToString();
                 if (draw) dl.AddText(Snap(new Vector2(x, pos.Y)), col, s);
                 x += ImGui.CalcTextSize(s).X + spacing;
             }

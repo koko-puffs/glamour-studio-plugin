@@ -67,7 +67,8 @@ right, a card of rows for settings, the question as a card over the window.
   planned for that plate on the site: ✓ when it's on, else **Fill it with “the look”** (and › to
   see the look first). While it's open, the looks ready for a plate come first in the lists.
 - **Examining** (only while the game's Examine window shows someone): their outfit as the window
-  shows it (glamour and dyes), with Try it on and Keep it as a look (a private look of yours named
+  shows it (glamour and dyes; someone new is shown once two reads half a second apart agree, as the
+  window can hold the last one's gear while the next loads), with Try it on and Keep it as a look (a private look of yours named
   "Their name's outfit", their body for the mannequin).
 - **Get started** (only while not linked): three steps (link, open the dresser and armoire once,
   put a look on a plate) with Link your account and Open Glamour Studio.
@@ -109,7 +110,8 @@ what to do. With the editor open, a piece whose dyes won't be the look's says so
 **Put away first** (when some pieces are yours but not in the dresser or armoire): each with where
 it is and whether the armoire takes it. With the armoire's window open (at an inn), **Into the
 armoire** stores one from your bags or armoury chest (`Cabinet.StoreCabinetItem` by its Cabinet
-row; not yet watched in the game). The dresser has no such call the plugin knows: it says to store
+row; not yet watched in the game). Not offered for a piece you're wearing; once asked, the button
+says Storing… for five seconds (the game answers in a moment, and a second ask would be a second store). The dresser has no such call the plugin knows: it says to store
 them there.
 
 **Worn in game** (public looks only: the site takes shots for those): **Take a shot** hides the HUD
@@ -117,7 +119,9 @@ them there.
 shows the HUD again, and makes the picture 2560 at most on its long side (1920 if no quality fits)
 as a JPEG under 3 MB, with a preview. Under the preview: a caption, **Send it to the look**, Take
 another, Discard. Sent, it goes to the edge function `gs-plugin-shot` and shows on the look's page
-under Worn in game as yours (three of yours a look, three a minute, twenty a day).
+under Worn in game as yours (three of yours a look, three a minute, twenty a day). A frame that
+never comes is given up on after five seconds, and the HUD shown again; the plugin's every-frame
+work runs each part on its own, so nothing else failing can keep the HUD hidden.
 
 ### A plate (or what you're wearing)
 
@@ -130,11 +134,13 @@ has now; `LinkGlamourPlate`, saved by the game as its own gearset window does).
 
 ### Make room in your dresser
 
-From Closet. The dresser's places used of 800 (an outfit's pieces share one), free, and how many
-gathering outfits would free. **Keep as outfits**: each outfit set (`MirageStoreSetItem`) with two
+From Closet. The dresser's places used of 800 (an outfit's pieces share one), free, and up to how
+many gathering outfits would free (a loose piece two sets share counted once). **Keep as outfits**: each outfit set (`MirageStoreSetItem`) with two
 or more loose pieces in the dresser (one, when the set's already stored), the most freed first.
-**Not in any look or plate**: loose pieces none of your looks, the looks you love, looks sent or
-planned, your plates or your outfit uses. It only shows: the storing and taking out are the
+A stored set's own pieces don't count as joining it again. **Not in any look or plate**: loose
+pieces none of your looks, the looks you love, looks sent or planned for this character, your
+plates or your outfit uses (shown only once your looks have been read: unlinked, or before the
+first read, it says so rather than calling everything unused). It only shows: the storing and taking out are the
 dresser's own.
 
 ## Settings

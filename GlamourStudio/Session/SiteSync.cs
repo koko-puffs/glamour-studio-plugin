@@ -179,6 +179,8 @@ public sealed class SiteSync : IDisposable
         // closet from all of them, so another PC or character never takes this one's pieces off.
         var current = wardrobe.Current;
         if (current == null) return;
+        // First: should what follows throw, it isn't tried again every frame.
+        nextAutoSync = DateTime.UtcNow + AutoSyncGap;
         var (closet, read) = Wardrobe.Closet(new[] { current }, current.Key);
         var character = config.SendPlates ? current : null;
         var version = wardrobe.Version;
@@ -210,7 +212,14 @@ public sealed class SiteSync : IDisposable
                 LastSyncAt = DateTime.UtcNow;
                 lastSent = fingerprint;
                 versionSent = version;
-                if (r.Value!.WishesGot is { Count: > 0 } got) WishesGot?.Invoke(got);
+                if (r.Value!.WishesGot is { Count: > 0 } got)
+                {
+                    // Off the list here too, before the looks are read again.
+                    var left = new HashSet<uint>(Library.Wishes);
+                    left.ExceptWith(got);
+                    Library = Library with { Wishes = left };
+                    WishesGot?.Invoke(got);
+                }
                 // What you could wear now may have changed with it.
                 if (r.Value.Added + r.Value.Removed > 0) nextWearable = DateTime.MinValue;
             }
@@ -240,6 +249,8 @@ public sealed class SiteSync : IDisposable
             {
                 Plans = r.Value!;
                 plansFor = key;
+                // Changed character while it was asked: the new one's are asked for at once.
+                if (wardrobe.Current?.Key != key) nextPlans = DateTime.MinValue;
             }
             else TokenRefused |= r.TokenRefused;
         });
@@ -320,10 +331,11 @@ public sealed class SiteSync : IDisposable
             // The new look is yours now: your looks are read again.
             if (r.Ok) nextLibrary = DateTime.MinValue;
             done(r);
-        });
+        }, () => done(new SiteReply<SavedLook>(null, "It didn't go through (the link changed, or the call failed). Try again.")));
     }
 
-    private void Run<T>(Task<T> call, Action<T> then)
+    /// <param name="dropped">Told when the answer isn't taken (the link changed meanwhile, or the call threw), so nothing waits on it for good.</param>
+    private void Run<T>(Task<T> call, Action<T> then, Action? dropped = null)
     {
         var made = generation;
         call.ContinueWith(t =>
@@ -332,6 +344,7 @@ public sealed class SiteSync : IDisposable
                 answers.Enqueue(() =>
                 {
                     if (made == generation) then(t.Result);
+                    else dropped?.Invoke();
                 });
             else
             {
@@ -340,6 +353,7 @@ public sealed class SiteSync : IDisposable
                 answers.Enqueue(() =>
                 {
                     if (made == generation) Syncing = LibraryBusy = false;
+                    dropped?.Invoke();
                 });
             }
         }, TaskScheduler.Default);

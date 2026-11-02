@@ -84,19 +84,16 @@ public sealed class Plugin : IDalamudPlugin
 
     private void OnUpdate(IFramework framework)
     {
-        try
+        // Each on its own: one failing never stops the others (the shot's tick shows the HUD again).
+        Step(() => wardrobe.Tick(), "reading");
+        Step(() => sync.Tick(window.IsOpen), "the site");
+        Step(shots.Tick, "the shot");
+        Step(() =>
         {
-            wardrobe.Tick();
-            sync.Tick(window.IsOpen);
-            shots.Tick();
             var editor = PlateEditor.IsOpen;
             if (editor && !editorWasOpen && config.OpenWithEditor && !window.IsOpen) window.ShowMain();
             editorWasOpen = editor;
-        }
-        catch (Exception ex)
-        {
-            Services.Log.Warning(ex, "Glamour Studio's update failed");
-        }
+        }, "the plate editor");
     }
 
     /// <summary>Pieces from your shopping list the plugin has just seen in your wardrobe: a line in chat.</summary>
@@ -106,6 +103,23 @@ public sealed class Plugin : IDalamudPlugin
         var names = Core.Words.List(items.Take(4).Select(data.ItemName));
         var more = items.Count > 4 ? $" and {items.Count - 4} more" : string.Empty;
         Services.Chat.Print($"Glamour Studio: {names}{more} came off your shopping list.");
+    }
+
+    private DateTime quietUntil;
+
+    private void Step(Action step, string what)
+    {
+        try
+        {
+            step();
+        }
+        catch (Exception ex)
+        {
+            // Said once every ten seconds at most, should it fail every frame.
+            if (DateTime.UtcNow < quietUntil) return;
+            quietUntil = DateTime.UtcNow + TimeSpan.FromSeconds(10);
+            Services.Log.Warning(ex, $"Glamour Studio's update failed ({what})");
+        }
     }
 
     public void Dispose()

@@ -443,3 +443,50 @@ public class FeatureTests
         Assert.Null(SiteLink.FitShot(30, 720, 2560));
     }
 }
+
+public class CleanupEdgeTests
+{
+    [Fact]
+    public void AStoredSetsOwnPiecesDontJoinItAgain()
+    {
+        var dresser = new List<DresserPiece> { new(0, 31, 0, 0, 30), new(1, 31, 0, 0) };
+        Assert.Empty(DresserCleanup.Outfits(dresser, new Dictionary<uint, uint[]> { [30] = new uint[] { 31, 32 } }));
+    }
+
+    [Fact]
+    public void ASharedPieceIsCountedOnce()
+    {
+        var dresser = new List<DresserPiece> { new(0, 10, 0, 0), new(1, 11, 0, 0), new(2, 12, 0, 0) };
+        var chances = DresserCleanup.Outfits(dresser, new Dictionary<uint, uint[]> { [1] = new uint[] { 10, 11 }, [2] = new uint[] { 10, 12 } });
+        Assert.Equal(2, chances.Count);
+        Assert.Equal(1, DresserCleanup.Frees(chances));
+    }
+}
+
+public class ReviewFixTests
+{
+    [Fact]
+    public void WishesGotReadsAsItemIds()
+    {
+        var r = SiteLink.ReadSync(JsonNode.Parse("""{"closet":{"total":1},"wishes_got":[100,"200",1000012,100.5,0,99999999,100]}"""))!;
+        Assert.Equal(new uint[] { 100, 200, 12 }, r.WishesGot);
+    }
+
+    [Fact]
+    public void AShotTooThinToSendIsntSized()
+    {
+        Assert.Null(SiteLink.FitShot(64, 100000, 2560));
+        Assert.Equal((2560, 1440), SiteLink.FitShot(2560, 1440, 2560));
+    }
+
+    [Fact]
+    public void FilledSaysWhatWasSet()
+    {
+        var plan = PlatePlanner.Plan(
+            new Dictionary<Slot, Piece> { [Slot.Body] = new(100), [Slot.Legs] = new(200) },
+            new List<DresserPiece> { new(0, 100, 0, 0), new(1, 200, 0, 0) },
+            new Dictionary<uint, uint>(), _ => 0, _ => null, new PlateOptions(false, null));
+        Assert.StartsWith("Plate 3 has the whole look", Words.Filled(3, plan));
+        Assert.StartsWith("Plate 3 has 1 of the look's 2 pieces", Words.Filled(3, plan, 1));
+    }
+}

@@ -1,5 +1,7 @@
 using System;
+using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
+using GlamourStudio.Core;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 
 namespace GlamourStudio.Game;
@@ -28,6 +30,27 @@ public static unsafe class Armoire
                 return false;
             }
         }
+    }
+
+    /// <summary>Whether you're wearing a copy of the item now (the armoire isn't offered it: take it off first).</summary>
+    public static bool IsWorn(uint item)
+    {
+        try
+        {
+            var c = InventoryManager.Instance()->GetInventoryContainer(InventoryType.EquippedItems);
+            if (c == null || !c->IsLoaded) return false;
+            var want = LookJson.BaseId(item);
+            for (var i = 0; i < c->Size; i++)
+            {
+                var it = c->GetInventorySlot(i);
+                if (it != null && !it->IsEmpty() && LookJson.BaseId(it->GetBaseItemId()) == want) return true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Services.Log.Debug(ex, "Glamour Studio couldn't read what you wear");
+        }
+        return false;
     }
 
     /// <summary>Stores the piece of a Cabinet row; false when the game said no (or couldn't be asked).</summary>

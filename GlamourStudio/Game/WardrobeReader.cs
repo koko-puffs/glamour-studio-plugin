@@ -152,6 +152,7 @@ public sealed unsafe class WardrobeReader
     {
         if (!Services.PlayerState.IsLoaded || Services.PlayerState.ContentId == 0)
         {
+            if (Current != null) Changed();
             Current = null;
             DresserLive = ArmoireLive = false;
             ArmoireNow = new Dictionary<uint, uint>();
@@ -169,6 +170,8 @@ public sealed unsafe class WardrobeReader
             DresserLive = ArmoireLive = false;
             ArmoireNow = new Dictionary<uint, uint>();
             seenOpen.Clear();
+            // Everything worked out from the wardrobe is worked out again for this character.
+            Changed();
         }
         Current = me;
         foreach (var w in SaddlebagWindows.Concat(DresserWindows).Concat(ArmoireWindows).Concat(PlateWindows))

@@ -14,7 +14,12 @@ namespace GlamourStudio.UI;
 /// </summary>
 public sealed partial class MainWindow
 {
-    private (int Wardrobe, int Sync, List<OutfitChance> Outfits, List<DresserPiece> Unused)? cleanup;
+    /// <summary>A row as drawn: the item, its line and chip (worked out once, not every frame).</summary>
+    private sealed record CleanupRow(uint Item, string Line, string? Chip, bool Done);
+
+    private sealed record CleanupNowRead(int Used, int Frees, List<CleanupRow> Sets, List<CleanupRow> Unused);
+
+    private (int Wardrobe, int Sync, string Key, CleanupNowRead Read)? cleanup;
 
     private void OpenCleanup()
     {
@@ -23,19 +28,37 @@ public sealed partial class MainWindow
         IsOpen = true;
     }
 
-    /// <summary>The sets and the unused pieces, worked out again only when the wardrobe or your looks change.</summary>
-    private (List<OutfitChance> Outfits, List<DresserPiece> Unused) CleanupNow(CharacterWardrobe me)
+    /// <summary>The sets and the unused pieces, as rows, worked out again only when the wardrobe or your looks change.</summary>
+    private CleanupNowRead CleanupNow(CharacterWardrobe me)
     {
-        if (cleanup is { } c && c.Wardrobe == wardrobe.Version && c.Sync == sync.Version) return (c.Outfits, c.Unused);
+        if (cleanup is { } c && c.Wardrobe == wardrobe.Version && c.Sync == sync.Version && c.Key == me.Key) return c.Read;
         var outfits = DresserCleanup.Outfits(me.Dresser, data.AllSets);
-        var used = sync.Library.Mine.Concat(sync.Library.Loved).Concat(sync.Inbox.Select(s => s.Look)).Concat(sync.Plans.Select(p => p.Look))
+        var plans = Enumerable.Range(1, Plates.Count).Select(sync.PlanFor).OfType<Look>();
+        var used = sync.Library.Mine.Concat(sync.Library.Loved).Concat(sync.Inbox.Select(s => s.Look)).Concat(plans)
             .Select(l => l.Pieces)
             .Concat(me.Plates.Select(p => (IReadOnlyDictionary<Slot, Piece>)p.Pieces))
             .Append(me.Outfit);
-        var unused = DresserCleanup.Unused(me.Dresser, used);
-        cleanup = (wardrobe.Version, sync.Version, outfits, unused);
-        return (outfits, unused);
+        var sets = outfits.Select(o =>
+        {
+            var line = o.Stored
+                ? $"The set's in your dresser: {Words.Count(o.Pieces.Count, "loose piece")} could join it"
+                : $"{o.Pieces.Count} of {data.SetPieces(o.SetItem).Count} pieces loose in your dresser";
+            return new CleanupRow(o.SetItem, line, o.Frees > 0 ? $"Frees {o.Frees}" : "Tidier", o.Frees > 0);
+        }).ToList();
+        var unused = DresserCleanup.Unused(me.Dresser, used).Select(d =>
+        {
+            var item = data.Item(d.Item);
+            var slot = item?.Slots.Length > 0 ? Slots.Word(item.Slots[0]) : "Gear";
+            var dyes = DyeLine(new Piece(d.Item, d.Dye1, d.Dye2));
+            return new CleanupRow(d.Item, dyes != null ? $"{slot} · {dyes}" : slot, null, false);
+        }).ToList();
+        var read = new CleanupNowRead(DresserCleanup.Used(me.Dresser), DresserCleanup.Frees(outfits), sets, unused);
+        cleanup = (wardrobe.Version, sync.Version, me.Key, read);
+        return read;
     }
+
+    /// <summary>Your looks are read (so a piece in none of them is truly unused).</summary>
+    private bool LooksKnown => Linked && sync.LibraryAt != null;
 
     private void DrawCleanup()
     {
@@ -55,14 +78,16 @@ public sealed partial class MainWindow
             Frame.EndBody();
             return;
         }
-        var (outfits, unused) = CleanupNow(me);
-        var usedPlaces = DresserCleanup.Used(me.Dresser);
-        var frees = outfits.Sum(o => o.Frees);
+        var now = CleanupNow(me);
+        var usedPlaces = now.Used;
+        var frees = now.Frees;
+        var outfits = now.Sets;
+        var unused = now.Unused;
         Kit.Facts("##room-facts", new List<Kit.Fact>
         {
             new("Used", usedPlaces.ToString(), $"of {DresserCleanup.Capacity}"),
             new("Free", Math.Max(0, DresserCleanup.Capacity - usedPlaces).ToString()),
-            new("Outfits could free", frees.ToString()),
+            new("Outfits could free", frees > 0 ? $"up to {frees}" : "0"),
         });
         Kit.Gap(22);
 
@@ -76,21 +101,18 @@ public sealed partial class MainWindow
             Kit.Gap(10);
             Kit.BeginPanel("##sets", 6, 6, 6);
             for (var i = 0; i < outfits.Count; i++)
-            {
-                var o = outfits[i];
-                var total = data.SetPieces(o.SetItem).Count;
-                var line = o.Stored
-                    ? $"The set's in your dresser: {Words.Count(o.Pieces.Count, "loose piece")} could join it"
-                    : $"{o.Pieces.Count} of {total} pieces loose in your dresser";
-                ItemRow($"##set{i}", i, o.SetItem, line, o.Frees > 0 ? $"Frees {o.Frees}" : "Tidier", o.Frees > 0);
-            }
+                ItemRow(i, outfits[i]);
             Kit.EndPanel();
         }
         Kit.Gap(22);
 
-        Kit.Section("Not in any look or plate", unused.Count > 0 ? Words.Count(unused.Count, "piece") : null);
+        Kit.Section("Not in any look or plate", unused.Count > 0 && LooksKnown ? Words.Count(unused.Count, "piece") : null);
         Kit.Gap(8);
-        if (unused.Count == 0)
+        if (!LooksKnown)
+            Txt.Note(Linked
+                ? "Reading your looks from the site… (the pieces they use aren't counted as unused)."
+                : "Link your account: then the pieces none of your looks or plates uses show here.", Palette.Muted);
+        else if (unused.Count == 0)
             Txt.Note("Every loose piece in your dresser is in one of your looks, the looks you love, or your plates.", Palette.Muted);
         else
         {
@@ -98,20 +120,16 @@ public sealed partial class MainWindow
             Kit.Gap(10);
             Kit.BeginPanel("##unused", 6, 6, 6);
             for (var i = 0; i < unused.Count; i++)
-            {
-                var d = unused[i];
-                var item = data.Item(d.Item);
-                var slot = item?.Slots.Length > 0 ? Slots.Word(item.Slots[0]) : "Gear";
-                ItemRow($"##unused{i}", i, d.Item, slot + (DyeLine(new Piece(d.Item, d.Dye1, d.Dye2)) is { } dyes ? $" · {dyes}" : string.Empty), null, false);
-            }
+                ItemRow(i, unused[i]);
             Kit.EndPanel();
         }
         Frame.EndBody();
     }
 
     /// <summary>An item as a row: its icon, name and a line, and a chip on the right. Only drawn in view.</summary>
-    private void ItemRow(string id, int index, uint itemId, string line, string? chip, bool done)
+    private void ItemRow(int index, CleanupRow row)
     {
+        var (itemId, line, chip, done) = (row.Item, row.Line, row.Chip, row.Done);
         var at = Kit.At;
         var w = Kit.Width;
         var nameH = Txt.Natural(Face.SansMedium, 14);
@@ -134,6 +152,5 @@ public sealed partial class MainWindow
         Txt.Line(dl, new Vector2(x, top + nameH + S(2)), Txt.Fit(line, Face.Sans, 12, tw), Face.Sans, 12, Palette.Muted, 18);
         if (chip != null) Kit.Chip(new Vector2(at.X + w - S(10) - chipW, at.Y + (h - S(24)) / 2), chip, done);
         Kit.Reserve(at, w, h);
-        _ = id;
     }
 }

@@ -88,6 +88,11 @@ public sealed partial class MainWindow
         Frame.BeginBody("##home", null, 18, 24);
         if (editorPlate > 0) DrawEditorCard(editorPlate);
         if (Examine.IsOpen) DrawExamined();
+        else
+        {
+            examined = null;
+            examinedAt = DateTime.MinValue;
+        }
         if (!sync.Linked) DrawGetStarted();
         DrawSent();
 
@@ -134,7 +139,7 @@ public sealed partial class MainWindow
         Kit.Eyebrow(new Vector2(x, at.Y), "Plate editor", Palette.Rose, tw);
         var ty = at.Y + Txt.Natural(Face.Mono, 11) + S(3);
         var th = Title(new Vector2(x, ty), $"Plate {plate}", tw, 20, 1);
-        var current = PlateEditor.Current();
+        var current = EditorPieces(plate);
         // The look it is, worked out again only when the plate or your looks change.
         if (editorMatch.Pieces == null || editorMatch.SyncVersion != sync.Version || !Plates.Same(current, editorMatch.Pieces))
             editorMatch = (current, sync.Version, Plates.Matching(current, sync.Library.Mine.Concat(sync.Library.Loved).Concat(sync.Inbox.Select(s => s.Look))));
@@ -142,7 +147,7 @@ public sealed partial class MainWindow
         var line = current.Count == 0
             ? "It's empty. Pick a look below and put it on."
             : match != null ? $"It's your look “{match.Name}”." : $"It has {Words.Count(current.Count, "piece")}. Pick a look below to put it on instead.";
-        if (PlateEditor.HasChanges) line += " Not saved yet.";
+        if (editorChanges) line += " Not saved yet.";
         var lh = Txt.Flow(new Vector2(x, ty + th + S(2)), tw, new[] { new Run(line, Face.Sans, 13, Palette.Soft) }, 19.5f, out _);
         Kit.Reserve(at, w, MathF.Max(S(40), ty + th + S(2) + lh - at.Y));
 
@@ -169,6 +174,17 @@ public sealed partial class MainWindow
         Kit.Gap(18);
     }
 
+    private (int Plate, DateTime At, Dictionary<Slot, Piece> Pieces) editorPieces = (0, DateTime.MinValue, new Dictionary<Slot, Piece>());
+
+    /// <summary>The open plate's pieces, read from the game ten times a second at most (and at once when the plate changes).</summary>
+    private Dictionary<Slot, Piece> EditorPieces(int plate)
+    {
+        var now = DateTime.UtcNow;
+        if (editorPieces.Plate != plate || now - editorPieces.At > TimeSpan.FromMilliseconds(100))
+            editorPieces = (plate, now, PlateEditor.Current());
+        return editorPieces.Pieces;
+    }
+
     // ---------------------------------------------------------------------------------------------
     // Someone's outfit, while the Examine window's open.
 
@@ -178,10 +194,24 @@ public sealed partial class MainWindow
     private void DrawExamined()
     {
         // (Read again twice a second at most: the window's open a while.)
-        if (DateTime.UtcNow - examinedAt > TimeSpan.FromSeconds(0.5) || examined == null)
+        if (DateTime.UtcNow - examinedAt > TimeSpan.FromSeconds(0.5))
         {
-            examined = Examine.Read(data);
             examinedAt = DateTime.UtcNow;
+            var read = Examine.Read(data);
+            // Someone new: shown once two reads half a second apart agree (the window may still hold
+            // the last one's gear for a moment while the new one's loads).
+            if (read == null) examined = examinedSeen = null;
+            else if (examined != null && read.EntityId == examined.EntityId) examined = read;
+            else if (examinedSeen != null && read.EntityId == examinedSeen.EntityId && Plates.Same(read.Pieces, examinedSeen.Pieces))
+            {
+                examined = read;
+                examinedSeen = null;
+            }
+            else
+            {
+                examined = null;
+                examinedSeen = read;
+            }
         }
         if (examined is not { } e) return;
         Kit.BeginPanel("##examine", 16, 18, 16);
@@ -222,6 +252,9 @@ public sealed partial class MainWindow
 
     private bool keepingExamined;
 
+    /// <summary>A first read of someone new, waiting for a second to agree.</summary>
+    private Examined? examinedSeen;
+
     // ---------------------------------------------------------------------------------------------
     // Looks you could wear now: public looks you own every piece of.
 
@@ -246,7 +279,7 @@ public sealed partial class MainWindow
         for (var i = 0; i < looks.Count; i++)
         {
             var look = looks[i];
-            if (LookRow($"##wear{i}", i, look)) Later(() => OpenLook(look, null));
+            if (LookRow("##wear", i, look)) Later(() => OpenLook(look, null));
         }
         Kit.EndPanel();
     }
@@ -266,7 +299,7 @@ public sealed partial class MainWindow
         {
             var s = sent[i];
             var note = $"Sent {Words.Ago(s.CreatedAt, now)}" + (s.Plate is { } p ? $" · for plate {p}" : string.Empty);
-            if (LookRow($"##sent{i}", i, s.Look, note)) Later(() => OpenLook(s.Look, s));
+            if (LookRow("##sent", i, s.Look, note)) Later(() => OpenLook(s.Look, s));
         }
         Kit.EndPanel();
         Kit.Gap(22);
@@ -339,7 +372,7 @@ public sealed partial class MainWindow
         for (var i = 0; i < shown.Count; i++)
         {
             var look = shown[i];
-            if (LookRow($"##look{i}", i, look)) Later(() => OpenLook(look, null));
+            if (LookRow("##look", i, look)) Later(() => OpenLook(look, null));
         }
         Kit.EndPanel();
     }
@@ -415,7 +448,7 @@ public sealed partial class MainWindow
             var look = new Look($"plate{plate.Plate}", $"Plate {plate.Plate}", me.Body, plate.Pieces, "private", true, me.Name, 0, null);
             var match = PlateMatch(plate.Plate, plate.Pieces);
             var n = plate.Plate;
-            if (LookRow($"##plate{n}", i++, look, match != null ? $"Your look “{match.Name}”" : Words.Count(plate.Pieces.Count, "piece")))
+            if (LookRow("##plate", i++, look, match != null ? $"Your look “{match.Name}”" : Words.Count(plate.Pieces.Count, "piece")))
                 Later(() => OpenPlate(n));
         }
         Kit.EndPanel();
@@ -451,7 +484,7 @@ public sealed partial class MainWindow
         var dresserRead = me.Get(Place.Dresser) != null;
         Kit.Facts("##closet-facts", new List<Kit.Fact>
         {
-            new("Dresser", dresserRead ? DresserCleanup.Used(me.Dresser).ToString() : "—", dresserRead ? $"of {DresserCleanup.Capacity}" : null),
+            new("Dresser", dresserRead ? DresserUsed(me).ToString() : "—", dresserRead ? $"of {DresserCleanup.Capacity}" : null),
             new("Armoire", me.Get(Place.Armoire)?.Items.Count.ToString() ?? "—"),
             new("Plates", me.PlatesReadAt != null ? me.Plates.Count(p => p.Pieces.Count > 0).ToString() : "—"),
         });
@@ -523,6 +556,26 @@ public sealed partial class MainWindow
         Kit.Reserve(row, Kit.Width, Kit.ButtonHeight(BtnSize.Md));
     }
 
+    private (IReadOnlySet<uint> Wishes, int Version, List<uint> Shown)? wishesShown;
+
+    private List<uint> WishesShown(IReadOnlySet<uint> wishes)
+    {
+        if (wishesShown is { } c && ReferenceEquals(c.Wishes, wishes) && c.Version == wardrobe.Version) return c.Shown;
+        var shown = wishes.OrderBy(id => Where(id) == null).ThenBy(id => data.ItemName(id), StringComparer.OrdinalIgnoreCase).Take(30).ToList();
+        wishesShown = (wishes, wardrobe.Version, shown);
+        return shown;
+    }
+
+    private (int Version, string Key, int Used) dresserUsed = (-1, string.Empty, 0);
+
+    /// <summary>The dresser's places used, counted again only when the wardrobe changes.</summary>
+    private int DresserUsed(CharacterWardrobe me)
+    {
+        if (dresserUsed.Version != wardrobe.Version || dresserUsed.Key != me.Key)
+            dresserUsed = (wardrobe.Version, me.Key, DresserCleanup.Used(me.Dresser));
+        return dresserUsed.Used;
+    }
+
     // ---------------------------------------------------------------------------------------------
     // Your shopping list: where each piece is, if you have it now.
 
@@ -535,7 +588,8 @@ public sealed partial class MainWindow
         Kit.BeginPanel("##wishes", 6, 6, 6);
         var dl = Kit.Dl;
         var i = 0;
-        foreach (var id in wishes.Take(30))
+        // The ones you have somewhere first (they're the news), then by name; thirty at most.
+        foreach (var id in WishesShown(wishes))
         {
             var at = Kit.At;
             var w = Kit.Width;
@@ -553,7 +607,9 @@ public sealed partial class MainWindow
         }
         Kit.EndPanel();
         Kit.Gap(8);
-        Txt.Note("A piece the plugin sees in your wardrobe comes off the list by itself.", Palette.Faint);
+        var more = wishes.Count - Math.Min(wishes.Count, 30);
+        Txt.Note((more > 0 ? $"And {Words.Count(more, "more piece")} on the site. " : string.Empty)
+                 + "A piece the plugin sees in your wardrobe comes off the list by itself.", Palette.Faint);
         Kit.Gap(18);
     }
 }

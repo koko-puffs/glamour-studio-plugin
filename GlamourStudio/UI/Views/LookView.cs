@@ -32,13 +32,13 @@ public sealed partial class MainWindow
         IsOpen = true;
     }
 
-    private (string Id, int Wardrobe, bool Armoire, bool Clear, bool Dye, IReadOnlyDictionary<byte, int> Bag) planFor;
+    private (IReadOnlyDictionary<Slot, Piece> Pieces, int Wardrobe, bool Armoire, bool Clear, bool Dye, IReadOnlyDictionary<byte, int> Bag) planFor;
     private PlatePlan? plan;
 
     /// <summary>The plan for a look, worked out again only when the wardrobe or the settings changed.</summary>
     private PlatePlan PlanCached(Look look)
     {
-        var key = (look.Id, wardrobe.Version, wardrobe.ArmoireLive, config.ClearBare, config.DyeFromBags, wardrobe.BagDyes);
+        var key = (look.Pieces, wardrobe.Version, wardrobe.ArmoireLive, config.ClearBare, config.DyeFromBags, wardrobe.BagDyes);
         if (plan == null || key != planFor)
         {
             planFor = key;
@@ -108,6 +108,7 @@ public sealed partial class MainWindow
             .ToList();
         if (away.Count == 0) return;
         var armoireOpen = Armoire.IsOpen;
+        var now = DateTime.UtcNow;
         Kit.Section("Put away first", Words.Count(away.Count, "piece"));
         Kit.Gap(8);
         Txt.Note(armoireOpen
@@ -130,9 +131,11 @@ public sealed partial class MainWindow
             Kit.GameIcon(new Vector2(at.X + S(10), at.Y + (h - icon) / 2), icon, item?.Icon ?? 0);
             var x = at.X + S(10) + icon + S(12);
             var row = data.CabinetOf(itemId);
-            var canArmoire = row != null && where is Place.Inventory or Place.Armoury;
-            const string put = "Into the armoire";
-            var bw = armoireOpen && canArmoire ? Kit.ButtonWidth(put, BtnSize.Sm, Icon.Archive) : 0;
+            var canArmoire = row != null && where is Place.Inventory or Place.Armoury && armoireOpen && !Armoire.IsWorn(itemId);
+            // Asked already: the game takes a moment to answer, and a second ask would be a second store.
+            var asked = row is { } rr && storing.TryGetValue(rr, out var askedAt) && now - askedAt < TimeSpan.FromSeconds(5);
+            var put = asked ? "Storing…" : "Into the armoire";
+            var bw = canArmoire ? Kit.ButtonWidth(put, BtnSize.Sm, Icon.Archive) : 0;
             var tw = at.X + w - S(10) - (bw > 0 ? bw + S(10) : 0) - x;
             var top = at.Y + (h - (nameH + S(2) + S(18))) / 2;
             Txt.Line(dl, new Vector2(x, top), Txt.Fit(item?.Name ?? $"Item {itemId}", Face.SansMedium, 14, tw), Face.SansMedium, 14, Palette.Ink);
@@ -142,14 +145,16 @@ public sealed partial class MainWindow
             {
                 var cabinet = row!.Value;
                 var name = item?.Name ?? "It";
-                if (Kit.Button($"##armoire{i}", new Vector2(at.X + w - S(10) - bw, at.Y + (h - Kit.ButtonHeight(BtnSize.Sm)) / 2), put, Btn.Glass, BtnSize.Sm, Icon.Archive))
+                if (Kit.Button($"##armoire{i}", new Vector2(at.X + w - S(10) - bw, at.Y + (h - Kit.ButtonHeight(BtnSize.Sm)) / 2), put, Btn.Glass, BtnSize.Sm, Icon.Archive, 0, asked))
                     Later(() =>
                     {
+                        if (storing.TryGetValue(cabinet, out var t) && DateTime.UtcNow - t < TimeSpan.FromSeconds(5)) return;
                         if (!Armoire.Store(cabinet))
                         {
                             Notify("The armoire didn't take it");
                             return;
                         }
+                        storing[cabinet] = DateTime.UtcNow;
                         wardrobe.Tick(now: true);
                         Notify($"{name}: in the armoire");
                     });
@@ -161,6 +166,9 @@ public sealed partial class MainWindow
 
     // ---------------------------------------------------------------------------------------------
     // A shot from the game for the look's Worn in game on the site.
+
+    /// <summary>Armoire rows asked to be stored, and when (a second ask waits for the game's answer).</summary>
+    private readonly Dictionary<uint, DateTime> storing = new();
 
     private string shotCaption = string.Empty;
 
@@ -252,9 +260,17 @@ public sealed partial class MainWindow
                 });
             }
             x += Kit.ButtonWidth("Take another", BtnSize.Sm, Icon.Camera) + S(8);
-            if (Kit.Button("##shot-discard", new Vector2(x, row.Y), "Discard", Btn.Quiet, BtnSize.Sm, Icon.Trash, 0, taken.Sending))
+            // Narrow: Discard on a line of its own.
+            var discardAt = new Vector2(x, row.Y);
+            var rowH = Kit.ButtonHeight(BtnSize.Sm);
+            if (x + Kit.ButtonWidth("Discard", BtnSize.Sm, Icon.Trash) > row.X + w)
+            {
+                discardAt = new Vector2(row.X, row.Y + rowH + S(8));
+                rowH = rowH * 2 + S(8);
+            }
+            if (Kit.Button("##shot-discard", discardAt, "Discard", Btn.Quiet, BtnSize.Sm, Icon.Trash, 0, taken.Sending))
                 Later(shots.Discard);
-            Kit.Reserve(row, w, Kit.ButtonHeight(BtnSize.Sm));
+            Kit.Reserve(row, w, rowH);
         }
         Kit.EndPanel();
     }
@@ -355,9 +371,11 @@ public sealed partial class MainWindow
         wardrobe.Tick(now: true);
         plan = PlanFor(look.Pieces);
         var result = PlateEditor.Fill(plan, wardrobe.FindDye);
-        lastFill = (look.Id, result, plan);
+        // Nothing went on (the editor closed meanwhile): nothing to show as filled.
+        if (result.Plate > 0 && result.Set + result.Cleared > 0) lastFill = (look.Id, result, plan);
         Notify(result.Ok ? $"Plate {result.Plate}: done. Press Save in the game's window." : result.Problems[0]);
-        if (openSent != null && result.Set > 0)
+        // A look sent from the site is done with once it's on a plate (only that look: Home's planned fill isn't it).
+        if (openSent != null && openSent.Look.Id == look.Id && result.Set > 0)
         {
             sync.DoneWith(openSent.Id);
             openSent = null;
@@ -374,13 +392,13 @@ public sealed partial class MainWindow
         var x = at.X + S(40) + S(14);
         var tw = w - (x - at.X);
         Txt.Line(Kit.Dl, new Vector2(x, at.Y), $"On plate {result.Plate}", Face.SansSemibold, 14, Palette.Ink);
-        var line = Words.Filled(result.Plate, plan);
+        var line = Words.Filled(result.Plate, plan, result.Set);
         if (result.Problems.Count > 0) line += " " + string.Join(" ", result.Problems);
         var h = Txt.Flow(new Vector2(x, at.Y + Txt.Natural(Face.SansSemibold, 14) + S(2)), tw, new[] { new Run(line, Face.Sans, 13, Palette.Soft) }, 19.5f, out _);
         Kit.Reserve(at, w, MathF.Max(S(40), Txt.Natural(Face.SansSemibold, 14) + S(2) + h));
         Kit.Gap(12);
         var row = Kit.At;
-        var saved = !PlateEditor.HasChanges;
+        var saved = !editorChanges;
         if (Kit.Button("##wear", row, $"Wear plate {result.Plate}", Btn.Glass, BtnSize.Sm, Icon.Shirt, 0, !saved,
                 saved ? "Puts the plate on what you wear now (in a city or an inn, on a job its gear fits)" : "Save the plate in the game first"))
             Later(() =>

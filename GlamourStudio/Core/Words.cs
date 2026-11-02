@@ -48,11 +48,13 @@ public static class Words
     }
 
     /// <summary>What filling a plate did, in a line: "Plate 3 has 9 of 10 pieces. Press Save in the game's window."</summary>
-    public static string Filled(int plate, PlatePlan plan)
+    /// <param name="set">How many pieces were set on it (not only planned: a slot the game refused isn't).</param>
+    public static string Filled(int plate, PlatePlan plan, int? set = null)
     {
-        var head = plan.Ready == plan.Wanted
+        var on = Math.Min(set ?? plan.Ready, plan.Ready);
+        var head = on == plan.Wanted
             ? $"Plate {plate} has the whole look ({Count(plan.Wanted, "piece")})."
-            : $"Plate {plate} has {plan.Ready} of the look's {Count(plan.Wanted, "piece")}.";
+            : $"Plate {plate} has {on} of the look's {Count(plan.Wanted, "piece")}.";
         return head + " Check it, then press Save in the game's window.";
     }
 

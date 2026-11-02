@@ -211,7 +211,7 @@ public static class SiteLink
     {
         if (node is not JsonObject o || o["closet"] is not JsonObject c) return null;
         DateTimeOffset? at = Text(o["read_at"]) is { } s && DateTimeOffset.TryParse(s, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var t) ? t : null;
-        var got = (o["wishes_got"] as JsonArray)?.Select(Int).Where(i => i > 0).Select(i => (uint)i).ToList() ?? new List<uint>();
+        var got = (o["wishes_got"] as JsonArray)?.Select(LookJson.ItemId).OfType<uint>().Distinct().ToList() ?? new List<uint>();
         return new SyncResult(Int(c["total"]), Int(c["added"]), Int(c["moved"]), Int(c["removed"]), Int(o["plates"]), at, got);
     }
 
@@ -341,7 +341,8 @@ public static class SiteLink
     {
         if (width < 64 || height < 64 || longEdge < 64) return null;
         var scale = Math.Min(1.0, (double)longEdge / Math.Max(width, height));
-        return ((int)Math.Round(width * scale), (int)Math.Round(height * scale));
+        var (w, h) = ((int)Math.Round(width * scale), (int)Math.Round(height * scale));
+        return w < 64 || h < 64 ? null : (w, h);
     }
 
     /// <summary>The edge function's answer: the shot (its <c>id</c> and the look's <c>name</c>), or <c>{message, hint}</c> in words.</summary>

@@ -63,6 +63,7 @@ public sealed partial class MainWindow : Window
     public void ShowMain()
     {
         screen = Screen.Home;
+        openSent = null;
         IsOpen = true;
         sync.Wake();
     }
@@ -70,9 +71,16 @@ public sealed partial class MainWindow : Window
     /// <summary>The plate open in the game's plate editor this frame (0: it isn't open), looked up once a frame.</summary>
     private int editorPlate;
 
+    /// <summary>The character last drawn for.</summary>
+    private string? drawnFor;
+
+    /// <summary>The open plate has changes not saved yet (this frame).</summary>
+    private bool editorChanges;
+
     /// <summary>Opens Settings (Dalamud's cog, /gstudio settings).</summary>
     public void ShowSettings()
     {
+        openSent = null;
         settingsFrom = Screen.Home;
         screen = Screen.Settings;
         IsOpen = true;
@@ -80,6 +88,7 @@ public sealed partial class MainWindow : Window
 
     public override void OnClose()
     {
+        openSent = null;
         settingsTab = SettingsTab.General;
     }
 
@@ -106,6 +115,15 @@ public sealed partial class MainWindow : Window
         Kit.ResetFrame();
         Frame.ResetFrame();
         editorPlate = PlateEditor.SelectedPlate;
+        editorChanges = editorPlate > 0 && PlateEditor.HasChanges;
+        // Another character: what was worked out for the last one goes.
+        if (wardrobe.Current?.Key != drawnFor)
+        {
+            drawnFor = wardrobe.Current?.Key;
+            lastFill = null;
+            cleanup = null;
+            examined = null;
+        }
         Theme.PushInside();
         try
         {

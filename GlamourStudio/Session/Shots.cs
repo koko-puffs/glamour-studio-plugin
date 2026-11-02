@@ -71,6 +71,9 @@ public sealed class Shots : IDisposable
     private int generation;
     private Task? making;
 
+    /// <summary>When the frame was asked for: one that never comes is given up on (and the HUD shown again).</summary>
+    private DateTime grabAt;
+
     public Shots(HttpClient http, Func<string> token)
     {
         this.http = http;
@@ -93,6 +96,11 @@ public sealed class Shots : IDisposable
         if (Capturing)
         {
             why = "A shot is being taken.";
+            return false;
+        }
+        if (Taken is { Sending: true })
+        {
+            why = "The last shot is still being sent.";
             return false;
         }
         Discard();
@@ -125,6 +133,7 @@ public sealed class Shots : IDisposable
             return false;
         }
         grabFor = (lookId, lookName, ++generation);
+        grabAt = DateTime.UtcNow;
         return true;
     }
 
@@ -140,6 +149,15 @@ public sealed class Shots : IDisposable
             if (!Grab(w.LookId, w.LookName, out _)) ShowHudAgain();
             return;
         }
+        if (grab is { IsCompleted: false } && DateTime.UtcNow - grabAt > TimeSpan.FromSeconds(5))
+        {
+            grab = null;
+            grabFor = null;
+            generation++;
+            ShowHudAgain();
+            Failed("The game's picture never came. Try again.");
+            return;
+        }
         if (grab is not { IsCompleted: true } t || grabFor is not { } f) return;
         grab = null;
         grabFor = null;
@@ -151,9 +169,11 @@ public sealed class Shots : IDisposable
             return;
         }
         var wrap = Own(t.Result);
+        // (The token taken here, on the framework thread: after Dispose the source can't be asked.)
+        var cancel = stop.Token;
         making = Task.Run(async () =>
         {
-            var made = await Make(wrap, stop.Token).ConfigureAwait(false);
+            var made = await Make(wrap, cancel).ConfigureAwait(false);
             _ = Services.Framework.RunOnFrameworkThread(() => Made(made, f.LookId, f.LookName, f.Generation));
         });
     }
@@ -210,9 +230,13 @@ public sealed class Shots : IDisposable
             if (JpegCodec() is not { } codec) return new MadeShot(null, 0, 0, null, "This PC can't write JPEG pictures.");
             var format = Services.Textures.IsDxgiFormatSupportedForCreateFromExistingTextureAsync(Bgra) ? Bgra : 0;
             byte[]? jpeg = null;
+            (int Width, int Height)? tried = null;
             foreach (var edge in LongEdges)
             {
                 if (Fit(grabbed.Width, grabbed.Height, edge) is not { } fit) return new MadeShot(null, 0, 0, null, "The game's picture is too small to send.");
+                // (A screen 1920 or under: the second pass would be the first again.)
+                if (tried == fit) break;
+                tried = fit;
                 Release(sized);
                 sized = Own(await Services.Textures.CreateFromExistingTextureAsync(grabbed,
                     new TextureModificationArgs { NewWidth = fit.Width, NewHeight = fit.Height, MakeOpaque = true, DxgiFormat = format },
@@ -261,9 +285,10 @@ public sealed class Shots : IDisposable
         s.Sending = true;
         s.Note = null;
         var t = token();
+        var cancel = stop.Token;
         Task.Run(async () =>
         {
-            var r = await SiteLink.ShotAsync(http, t, s.LookId, caption, jpeg, stop.Token).ConfigureAwait(false);
+            var r = await SiteLink.ShotAsync(http, t, s.LookId, caption, jpeg, cancel).ConfigureAwait(false);
             _ = Services.Framework.RunOnFrameworkThread(() =>
             {
                 s.Sending = false;
@@ -351,6 +376,6 @@ public sealed class Shots : IDisposable
             owned.Clear();
         }
         Taken = null;
-        stop.Dispose();
+        // (The source isn't disposed: a worker still finishing may look at its token.)
     }
 }

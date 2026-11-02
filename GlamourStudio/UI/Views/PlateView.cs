@@ -19,9 +19,11 @@ public sealed partial class MainWindow
     private int openPlate = -1;
 
     /// <summary>A look kept from the game just now, by the plate it came from.</summary>
-    private readonly Dictionary<(string Character, int Plate), SavedLook> keptFrom = new();
+    /// <summary>A look kept from the game just now, by the plate it came from, with the pieces it had then.</summary>
+    private readonly Dictionary<(string Character, int Plate), (SavedLook Look, IReadOnlyDictionary<Slot, Piece> Pieces)> keptFrom = new();
 
-    private bool keeping;
+    /// <summary>The plates being kept now (each its own: one keeping doesn't hold up another).</summary>
+    private readonly HashSet<(string Character, int Plate)> keeping = new();
 
     private void OpenPlate(int plate)
     {
@@ -67,27 +69,30 @@ public sealed partial class MainWindow
         if (pieces.Count > 0 && match == null)
         {
             var name = plate == 0 ? (me.Name.Length > 0 ? $"{me.Name}'s outfit" : "My outfit") : $"Plate {plate}";
-            if (keptFrom.TryGetValue((me.Key, plate), out var kept))
+            // (Kept, and the plate's the same since: the look's on the site. Changed: it can be kept again.)
+            if (keptFrom.TryGetValue((me.Key, plate), out var kept) && Plates.Same(kept.Pieces, pieces))
             {
-                if (Kit.Button("##kept", row, "Open it on the site", Btn.Glass, BtnSize.Md, Icon.ExternalLink, 0, false, $"Kept as “{kept.Name}” in your looks"))
-                    Dalamud.Utility.Util.OpenLink(SiteLink.DressingUrl(kept.Id));
+                if (Kit.Button("##kept", row, "Open it on the site", Btn.Glass, BtnSize.Md, Icon.ExternalLink, 0, false, $"Kept as “{kept.Look.Name}” in your looks"))
+                    Dalamud.Utility.Util.OpenLink(SiteLink.DressingUrl(kept.Look.Id));
                 x += Kit.ButtonWidth("Open it on the site", BtnSize.Md, Icon.ExternalLink) + S(8);
             }
             else
             {
                 const string keep = "Keep it as a look";
                 var tip = Linked ? $"Saves it to your looks on Glamour Studio as “{name}” (private: only you see it)" : "Link your account first (Settings → Account)";
-                if (Kit.Button("##keep", row, keeping ? "Keeping…" : keep, Btn.Primary, BtnSize.Md, Icon.Sparkles, 0, !Linked || keeping, tip))
+                var busy = keeping.Contains((me.Key, plate));
+                if (Kit.Button("##keep", row, busy ? "Keeping…" : keep, Btn.Primary, BtnSize.Md, Icon.Sparkles, 0, !Linked || busy, tip))
                 {
-                    keeping = true;
                     var body = me.Body;
                     var key = me.Key;
-                    sync.SaveLook(name, body, pieces, r =>
+                    var snapshot = new Dictionary<Slot, Piece>(pieces);
+                    keeping.Add((key, plate));
+                    sync.SaveLook(name, body, snapshot, r =>
                     {
-                        keeping = false;
+                        keeping.Remove((key, plate));
                         if (r.Ok)
                         {
-                            keptFrom[(key, plate)] = r.Value!;
+                            keptFrom[(key, plate)] = (r.Value!, snapshot);
                             Notify($"Kept as “{r.Value!.Name}” in your looks");
                         }
                         else Notify(r.Why ?? "The site said no");

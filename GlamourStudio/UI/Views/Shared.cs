@@ -71,7 +71,7 @@ public sealed partial class MainWindow
     /// A look as a row: its pieces' icons, its name and a line (pieces, who made it, a note), and on
     /// the right how ready it is for a plate. True when it's pressed.
     /// </summary>
-    private bool LookRow(string id, int index, Look look, string? note = null)
+    private bool LookRow(string idPrefix, int index, Look look, string? note = null)
     {
         var at = Kit.At;
         var w = Kit.Width;
@@ -86,7 +86,8 @@ public sealed partial class MainWindow
             return false;
         }
         if (index > 0) dl.AddLine(new Vector2(at.X + S(10), at.Y - 0.5f), new Vector2(at.X + w - S(10), at.Y - 0.5f), Palette.U32(Palette.Line), 1f);
-        var (clicked, hovered, _) = Kit.Hit(id, at, new Vector2(w, h));
+        // (Its id made only for a row in view: a long list makes none for the rest.)
+        var (clicked, hovered, _) = Kit.Hit(idPrefix + index, at, new Vector2(w, h));
         if (hovered) dl.AddRectFilled(at, at + new Vector2(w, h), Palette.U32(Palette.RowHover), S(Palette.RadiusMd));
 
         var x = at.X + S(10);

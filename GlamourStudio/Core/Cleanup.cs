@@ -31,15 +31,35 @@ public static class DresserCleanup
     public static List<OutfitChance> Outfits(IReadOnlyList<DresserPiece> dresser, IReadOnlyDictionary<uint, uint[]> sets)
     {
         var loose = dresser.Where(d => !d.InSet).GroupBy(d => LookJson.BaseId(d.Item)).ToDictionary(g => g.Key, g => g.First());
-        var storedSets = dresser.Where(d => d.InSet).Select(d => d.SetItem).ToHashSet();
+        // What each stored set has in it already: a loose copy of one of those wouldn't join it.
+        var inSets = dresser.Where(d => d.InSet).GroupBy(d => LookJson.BaseId(d.SetItem))
+            .ToDictionary(g => g.Key, g => g.Select(d => LookJson.BaseId(d.Item)).ToHashSet());
         var chances = new List<OutfitChance>();
         foreach (var (set, pieces) in sets)
         {
-            var have = pieces.Select(LookJson.BaseId).Distinct().Where(loose.ContainsKey).Select(i => loose[i]).ToList();
-            var stored = storedSets.Contains(set);
+            var stored = inSets.TryGetValue(LookJson.BaseId(set), out var already);
+            var have = pieces.Select(LookJson.BaseId).Distinct()
+                .Where(i => loose.ContainsKey(i) && !(already?.Contains(i) ?? false))
+                .Select(i => loose[i]).ToList();
             if (have.Count >= (stored ? 1 : 2)) chances.Add(new OutfitChance(set, have, stored));
         }
         return chances.OrderByDescending(c => c.Frees).ThenBy(c => c.SetItem).ToList();
+    }
+
+    /// <summary>
+    /// The places gathering the sets would free in all, in their order: a loose piece two sets share
+    /// is counted for the first only (stored in one set, it's gone from the dresser's loose pieces).
+    /// </summary>
+    public static int Frees(IEnumerable<OutfitChance> chances)
+    {
+        var taken = new HashSet<int>();
+        var total = 0;
+        foreach (var c in chances)
+        {
+            var fresh = c.Pieces.Count(p => taken.Add(p.Index));
+            total += Math.Max(0, c.Stored ? fresh : fresh - 1);
+        }
+        return total;
     }
 
     /// <summary>The dresser's loose pieces that none of <paramref name="outfits"/> (your looks and plates) has, in the dresser's order.</summary>
