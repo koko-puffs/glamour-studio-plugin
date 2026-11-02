@@ -49,7 +49,8 @@ public sealed partial class MainWindow : Window
 
         Size = new Vector2(520, 760);
         SizeCondition = ImGuiCond.FirstUseEver;
-        SizeConstraints = new WindowSizeConstraints { MinimumSize = new Vector2(420, 500), MaximumSize = new Vector2(1400, 2400) };
+        // 490 wide at the least: the title in full beside Settings, and Home's four tabs on one line.
+        SizeConstraints = new WindowSizeConstraints { MinimumSize = new Vector2(490, 500), MaximumSize = new Vector2(1400, 2400) };
         Flags = ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse;
     }
 

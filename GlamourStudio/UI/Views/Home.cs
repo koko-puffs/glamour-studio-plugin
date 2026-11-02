@@ -47,12 +47,12 @@ public sealed partial class MainWindow
         Frame.BeginHeader(20);
         var at = Kit.At;
         var w = Kit.Width;
-        Kit.Eyebrow(at, "Koko's tools", Palette.Rose, w - S(48));
-        var ty = at.Y + Txt.Natural(Face.Mono, 11) + S(4);
-        var titleH = Title(new Vector2(at.X, ty), "Glamour Studio", w - S(48), 24, 1);
+        // The title beside the Settings button, centred on its 36px.
+        var ty = at.Y + MathF.Max(0, (S(36) - S(24 * 1.05f)) / 2);
+        Title(new Vector2(at.X, ty), "Glamour Studio", w - S(48), 24, 1);
         SettingsButton(new Vector2(at.X + w - S(36), at.Y));
         var (status, tone, pulse) = StatusNow();
-        var pillY = ty + titleH + S(10);
+        var pillY = at.Y + S(36) + S(12);
         Kit.StatusPill(new Vector2(at.X, pillY), status, tone, pulse, w);
         Kit.Reserve(at, w, pillY + S(28) - at.Y);
         Frame.EndHeader();
