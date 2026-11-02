@@ -192,24 +192,36 @@ recorder (`Game/Recorder.cs`): while on it writes down, with the time since it s
   menu's words;
 - `AGENT` every event the glamour agents receive (MiragePrismMiragePlate, PrismBox,
   PrismSetConvert, PrismItemDetail, MiragePrism, Cabinet, CabinetWithdraw, Inspect, GearSet, Tryon,
-  Colorant), with its kind, values and what it returned;
+  Colorant, InventoryContext, Context, RetainerList), with its kind, values and what it returned,
+  and for an item's menu which item it was opened on and from where. Their `ReceiveEvent` and
+  `ReceiveEventWithResult` are hooked only when no more than two agents share the function (the
+  header says what was hooked, where in the game, and what wasn't);
 - `CHAT` system and error messages, `LOGMSG` the game's log messages by id, and toasts;
 - `STATE` every change (looked at five times a second) to: where you are (territory, combat, duty,
   cutscene, loading, HUD, GPose), the plate editor (plate, slot picked, changes, how it was opened,
   each slot's item, where it came from and its dyes), the dresser and plates as the game has them,
   the armoire (open, loaded, how many stored), gearsets and their plates, Examine (the agent's
-  request and current target, fetch state, the pieces shown), what you wear, your bags, armoury,
-  saddlebags and retainer pages, which glamour windows are open, and the plugin (linked, sending,
-  the wardrobe, a shot);
+  request and current target, fetch state, the pieces shown; never the names of others), what you
+  wear, your bags, armoury, saddlebags and retainer pages (with quantities and dyes), the dye
+  bottles in your bags, the dresser's window (tab, page, the piece right-clicked, search and filters,
+  what it's doing), the armoire's window (category, the item picked), storing an outfit set (the
+  set, where its pieces are, into an existing outfit or not), the fitting room (what it shows),
+  retainers (ready, the one picked), which glamour windows are open, and the plugin (linked,
+  sending, the wardrobe, a shot);
+- `READ` each place the plugin reads anew, `SITE` each call to the site (its function, status, time,
+  size; never the token), `LOGIN` / `LOGOUT`;
 - `PLUGIN` what the plugin did (filling a plate slot by slot with the game's answer, dyes from
-  bags, storing in the armoire, linking or changing gearsets, wearing a plate, trying on, a shot);
+  bags, storing in the armoire, linking or changing gearsets, wearing a plate, trying on, a shot and
+  hiding and showing the HUD for it);
 - `MARK` a step you're about to do (the field in Settings, or `/gstudio mark 2. Fill plate 3`),
   each with the whole state.
 
 **Write down the windows' values** (`/gstudio dump`) adds every value the open glamour windows
-hold and the plate editor, dresser, plates and armoire in full. **Copy the recording** puts it on
-the clipboard with what the plugin knows (version, character, settings, what's been read, the
-last send); **Save it as a file** (`/gstudio save`) writes it to
+hold and the plate editor, dresser, plates and armoire in full, a hundred values to a line. The
+same line again is counted ("the line above 12 times in all"), not written again. **Copy the
+recording** puts it on the clipboard with what the plugin knows (the plugin's, Dalamud's and the
+game's versions, the plugins loaded, the recorder's hooks, character, settings, what's been read,
+the last send); **Save it as a file** (`/gstudio save`) writes it to
 `pluginConfigs/GlamourStudio/recordings/gstudio-<time>.txt`. It keeps the last 20,000 lines and stops
 by itself after two hours. It sends nothing anywhere.
 
