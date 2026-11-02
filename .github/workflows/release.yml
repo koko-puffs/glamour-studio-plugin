@@ -34,9 +34,17 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
+      # Run by hand, it builds main whichever branch it was started from (0.1.1 was built from an
+      # old default branch's code); pushed as a tag, the tag's own commit.
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ github.event_name == 'workflow_dispatch' && 'main' || github.ref }}
+
+      - name: The commit being released
+        id: commit
+        shell: bash
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - uses: actions/setup-dotnet@v4
         with:
@@ -95,7 +103,7 @@ jobs:
         with:
           tag_name: ${{ steps.version.outputs.tag }}
           name: Glamour Studio ${{ steps.version.outputs.tag }}
-          target_commitish: ${{ github.sha }}
+          target_commitish: ${{ steps.commit.outputs.sha }}
           files: GlamourStudio.zip
           generate_release_notes: true
           make_latest: true

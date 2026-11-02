@@ -207,7 +207,8 @@ you wear are kept per character (eight at most), and the site's Settings tab lis
 
 ## Releasing
 
-Push a tag like `v0.1.0` (or run the Release workflow by hand with a version). It builds against
+Push a tag like `v0.1.0` (or run the Release workflow by hand with a version: it builds `main`,
+whichever branch it's started from). It builds against
 the current Dalamud, runs the tests, makes a GitHub release with `GlamourStudio.zip`, and points
 `repo.json` at it (making the plugin's entry on the first release: `repo.json` starts empty, so
 Koko's repository lists nothing for it until then). Koko's repository
@@ -218,6 +219,12 @@ this one too, within a few minutes of a release.
 The workflows need Settings → Actions → General → Workflow permissions → Read and write.
 
 ## Release notes
+
+### 0.1.2
+
+0.1.1 as it was meant to be: 0.1.1's download was built from 0.1.0's code (the Release workflow,
+run by hand, built the repository's default branch, then still an old one). The workflow now always
+builds `main` when run by hand. Everything under 0.1.1 below is in this one.
 
 ### 0.1.1
 
