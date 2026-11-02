@@ -24,7 +24,7 @@ public static partial class Kit
     // ---------------------------------------------------------------------------------------------
     // Panes.
 
-    private static readonly Stack<(float PadBottom, Vector2 Min, Vector2 Size)> Panes = new();
+    internal static readonly Stack<(float PadBottom, Vector2 Min, Vector2 Size)> Panes = new();
 
     /// <summary>
     /// A pane at <paramref name="min"/>, <paramref name="size"/> big: its own child window (it scrolls
@@ -92,7 +92,7 @@ public static partial class Kit
         Reserve(at, w, h);
     }
 
-    private static readonly Stack<(Vector2 At, float Width, float Height)> ScrollCards = new();
+    internal static readonly Stack<(Vector2 At, float Width, float Height)> ScrollCards = new();
 
     /// <summary>
     /// Two columns side by side from the cursor: <paramref name="left"/> laid in the first

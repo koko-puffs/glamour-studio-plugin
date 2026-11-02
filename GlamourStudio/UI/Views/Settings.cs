@@ -59,7 +59,7 @@ public sealed partial class MainWindow
         // The version and What's new at the foot (under what's above when it's taller).
         var footH = S(14) + Txt.Natural(Face.Sans, 13) + S(18);
         var room = Kit.PaneRoom() - footH;
-        Kit.Gap(MathF.Max(18, room / ImGuiHelpers.GlobalScale));
+        Kit.Gap(MathF.Max(14, room / ImGuiHelpers.GlobalScale));
         var fat = Kit.At;
         Kit.Dl.AddLine(new Vector2(fat.X, fat.Y + 0.5f), new Vector2(fat.X + Kit.Width, fat.Y + 0.5f), Palette.U32(Palette.Divider), 1f);
         Kit.Gap(14);
@@ -95,14 +95,14 @@ public sealed partial class MainWindow
             config.ClearBare = !config.ClearBare;
             config.Save();
         }
-        if (SwitchRow(i++, "##dye", "Dye pieces with the dyes in your bags", "When your copy has other dyes (new: tell us how it goes)", config.DyeFromBags,
+        if (SwitchRow(i++, "##dye", "Dye pieces with the dyes in your bags", "When your copy has other dyes", config.DyeFromBags,
                 "A piece whose copy in your dresser is dyed otherwise than the look gets the look's dyes from the bottles in your bags, as dragging a dye onto it in the plate editor does. The game spends them when you save. Off, the plugin says which pieces to dye."))
         {
             config.DyeFromBags = !config.DyeFromBags;
             config.Save();
         }
         if (SwitchRow(i, "##open-editor", "Open with the plate editor", "The window opens when Glamour Plates does", config.OpenWithEditor,
-                "At a glamour dresser, opening Glamour Plates opens this window too, on your looks."))
+                "At a glamour dresser, opening Glamour Plates opens this window too, on Home: the plate open, and the look planned for it."))
         {
             config.OpenWithEditor = !config.OpenWithEditor;
             config.Save();
@@ -183,7 +183,7 @@ public sealed partial class MainWindow
                 var fw = Kit.Width - S(36) - mw - S(8);
                 var text = markDraft;
                 if (Kit.Field("##mark-text", p, fw, ref text, "e.g. 2. Fill plate 3 from the armoire", Icon.Bookmark, 160)) markDraft = text;
-                var enter = ImGui.IsItemDeactivated() && ImGui.IsKeyPressed(ImGuiKey.Enter);
+                var enter = ImGui.IsItemDeactivated() && (ImGui.IsKeyPressed(ImGuiKey.Enter) || ImGui.IsKeyPressed(ImGuiKey.KeypadEnter));
                 if (Kit.Button("##mark-btn", new Vector2(p.X + fw + S(8), p.Y + (S(36) - Kit.ButtonHeight(BtnSize.Sm)) / 2), mark, Btn.Primary, BtnSize.Sm, Icon.Bookmark) || enter)
                 {
                     var what = markDraft;
@@ -235,7 +235,18 @@ public sealed partial class MainWindow
     {
         var sb = new System.Text.StringBuilder();
         var me = wardrobe.Current;
-        sb.AppendLine($"Glamour Studio {typeof(MainWindow).Assembly.GetName().Version} · client {Services.ClientState.ClientLanguage} · {DateTime.Now:yyyy-MM-dd HH:mm}");
+        sb.AppendLine($"Glamour Studio {typeof(MainWindow).Assembly.GetName().Version} · Dalamud {typeof(Dalamud.Plugin.IDalamudPlugin).Assembly.GetName().Version} · game {Plugin.GameVersion()} · client {Services.ClientState.ClientLanguage} · {DateTime.Now:yyyy-MM-dd HH:mm}");
+        try
+        {
+            // Plugins that touch glamour (Glamourer, Glamaholic…) can change what the game shows.
+            sb.AppendLine("Plugins loaded: " + string.Join(", ", Services.PluginInterface.InstalledPlugins.Where(p => p.IsLoaded).Select(p => $"{p.InternalName} {p.Version}")));
+        }
+        catch
+        {
+            // Not needed to go on.
+        }
+        if (recorder.HookReport.Count > 0) sb.AppendLine("Recorder hooks: " + string.Join("; ", recorder.HookReport));
+        if (recorder.SetupError != null) sb.AppendLine("Recorder: " + recorder.SetupError);
         sb.AppendLine($"Character: {(me != null ? $"{me.Name}@{me.World}" : "none")} · linked {sync.Linked} (refused {sync.TokenRefused}) · looks {sync.Library.Mine.Count} mine, {sync.Library.Loved.Count} loved, {sync.Wearable.Count} wearable, {sync.Inbox.Count} sent, {sync.Plans.Count} plans");
         sb.AppendLine($"Settings: empty bare slots {config.ClearBare}, dye from bags {config.DyeFromBags}, open with editor {config.OpenWithEditor}, auto send {config.AutoSync}, send plates {config.SendPlates}, chat notes {config.ChatNotes}");
         if (me != null)
@@ -276,7 +287,7 @@ public sealed partial class MainWindow
             var fh = S(40);
             dl.AddRectFilled(row, row + new Vector2(fw, fh), Palette.U32(Palette.Field), S(12));
             dl.AddRect(row + new Vector2(0.5f), row + new Vector2(fw, fh) - new Vector2(0.5f), Palette.U32(Palette.LineStrong), S(12), ImDrawFlags.None, 1f);
-            Txt.Line(dl, row + new Vector2(S(12), 0), Txt.Fit(SiteLink.Masked(config.SiteToken), Face.Mono, 12, fw - S(24)), Face.Mono, 12, Palette.Muted, 40);
+            Txt.Line(dl, row + new Vector2(S(12), 0), Txt.Fit(SiteLink.Masked(config.SiteToken), Face.Mono, 13, fw - S(24)), Face.Mono, 13, Palette.Muted, 40);
             if (Kit.Button("##site-unlink", new Vector2(row.X + fw + S(8), row.Y + (fh - Kit.ButtonHeight(BtnSize.Sm)) / 2), unlink, Btn.Glass, BtnSize.Sm, null, 0, false,
                     "Forget the token here. Revoke it on the site too if you won't use it again."))
             {

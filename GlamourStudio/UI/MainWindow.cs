@@ -85,8 +85,13 @@ public sealed partial class MainWindow : Window
     /// <summary>Opens Settings (Dalamud's cog, /gstudio settings).</summary>
     public void ShowSettings()
     {
-        openSent = null;
-        settingsFrom = Screen.Home;
+        // Already open somewhere: Settings' back goes there, and a look sent from the site stays sent.
+        if (!IsOpen)
+        {
+            openSent = null;
+            settingsFrom = Screen.Home;
+        }
+        else if (screen != Screen.Settings) settingsFrom = screen;
         screen = Screen.Settings;
         IsOpen = true;
     }
@@ -338,6 +343,8 @@ public sealed partial class MainWindow : Window
         dl.AddLine(new Vector2(min.X + size.X - 0.5f, min.Y), new Vector2(min.X + size.X - 0.5f, min.Y + size.Y), Palette.U32(Palette.Divider), 1f);
         var compact = size.X < S(120);
         Kit.BeginPane("##rail", min, new Vector2(size.X - 1, size.Y), 12, 16, 16, scroll: false);
+        // (The rail's own draw list from here: what's drawn in it sits over its card, not under it.)
+        dl = Kit.Dl;
         var x = Kit.Left;
         var w = Kit.Width;
         var me = wardrobe.Current;
@@ -351,10 +358,11 @@ public sealed partial class MainWindow : Window
         if (compact) Kit.Gap(14);
         else
         {
-            Kit.Gap(12);
+            Kit.Gap(14);
             var lat = Kit.At;
             Txt.Spaced(dl, new Vector2(x + S(12), lat.Y), "TIDY UP", Face.Mono, 10, Palette.Dim, 0.14f);
             Kit.Reserve(lat, w, Txt.Natural(Face.Mono, 10) + S(6));
+            Kit.Gap(2);
         }
         {
             var at = Kit.At;

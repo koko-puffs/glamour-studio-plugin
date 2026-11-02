@@ -60,7 +60,7 @@ public sealed class Fonts : IDisposable
         (Face.SansBold, 14), (Face.SansBold, 13),
         (Face.Display, 30), (Face.Display, 28), (Face.Display, 26), (Face.Display, 24), (Face.Display, 22), (Face.Display, 20),
         (Face.Display, 19), (Face.Display, 16), (Face.Display, 15),
-        (Face.Mono, 12), (Face.Mono, 11), (Face.Mono, 10),
+        (Face.Mono, 13), (Face.Mono, 12), (Face.Mono, 11), (Face.Mono, 10),
         (Face.MonoMedium, 12), (Face.MonoMedium, 11),
     };
 

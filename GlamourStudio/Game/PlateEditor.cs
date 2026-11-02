@@ -173,11 +173,14 @@ public static unsafe class PlateEditor
         var a = (AtkUnitBase*)Services.GameGui.GetAddonByName(Window).Address;
         var agent = AgentMiragePrismMiragePlate.Instance();
         if (agent == null) return "no agent";
-        var window = a == null ? "window closed" : a->IsVisible ? "window open" : "window hidden";
+        // (The agent's data is read only with its window there: closed, it may be gone.)
+        if (a == null) return "window closed";
+        var window = a->IsVisible ? "window open" : "window hidden";
         if (agent->Data == null) return $"{window}, agent has no data";
         var data = agent->Data;
         var sb = new System.Text.StringBuilder();
-        sb.Append($"{window}, plate {data->SelectedMiragePlateIndex + 1}, slot {data->SelectedItemIndex}, changes {data->HasChanges}, mode {data->OpenMode}, gearset {data->GearsetId}");
+        sb.Append($"{window}, plate {data->SelectedMiragePlateIndex + 1}, slot {data->SelectedItemIndex}, changes {data->HasChanges}, mode {data->OpenMode}, gearset {data->GearsetId}, "
+                  + $"context {data->ContextMenuItemIndex}, opener {data->OpenerAddonId}");
         var items = data->CurrentItems;
         sb.Append(", slots:");
         for (var i = 0; i < items.Length; i++)
@@ -190,6 +193,9 @@ public static unsafe class PlateEditor
                 continue;
             }
             sb.Append($" {key}={it.ItemId} {names.ItemName(it.ItemId % 500000)} ({it.Source}:{it.SourceId}) {it.StainIds[0]}/{it.StainIds[1]}");
+            // A dye dragged on by hand shows as pending until the plate's saved.
+            if (!detail && (it.StainState != 0 || it.PendingStainIds[0] != 0 || it.PendingStainIds[1] != 0))
+                sb.Append($" stainState {it.StainState} pending {it.PendingStainIds[0]}/{it.PendingStainIds[1]} bottles {it.PendingStainItemIds[0]}/{it.PendingStainItemIds[1]}");
             if (detail)
                 sb.Append($" icon {it.IconId} flags {it.Flags} cat {it.EquipSlotCategory} stainState {it.StainState} pending {it.PendingStainIds[0]}/{it.PendingStainIds[1]}"
                           + $" bottles {it.PendingStainItemIds[0]}/{it.PendingStainItemIds[1]} at {it.PendingStainInventoryTypes[0]}:{it.PendingStainInventorySlots[0]}/{it.PendingStainInventoryTypes[1]}:{it.PendingStainInventorySlots[1]}");

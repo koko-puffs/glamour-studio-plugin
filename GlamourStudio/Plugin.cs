@@ -53,6 +53,8 @@ public sealed class Plugin : IDalamudPlugin
                     + $"wardrobe v{wardrobe.Version} dresser live {wardrobe.DresserLive} armoire live {wardrobe.ArmoireLive}, shot {(shots.Capturing ? "capturing" : shots.Taken is { } t ? (t.Sending ? "sending" : t.Sent ? "sent" : "taken") : "none")}",
             };
             window = new MainWindow(config, data, wardrobe, sync, fonts, shots, recorder);
+            // The site's calls, as SITE lines in a recording (any thread; no token, no body).
+            Core.SiteLink.Trace = Recorder.Raw;
             windows.AddWindow(window);
 
             Services.Commands.AddHandler(Command, new CommandInfo(OnCommand)
@@ -95,11 +97,6 @@ public sealed class Plugin : IDalamudPlugin
                 Services.Chat.Print($"Glamour Studio: mark {recorder.Marks}{(rest.Length > 0 ? $": {rest}" : string.Empty)}");
                 return;
             case "dump":
-                if (!recorder.Recording)
-                {
-                    Services.Chat.Print("Glamour Studio: start a recording first (/gstudio record).");
-                    return;
-                }
                 recorder.DumpWindows();
                 Services.Chat.Print("Glamour Studio: the glamour windows' values are written down.");
                 return;
@@ -184,6 +181,7 @@ public sealed class Plugin : IDalamudPlugin
         }
         Safely(() => Services.Commands.RemoveHandler(Command));
         Safely(windows.RemoveAllWindows);
+        Safely(() => Core.SiteLink.Trace = null);
         Safely(() => recorder?.Dispose());
         Safely(() => shots?.Dispose());
         Safely(() => sync?.Dispose());
@@ -195,10 +193,23 @@ public sealed class Plugin : IDalamudPlugin
     private IEnumerable<string> RecordingHeader()
     {
         var me = wardrobe.Current;
-        yield return $"Character {(me != null ? $"{me.Name}@{me.World} key {me.Key}" : "none")}, linked {sync.Linked}, Dalamud API {Services.PluginInterface.AssemblyLocation.Name}";
+        yield return $"Character {(me != null ? $"{me.Name}@{me.World} key {me.Key}" : "none")}, linked {sync.Linked}, Dalamud {typeof(IDalamudPlugin).Assembly.GetName().Version}, game {GameVersion()}";
         yield return $"Settings: empty bare slots {config.ClearBare}, dye from bags {config.DyeFromBags}, open with editor {config.OpenWithEditor}, auto send {config.AutoSync}, send plates {config.SendPlates}, chat notes {config.ChatNotes}";
         yield return me == null ? "Read: nothing" : "Read: " + string.Join(", ", Places.ByPriority.Select(p => $"{Places.Key(p)} {(me.Get(p) is { } r ? $"{r.Items.Count} at {r.ReadAt:HH:mm}" : "never")}"))
                                                      + $", plates {(me.PlatesReadAt is { } pr ? pr.ToString("HH:mm") : "never")}, retainers {me.Retainers.Count}";
+    }
+
+    /// <summary>The game's version (its ffxiv repository's), or "?".</summary>
+    internal static string GameVersion()
+    {
+        try
+        {
+            return Services.Data.GameData.Repositories.TryGetValue("ffxiv", out var repo) ? repo.Version ?? "?" : "?";
+        }
+        catch
+        {
+            return "?";
+        }
     }
 
     private static void Safely(Action action)

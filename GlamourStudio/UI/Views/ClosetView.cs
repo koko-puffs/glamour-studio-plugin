@@ -107,9 +107,18 @@ public sealed partial class MainWindow
         var gap = S(10);
         var cols = w >= S(420) ? 3 : 2;
         var cw = (w - gap * (cols - 1)) / cols;
-        var ch = S(14) * 2 + S(34) + S(10) + Txt.Natural(Face.Display, 26) + S(10) + S(18) * 2;
         var dl = Kit.Dl;
         var now = DateTimeOffset.UtcNow;
+        // Every card as tall as the tallest one's words need (two lines of note at least).
+        var noteW = cw - S(28);
+        var tallestNote = S(18) * 2;
+        foreach (var (place, _) in ClosetPlaces)
+            tallestNote = MathF.Max(tallestNote, Txt.Flow(Vector2.Zero, noteW, new[] { new Run(PlaceNote(me, place, now), Face.Sans, 12, Palette.Muted) }, 18, out _, draw: false));
+        var placeH = S(14) * 2 + S(34) + S(10) + Txt.Natural(Face.Display, 26) + S(10) + tallestNote;
+        var siteH = S(14) * 2 + Txt.Natural(Face.Mono, 11) + S(10)
+                    + Txt.Flow(Vector2.Zero, noteW, new[] { new Run(SiteWords(now), Face.Sans, 13, Palette.Soft) }, 19.5f, out _, draw: false)
+                    + S(12) + Kit.ButtonHeight(BtnSize.Sm);
+        var ch = MathF.Max(placeH, siteH);
         var i = 0;
         foreach (var (place, icon) in ClosetPlaces)
         {
@@ -123,11 +132,7 @@ public sealed partial class MainWindow
             var y = q.Y + S(34) + S(10);
             Txt.Draw(dl, new Vector2(q.X, y), read == null ? "—" : read.Items.Count.ToString("N0"), Face.Display, 26, read == null ? Palette.Dim : Palette.Ink);
             y += Txt.Natural(Face.Display, 26) + S(10);
-            var note = read == null
-                ? Places.HowToRead(place)
-                : place == Place.Retainer
-                    ? $"{Words.Count(me.Retainers.Count, "retainer")} read · last {Words.Ago(new DateTimeOffset(read.ReadAt, TimeSpan.Zero), now)}"
-                    : $"Read {Words.Ago(new DateTimeOffset(read.ReadAt, TimeSpan.Zero), now)}";
+            var note = PlaceNote(me, place, now);
             Txt.Flow(new Vector2(q.X, y), cw - S(28), new[] { new Run(note, Face.Sans, 12, read == null ? Palette.RoseText : Palette.Muted) }, 18, out _);
         }
 
@@ -139,10 +144,7 @@ public sealed partial class MainWindow
             var inner = cw - S(28);
             Kit.Eyebrow(q, "On the site", null, inner);
             var y = q.Y + Txt.Natural(Face.Mono, 11) + S(10);
-            var said = !Linked
-                ? sync.TokenRefused ? "The site doesn't know this token any more. Link again in Settings." : "Link your account and your closet on the site keeps itself up to date."
-                : sync.SyncProblem ?? (sync.LastSync is { } r ? Words.Synced(r) + (sync.LastSyncAt is { } t ? $", sent {Words.Ago(t, now)}." : ".")
-                    : config.AutoSync ? "It's sent by itself as it changes." : "Sending by itself is off (Settings).");
+            var said = SiteWords(now);
             Txt.Flow(new Vector2(q.X, y), inner, new[] { new Run(said, Face.Sans, 13, sync.SyncProblem != null && Linked ? Palette.Danger : Palette.Soft) }, 19.5f, out _);
             var by = p.Y + ch - S(14) - Kit.ButtonHeight(BtnSize.Sm);
             if (Linked)
@@ -151,8 +153,9 @@ public sealed partial class MainWindow
                 var sw = Kit.ButtonWidth(send, BtnSize.Sm, Icon.Upload) - S(4);
                 if (Kit.Button("##sync-now", new Vector2(q.X, by), send, Btn.Glass, BtnSize.Sm, Icon.Upload, sw, sync.Syncing, "Sends what the plugin has read to your closet on the site"))
                     sync.SyncNow();
-                if (q.X + sw + S(6) + Kit.ButtonWidth("Open", BtnSize.Sm, null, Btn.Quiet) <= p.X + cw - S(10)
-                    && Kit.Button("##open-closet", new Vector2(q.X + sw + S(6), by), "Open", Btn.Quiet, BtnSize.Sm, null, 0, false, "Your closet on Glamour Studio"))
+                var ow = Txt.Measure("Open", Face.SansMedium, 13).X + S(10) * 2;
+                if (q.X + sw + S(6) + ow <= p.X + cw - S(10)
+                    && Kit.Button("##open-closet", new Vector2(q.X + sw + S(6), by), "Open", Btn.Quiet, BtnSize.Sm, null, ow, false, "Your closet on Glamour Studio"))
                     Dalamud.Utility.Util.OpenLink(SiteLink.ClosetUrl);
             }
             else if (Kit.Button("##closet-link", new Vector2(q.X, by), "Link your account", Btn.Primary, BtnSize.Sm, Icon.Link, MathF.Min(inner, Kit.ButtonWidth("Link your account", BtnSize.Sm, Icon.Link, Btn.Primary))))
@@ -162,6 +165,21 @@ public sealed partial class MainWindow
         var rows = (i + cols - 1) / cols;
         Kit.Reserve(at, w, rows * ch + (rows - 1) * gap);
     }
+
+    /// <summary>A place card's line: when it was read, or what to open so it can be.</summary>
+    private static string PlaceNote(CharacterWardrobe me, Place place, DateTimeOffset now)
+    {
+        var read = me.Get(place);
+        if (read == null) return Places.HowToRead(place);
+        var ago = Words.Ago(new DateTimeOffset(read.ReadAt, TimeSpan.Zero), now);
+        return place == Place.Retainer ? $"{Words.Count(me.Retainers.Count, "retainer")} read · last {ago}" : $"Read {ago}";
+    }
+
+    /// <summary>The site card's words: what was sent and when, or what's wrong.</summary>
+    private string SiteWords(DateTimeOffset now) => !Linked
+        ? sync.TokenRefused ? "The site doesn't know this token any more. Link again in Settings." : "Link your account and your closet on the site keeps itself up to date."
+        : sync.SyncProblem ?? (sync.LastSync is { } r ? Words.Synced(r) + (sync.LastSyncAt is { } t ? $", sent {Words.Ago(t, now)}." : ".")
+            : config.AutoSync ? "It's sent by itself as it changes." : "Sending by itself is off (Settings).");
 
     // ---------------------------------------------------------------------------------------------
     // The shopping list.
@@ -205,7 +223,7 @@ public sealed partial class MainWindow
         var dl = Kit.Dl;
         if (sync.LastWishesGot is { } got && DateTime.UtcNow - got.At < TimeSpan.FromMinutes(30) && got.Items.Count > 0)
         {
-            Kit.BeginPanel("##wishes-got", 12, 14, 12, Palette.SuccessChip, Palette.SuccessEdge, 14);
+            Kit.BeginPanel("##wishes-got", 12, 14, 12, Palette.WithAlpha(Palette.Success, 0.06f), Palette.SuccessEdge, 14);
             var a = Kit.At;
             var iw = Kit.Width;
             Icons.Draw(dl, Icon.Check, new Vector2(a.X, a.Y + S(2)), S(16), Palette.Success, 2.2f);
@@ -240,6 +258,7 @@ public sealed partial class MainWindow
                 continue;
             }
             var item = data.Item(id);
+            dl = Kit.Dl;
             Kit.GameIcon(new Vector2(r.X, r.Y + S(7)), S(32), item?.Icon ?? 0);
             var where = Where(id);
             var chip = where switch
@@ -263,6 +282,7 @@ public sealed partial class MainWindow
             Kit.Chip(new Vector2(r.X + rw - cw, r.Y + (h - S(24)) / 2), chip, where != null ? ChipKind.Ok : ChipKind.Plain);
             Kit.Dl.AddLine(new Vector2(r.X, r.Y + h - 0.5f), new Vector2(r.X + rw, r.Y + h - 0.5f), Palette.U32(Palette.Raised), 1f);
             Kit.Reserve(r, rw, h);
+            Kit.Gap(2);
         }
         Kit.EndPane();
         Kit.Reserve(at, w, listH);

@@ -328,6 +328,7 @@ public sealed class Shots : IDisposable
     {
         hudWait = null;
         if (!hidHud) return;
+        Game.Recorder.Log($"SHOT showing the HUD again (hidden now {Services.GameGui.GameUiHidden})");
         hidHud = false;
         if (Services.GameGui.GameUiHidden) SetHud(true);
     }
@@ -341,6 +342,7 @@ public sealed class Shots : IDisposable
             var atk = ui->GetRaptureAtkModule();
             if (atk == null) return false;
             atk->SetUiVisibility(visible);
+            Game.Recorder.Log($"SHOT SetUiVisibility({visible}) → hud hidden now {Services.GameGui.GameUiHidden}");
             return true;
         }
         catch (Exception ex)

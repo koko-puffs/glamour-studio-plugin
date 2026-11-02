@@ -212,6 +212,7 @@ public sealed unsafe class WardrobeReader
         {
             Changed();
             dirty = true;
+            Recorder.Log($"READ changed: wardrobe v{Version}, dresser {me.Dresser.Count} pieces, plates {(me.PlatesReadAt != null ? me.Plates.Count(p => p.Pieces.Count > 0) + " with pieces" : "not read")}, retainers {me.Retainers.Count}");
         }
         // Written off the framework thread's hot path: a change after 30 s, the read times every 5 minutes.
         if ((dirty && at - savedAt > SaveAfter) || at - savedAt > SaveEvery)
@@ -235,6 +236,7 @@ public sealed unsafe class WardrobeReader
             return false;
         }
         read[place] = new PlaceRead { ReadAt = at, Items = items };
+        Recorder.Log($"READ {Places.Key(place)}: {items.Count} pieces (was {(was != null ? was.Items.Count.ToString() : "never read")})");
         return true;
     }
 

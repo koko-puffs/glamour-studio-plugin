@@ -308,7 +308,7 @@ public sealed partial class MainWindow
             Txt.Para(PlanWords(thePlan, compact), 19.5f);
             if (!compact)
             {
-                Kit.Gap(8);
+                Kit.Gap(12);
                 Txt.Para(new[] { new Run("Nothing's saved until you press Save in the game.", Face.Sans, 12, Palette.Muted) }, 18);
             }
             if (openSent?.Plate is { } meant && meant != plate && openSent.Look.Id == look.Id)
@@ -443,7 +443,12 @@ public sealed partial class MainWindow
         var armoireOpen = Armoire.IsOpen;
         var now = DateTime.UtcNow;
         Kit.BeginPanel("##away", 16, 16, 16);
+        var hat = Kit.At;
         Kit.Heading("Put away first", Words.Count(away.Count, "piece"), 14);
+        if (!Kit.Blocked && ImGui.IsWindowHovered() && ImGui.IsMouseHoveringRect(hat, new Vector2(hat.X + Kit.Width, Kit.At.Y)))
+            Kit.Tooltip(armoireOpen
+                ? "The armoire's open: the ones it takes go in from your bags or armoury chest. The rest go in your dresser."
+                : "At a glamour dresser, store these from your bags or armoury chest (take them from saddlebags or retainers first). At an inn, with the armoire open, the ones it takes go in with a press.");
         Kit.Gap(10);
         var dl = Kit.Dl;
         for (var i = 0; i < away.Count; i++)
@@ -491,14 +496,6 @@ public sealed partial class MainWindow
             }
             Kit.Reserve(at, w, h);
         }
-        Kit.Gap(10);
-        Txt.Para(new[]
-        {
-            new Run(armoireOpen
-                ? "The armoire's open: the ones it takes go in from your bags or armoury chest. The rest go in your dresser."
-                : "At a glamour dresser, store these from your bags or armoury chest (take them from saddlebags or retainers first). At an inn, the armoire takes the ones it can.",
-                Face.Sans, 12, Palette.Muted),
-        }, 18);
         Kit.EndPanel();
     }
 

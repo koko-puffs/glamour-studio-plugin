@@ -37,6 +37,11 @@ public sealed partial class MainWindow
         var mainSize = new Vector2(size.X - asideW, size.Y);
         var me = wardrobe.Current;
         var sets = GearsetsNow();
+        // The side pane's ground, on the window's own list (before the panes).
+        var asideMin = new Vector2(min.X + mainSize.X, min.Y);
+        var wdl = Kit.Dl;
+        wdl.AddRectFilled(asideMin, asideMin + new Vector2(asideW, size.Y), Palette.U32(Palette.Rail), S(14), ImDrawFlags.RoundCornersBottomRight);
+        wdl.AddLine(new Vector2(asideMin.X + 0.5f, asideMin.Y), new Vector2(asideMin.X + 0.5f, asideMin.Y + size.Y), Palette.U32(Palette.Divider), 1f);
         Kit.BeginPane("##plates-main", min, mainSize, SideCss, 20, 20, padRight: 20);
         var at = Kit.At;
         var w = Kit.Width;
@@ -44,20 +49,24 @@ public sealed partial class MainWindow
         // The heading and what the marks mean.
         Txt.Line(dl, at, "Your glamour plates", Face.SansSemibold, 15, Palette.Ink);
         var hh = Txt.Natural(Face.SansSemibold, 15);
-        var legend2 = "Gearset linked";
+        // What the marks mean, on the right: each part only when it clears the heading.
+        var titleEnd = at.X + Txt.Measure("Your glamour plates", Face.SansSemibold, 15).X + S(12);
+        const string legend2 = "Gearset linked";
         var l2w = Txt.Measure(legend2, Face.Sans, 12).X;
         var chipW = Kit.ChipW("WHM", false, 18);
-        var lx = at.X + w - l2w;
-        Txt.Draw(dl, new Vector2(lx, at.Y + (hh - Txt.Natural(Face.Sans, 12)) / 2), legend2, Face.Sans, 12, Palette.Muted);
-        lx -= S(6) + chipW;
-        Kit.Chip(new Vector2(lx, at.Y + (hh - S(18)) / 2), "WHM", ChipKind.Plain, false, 18);
-        const string legend1 = "Planned on the site";
-        var l1w = Txt.Measure(legend1, Face.Sans, 12).X;
-        lx -= S(14) + l1w;
-        if (lx > at.X + Txt.Measure("Your glamour plates", Face.SansSemibold, 15).X + S(12))
+        var lx = at.X + w - l2w - S(6) - chipW;
+        if (lx > titleEnd)
         {
-            Txt.Draw(dl, new Vector2(lx, at.Y + (hh - Txt.Natural(Face.Sans, 12)) / 2), legend1, Face.Sans, 12, Palette.Muted);
-            Kit.Dot(new Vector2(lx - S(10), at.Y + hh / 2), Palette.Rose, 8);
+            Txt.Draw(dl, new Vector2(at.X + w - l2w, at.Y + (hh - Txt.Natural(Face.Sans, 12)) / 2), legend2, Face.Sans, 12, Palette.Muted);
+            Kit.Chip(new Vector2(lx, at.Y + (hh - S(18)) / 2), "WHM", ChipKind.Plain, false, 18);
+            const string legend1 = "Planned on the site";
+            var l1w = Txt.Measure(legend1, Face.Sans, 12).X;
+            lx -= S(12) + l1w;
+            if (lx - S(14) > titleEnd)
+            {
+                Txt.Draw(dl, new Vector2(lx, at.Y + (hh - Txt.Natural(Face.Sans, 12)) / 2), legend1, Face.Sans, 12, Palette.Muted);
+                Kit.Dot(new Vector2(lx - S(10), at.Y + hh / 2), Palette.Rose, 8);
+            }
         }
         Kit.Reserve(at, w, hh);
         Kit.Gap(12);
@@ -65,6 +74,9 @@ public sealed partial class MainWindow
         if (me == null)
         {
             Txt.Note("Log in to a character to see its plates.");
+            Kit.EndPane();
+            Kit.BeginPane("##plates-aside", asideMin + new Vector2(1, 0), new Vector2(asideW - 1, size.Y), 22, 20, 20);
+            Txt.Note("The plate you pick shows here.", Palette.Muted);
             Kit.EndPane();
             return;
         }
@@ -97,9 +109,6 @@ public sealed partial class MainWindow
         }
         Kit.EndPane();
 
-        var asideMin = new Vector2(min.X + mainSize.X, min.Y);
-        dl.AddRectFilled(asideMin, asideMin + new Vector2(asideW, size.Y), Palette.U32(Palette.Rail), S(14), ImDrawFlags.RoundCornersBottomRight);
-        dl.AddLine(new Vector2(asideMin.X + 0.5f, asideMin.Y), new Vector2(asideMin.X + 0.5f, asideMin.Y + size.Y), Palette.U32(Palette.Divider), 1f);
         Kit.BeginPane("##plates-aside", asideMin + new Vector2(1, 0), new Vector2(asideW - 1, size.Y), 22, 20, 20);
         DrawPlateAside(me, Math.Clamp(pickedPlate, 1, Plates.Count), read, sets);
         Kit.EndPane();
@@ -127,7 +136,7 @@ public sealed partial class MainWindow
         Txt.Draw(dl, new Vector2(x, y), plate.ToString(), Face.Display, 15, Palette.Ink);
         if (sync.PlanFor(plate) != null) Kit.Dot(new Vector2(pos.X + size.X - S(13), pos.Y + S(13)), Palette.Rose, 8);
         y += Txt.Natural(Face.Display, 15) + S(7);
-        if (filled) Mosaic(new Vector2(x, y), mosaic, pieces, 10);
+        if (filled) Mosaic(new Vector2(x, y), mosaic, pieces, 10, 6);
         else
         {
             Kit.Dashed(new Vector2(x, y), new Vector2(x + mosaic, y + mosaic), S(10), Palette.LineStrong, 1f);
@@ -236,7 +245,7 @@ public sealed partial class MainWindow
             var pa = Kit.At;
             var pw = Kit.Width;
             var chip = on ? "On it" : "Not on it yet";
-            var cw = Kit.ChipW(chip, on);
+            var cw = Kit.ChipW(chip, on, 22);
             var ph = S(24);
             Kit.Dot(new Vector2(pa.X + S(4), pa.Y + ph / 2), on ? Palette.Success : Palette.Rose, 8);
             var tx = pa.X + S(18);
@@ -246,7 +255,7 @@ public sealed partial class MainWindow
             var nh = Txt.LineBox(Face.SansSemibold, 13, 24);
             if (Kit.Link("##plan-look", new Vector2(tx + lab, pa.Y + (nh - Txt.Natural(Face.SansSemibold, 13)) / 2), nm, 13, Face.SansSemibold))
                 Later(() => OpenLook(planned, null, Screen.Plates));
-            Kit.Chip(new Vector2(pa.X + pw - cw, pa.Y), chip, on ? ChipKind.Ok : ChipKind.Rose, on);
+            Kit.Chip(new Vector2(pa.X + pw - cw, pa.Y + S(1)), chip, on ? ChipKind.Ok : ChipKind.Rose, on, 22);
             Kit.Reserve(pa, pw, ph);
             Kit.EndPanel();
         }
@@ -293,14 +302,14 @@ public sealed partial class MainWindow
         // Its gearsets.
         if (sets.Count > 0)
         {
-            Kit.Gap(18);
+            Kit.Gap(14);
             DrawGearsets(plate, sets);
         }
 
         // Its slots.
-        Kit.Gap(18);
+        Kit.Gap(14);
         Kit.Heading("On it", Words.Count(pieces.Count, "piece"), 14);
-        Kit.Gap(10);
+        Kit.Gap(14);
         var gat = Kit.At;
         var gap = S(6);
         var tile = (w - gap * 5) / 6;
@@ -340,7 +349,7 @@ public sealed partial class MainWindow
     {
         var linked = all.Where(g => g.Plate == plate).ToList();
         Kit.Heading("Gearsets", "Change to one: its plate comes with it", 14);
-        Kit.Gap(10);
+        Kit.Gap(14);
         Kit.BeginPanel("##gearsets", 4, 4, 4, Palette.Card, Palette.Line, 14);
         var dl = Kit.Dl;
         for (var i = 0; i < linked.Count; i++)
@@ -352,14 +361,14 @@ public sealed partial class MainWindow
             var x = at.X + S(10);
             var job = data.Job(g.Job);
             var chip = job.Length > 0 ? job : "—";
-            Kit.Chip(new Vector2(x, at.Y + (h - S(24)) / 2), chip, ChipKind.Plain, false, 24, S(40));
-            x += MathF.Max(S(40), Kit.ChipW(chip)) + S(10);
+            Kit.Chip(new Vector2(x, at.Y + (h - S(22)) / 2), chip, ChipKind.Plain, false, 22, S(40));
+            x += MathF.Max(S(40), Kit.ChipW(chip, false, 22)) + S(10);
             const string change = "Change to it";
             var cw = Kit.ButtonWidth(change, BtnSize.Sm, null, Btn.Quiet) - S(8);
             var ux = at.X + w - S(10) - S(30);
-            var bx = ux - S(6) - cw;
+            var bx = ux - S(10) - cw;
             var num = g.Number.ToString("00");
-            var nw = Txt.Draw(dl, new Vector2(x, at.Y + (h - Txt.Natural(Face.Mono, 13)) / 2), num, Face.Mono, 12, Palette.Dim);
+            var nw = Txt.Draw(dl, new Vector2(x, at.Y + (h - Txt.Natural(Face.Mono, 13)) / 2), num, Face.Mono, 13, Palette.Dim);
             Txt.Draw(dl, new Vector2(x + nw + S(6), at.Y + (h - Txt.Natural(Face.Sans, 13)) / 2), Txt.Fit(g.Name, Face.Sans, 13, bx - S(8) - x - nw - S(6)), Face.Sans, 13, Palette.Ink);
             var id = g.Id;
             if (Kit.Button($"##gs-equip{i}", new Vector2(bx, at.Y + (h - S(30)) / 2), change, Btn.Quiet, BtnSize.Sm, null, cw, false,
@@ -370,7 +379,7 @@ public sealed partial class MainWindow
                     recorder.Note($"GEARSET EQUIP {id + 1}: {(ok ? "the game took it" : "the game said no")}");
                     if (!ok) Notify("The game wouldn't change gearset now");
                 });
-            if (Kit.IconButton($"##gs-unlink{i}", new Vector2(ux, at.Y + (h - S(30)) / 2), Icon.X, "Unlink the plate from this gearset", 30))
+            if (Kit.IconButton($"##gs-unlink{i}", new Vector2(ux, at.Y + (h - S(30)) / 2), Icon.X, "Unlink the plate from this gearset", 30, Btn.Glass, false, 14))
                 Later(() =>
                 {
                     var ok = Gearsets.Link(id, 0);

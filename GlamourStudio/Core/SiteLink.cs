@@ -96,10 +96,14 @@ public static class SiteLink
     // One call, and what came back.
 
     /// <summary>Calls one of the site's database functions; its JSON answer, or why not.</summary>
+    /// <summary>Told of each call and how it went (the recorder's SITE lines; any thread). Never the token or the body.</summary>
+    public static Action<string>? Trace { get; set; }
+
     public static async Task<SiteReply<JsonNode?>> CallAsync(HttpClient http, string function, JsonObject args, TimeSpan wait, CancellationToken cancel = default)
     {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancel);
         timeout.CancelAfter(wait);
+        var clock = System.Diagnostics.Stopwatch.StartNew();
         try
         {
             using var request = new HttpRequestMessage(HttpMethod.Post, $"{SupabaseUrl}/rest/v1/rpc/{function}")
@@ -110,10 +114,13 @@ public static class SiteLink
             request.Headers.Accept.ParseAdd("application/json");
             using var response = await http.SendAsync(request, timeout.Token).ConfigureAwait(false);
             var text = await response.Content.ReadAsStringAsync(timeout.Token).ConfigureAwait(false);
-            return ReadCall(response.StatusCode, text);
+            var answer = ReadCall(response.StatusCode, text);
+            Trace?.Invoke($"SITE {function}: {(int)response.StatusCode} in {clock.ElapsedMilliseconds} ms, {text.Length:N0} characters{(answer.Ok ? string.Empty : $", refused ({answer.Hint}): {answer.Why}")}");
+            return answer;
         }
         catch (OperationCanceledException) when (!cancel.IsCancellationRequested)
         {
+            Trace?.Invoke($"SITE {function}: no answer in {clock.ElapsedMilliseconds} ms");
             return new SiteReply<JsonNode?>(null, "The site didn't answer in time. Try again in a minute.", "wait");
         }
         catch (OperationCanceledException)
@@ -122,6 +129,7 @@ public static class SiteLink
         }
         catch (Exception ex) when (ex is HttpRequestException or IOException)
         {
+            Trace?.Invoke($"SITE {function}: couldn't reach the site ({ex.GetType().Name}) after {clock.ElapsedMilliseconds} ms");
             return new SiteReply<JsonNode?>(null, "Couldn't reach the site. Check your connection.", "offline");
         }
     }
@@ -320,7 +328,9 @@ public static class SiteLink
             request.Headers.Accept.ParseAdd("application/json");
             using var response = await http.SendAsync(request, timeout.Token).ConfigureAwait(false);
             var text = await response.Content.ReadAsStringAsync(timeout.Token).ConfigureAwait(false);
-            return ReadShot(response.StatusCode, text);
+            var shot = ReadShot(response.StatusCode, text);
+            Trace?.Invoke($"SITE gs-plugin-shot: {(int)response.StatusCode}, {jpeg.Length:N0} bytes sent{(shot.Ok ? string.Empty : $", refused ({shot.Hint}): {shot.Why}")}");
+            return shot;
         }
         catch (OperationCanceledException) when (!cancel.IsCancellationRequested)
         {

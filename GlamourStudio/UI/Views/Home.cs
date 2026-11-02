@@ -124,7 +124,7 @@ public sealed partial class MainWindow
             widths.Add(sw);
             buttons.Add(p =>
             {
-                if (Kit.Button("##hero-see", new Vector2(p.X, p.Y + (lgH - Kit.ButtonHeight(BtnSize.Sm)) / 2), see, Btn.Quiet, BtnSize.Sm))
+                if (Kit.Button("##hero-see", p, see, Btn.Quiet, BtnSize.Sm))
                     Later(() => OpenLook(planned, null, Screen.Home));
             });
             var fillLabel = $"Fill plate {plate}";
@@ -145,7 +145,7 @@ public sealed partial class MainWindow
             widths.Add(sw);
             buttons.Add(p =>
             {
-                if (Kit.Button("##hero-see", new Vector2(p.X, p.Y + (lgH - Kit.ButtonHeight(BtnSize.Sm)) / 2), see, Btn.Quiet, BtnSize.Sm))
+                if (Kit.Button("##hero-see", p, see, Btn.Quiet, BtnSize.Sm))
                     Later(() => OpenLook(planned, null, Screen.Home));
             });
         }
@@ -208,7 +208,7 @@ public sealed partial class MainWindow
             SlotStrip(new Vector2(row.X, row.Y), colW, $"On it now · {Words.Count(current.Count, "piece")}", Palette.Dim, Slots.PlateOrder.Select(s => current.TryGetValue(s, out var p) ? (Piece?)p : null).ToList(), null);
             var ax = row.X + colW + S(12);
             var stripH = StripHeight(colW);
-            Icons.Draw(dl, Icon.ArrowRight, new Vector2(ax + (S(36) - S(20)) / 2, row.Y + Txt.Natural(Face.Mono, 11) + S(8) + (stripH - Txt.Natural(Face.Mono, 11) - S(8) - S(20)) / 2), S(20), Palette.Rose);
+            Icons.Draw(dl, Icon.ArrowRight, new Vector2(ax + (S(36) - S(20)) / 2, row.Y + (stripH - S(20)) / 2), S(20), Palette.Rose);
             var after = AfterPieces(current, plan);
             var afterCount = after.Count(p => p != null);
             var label = $"After · {Words.Count(afterCount, "piece")}" + (dyes > 0 ? $" · {Words.Count(dyes, "dye")} from your bags" : string.Empty);
@@ -244,9 +244,11 @@ public sealed partial class MainWindow
         return list;
     }
 
-    private static float TileOf(float width) => MathF.Min(S(30), (width - S(4) * 11) / 12);
+    /// <summary>A slot tile's width: twelve across with 4 between.</summary>
+    private static float TileOf(float width) => (width - S(4) * 11) / 12;
 
-    private static float StripHeight(float width) => Txt.Natural(Face.Mono, 11) + S(8) + TileOf(width);
+    /// <summary>The strip: its label, 8, and the tiles 30 tall.</summary>
+    private static float StripHeight(float width) => Txt.Natural(Face.Mono, 11) + S(8) + S(30);
 
     /// <summary>A label and twelve slot tiles in the plate's order (the empty ones dim; a missing piece dashed).</summary>
     private void SlotStrip(Vector2 pos, float width, string label, System.Numerics.Vector4 labelColor, IReadOnlyList<Piece?> pieces, PlatePlan? plan)
@@ -254,20 +256,37 @@ public sealed partial class MainWindow
         Kit.Sub(pos, label, labelColor, width);
         var y = pos.Y + Txt.Natural(Face.Mono, 11) + S(8);
         var tile = TileOf(width);
-        var gap = (width - tile * 12) / 11;
+        var th = S(30);
+        var dl = Kit.Dl;
         for (var i = 0; i < 12; i++)
         {
-            var p = new Vector2(pos.X + (tile + gap) * i, y);
+            var p = new Vector2(pos.X + (tile + S(4)) * i, y);
             var slot = Slots.PlateOrder[i];
             var missing = plan?.Steps.FirstOrDefault(s => s.Slot == slot)?.Kind == StepKind.Missing;
+            var max = p + new Vector2(tile, th);
             if (pieces[i] is { } piece)
             {
-                Kit.GameIcon(p, tile, data.Item(piece.Item)?.Icon ?? 0);
-                if (!Kit.Blocked && Dalamud.Bindings.ImGui.ImGui.IsWindowHovered() && Dalamud.Bindings.ImGui.ImGui.IsMouseHoveringRect(p, p + new Vector2(tile)))
+                // The tile 30 tall, the game's square icon in its middle.
+                dl.AddRectFilled(p, max, Palette.U32(Palette.Tile), S(8));
+                var sq = MathF.Min(tile, th);
+                Kit.GameIcon(p + new Vector2((tile - sq) / 2, (th - sq) / 2), sq, data.Item(piece.Item)?.Icon ?? 0);
+                dl.AddRect(p + new Vector2(0.5f), max - new Vector2(0.5f), Palette.U32(Palette.WithAlpha(Palette.White, 0.07f)), S(8), Dalamud.Bindings.ImGui.ImDrawFlags.None, 1f);
+                if (!Kit.Blocked && Dalamud.Bindings.ImGui.ImGui.IsWindowHovered() && Dalamud.Bindings.ImGui.ImGui.IsMouseHoveringRect(p, max))
                     Kit.Tooltip($"{Slots.Word(slot)}: {data.ItemName(piece.Item)}" + (DyeLine(piece) is { } d ? $" · {d}" : string.Empty)
                                 + (missing ? " (kept: the look's piece isn't in your dresser or armoire)" : string.Empty));
             }
-            else Kit.EmptyTile(p, tile, Palette.RadiusSm, 0.6f, missing);
+            else
+            {
+                var old = Palette.Opacity;
+                Palette.Opacity = old * 0.6f;
+                if (missing) Kit.Dashed(p, max, S(8), Palette.LineDashed, 1f);
+                else
+                {
+                    dl.AddRectFilled(p, max, Palette.U32(Palette.Raised), S(8));
+                    dl.AddRect(p + new Vector2(0.5f), max - new Vector2(0.5f), Palette.U32(Palette.LineFaint), S(8), Dalamud.Bindings.ImGui.ImDrawFlags.None, 1f);
+                }
+                Palette.Opacity = old;
+            }
         }
     }
 

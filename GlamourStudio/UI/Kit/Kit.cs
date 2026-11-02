@@ -83,6 +83,8 @@ public static partial class Kit
     {
         Boxes.Clear();
         Panels.Clear();
+        Panes.Clear();
+        ScrollCards.Clear();
         // A control that threw while drawn disabled left the whole window faded (1.0.0).
         Palette.Opacity = 1f;
     }
@@ -165,7 +167,7 @@ public static partial class Kit
 
     /// <summary>A pill button. Width 0 fits its words; an empty label makes it a round icon button.</summary>
     public static bool Button(string id, Vector2 pos, string label, Btn style = Btn.Glass, BtnSize size = BtnSize.Md, Icon? icon = null,
-        float width = 0, bool disabled = false, string? tip = null, float height = 0)
+        float width = 0, bool disabled = false, string? tip = null, float height = 0, float iconCss = 16)
     {
         var (hCss, padCss, px) = Spec(size);
         var h = height > 0 ? height : S(hCss);
@@ -223,7 +225,7 @@ public static partial class Kit
         if (edge.W > 0) dl.AddRect(pos + new Vector2(0.5f), max - new Vector2(0.5f), Palette.U32(edge), r, ImDrawFlags.None, 1f);
 
         var face = FaceOf(style);
-        var iconPx = S(16);
+        var iconPx = S(iconCss);
         // A label wider than a button of a set width is cut to fit (1.0.0: it ran past the pill and the window).
         if (width > 0 && label.Length > 0)
             label = Txt.Fit(label, face, px, MathF.Max(0, w - S(padCss) * 2 - (icon != null ? iconPx + S(8) : 0) + 1));
@@ -242,8 +244,8 @@ public static partial class Kit
     }
 
     /// <summary>A round (or square-pill) button with only an icon; its words are the tooltip, as aria-label is.</summary>
-    public static bool IconButton(string id, Vector2 pos, Icon icon, string tip, float size = 40, Btn style = Btn.Glass, bool disabled = false) =>
-        Button(id, pos, string.Empty, style, BtnSize.Md, icon, S(size), disabled, tip, S(size));
+    public static bool IconButton(string id, Vector2 pos, Icon icon, string tip, float size = 40, Btn style = Btn.Glass, bool disabled = false, float iconCss = 16) =>
+        Button(id, pos, string.Empty, style, BtnSize.Md, icon, S(size), disabled, tip, S(size), iconCss);
 
     // ---------------------------------------------------------------------------------------------
     // Switch, segmented pill, chips, pills.
@@ -357,7 +359,7 @@ public static partial class Kit
 
     private static (Vector4 Fill, Vector4 Ink, Vector4 Dot) ToneColors(Tone tone) => tone switch
     {
-        Tone.Success => (Palette.SuccessWash, Palette.Success, Palette.Success),
+        Tone.Success => (Palette.SuccessChip, Palette.Success, Palette.Success),
         Tone.Live => (Palette.RoseWash, Palette.RoseSoft, Palette.Rose),
         Tone.Waiting => (Palette.Card, Palette.Soft, Palette.Rose),
         Tone.Danger => (Palette.DangerWash, Palette.Danger, Palette.Danger),
@@ -376,7 +378,14 @@ public static partial class Kit
         var h = S(28);
         var dl = Dl;
         dl.AddRectFilled(pos, pos + new Vector2(w, h), Palette.U32(fill), h / 2);
-        dl.AddRect(pos + new Vector2(0.5f), pos + new Vector2(w, h) - new Vector2(0.5f), Palette.U32(tone == Tone.Live ? Palette.RoseEdge : Palette.LineStrong), h / 2, ImDrawFlags.None, 1f);
+        var edge = tone switch
+        {
+            Tone.Live => Palette.RoseEdge,
+            Tone.Success => Palette.SuccessEdge,
+            Tone.Danger => Palette.DangerEdge,
+            _ => Palette.LineStrong,
+        };
+        dl.AddRect(pos + new Vector2(0.5f), pos + new Vector2(w, h) - new Vector2(0.5f), Palette.U32(edge), h / 2, ImDrawFlags.None, 1f);
         var c = pos + new Vector2(S(12) + S(3.5f), h / 2);
         if (pulse)
         {
@@ -515,7 +524,7 @@ public static partial class Kit
         var x = pos.X + S(12);
         if (icon is { } ic)
         {
-            Icons.Draw(dl, ic, new Vector2(x, pos.Y + (h - S(16)) / 2), S(16), Palette.Faint);
+            Icons.Draw(dl, ic, new Vector2(x, pos.Y + (h - S(16)) / 2), S(16), Palette.Dim);
             x += S(16 + 10);
         }
         bool changed;
@@ -524,7 +533,7 @@ public static partial class Kit
         {
             var fh = ImGui.GetFontSize();
             ImGui.PushStyleColor(ImGuiCol.Text, Palette.Ink);
-            ImGui.PushStyleColor(ImGuiCol.TextDisabled, Palette.Faint);
+            ImGui.PushStyleColor(ImGuiCol.TextDisabled, Palette.Dim);
             ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(0, (h - fh) / 2));
             var keep = ImGui.GetCursorScreenPos();
             ImGui.SetCursorScreenPos(new Vector2(x, pos.Y));
@@ -685,12 +694,18 @@ public static partial class Kit
         var open = ImGui.BeginPopup(id, ImGuiWindowFlags.NoMove);
         ImGui.PopStyleColor(2);
         ImGui.PopStyleVar(3);
-        if (open) Frame.Open.Push(true);
+        if (open)
+        {
+            Frame.Open.Push(true);
+            // What's laid in the menu (a note) is laid in the menu, 300 wide.
+            PushBox(ImGui.GetCursorScreenPos().X, S(300));
+        }
         return open;
     }
 
     public static void EndMenu()
     {
+        PopBox();
         if (Frame.Open.Count > 0) Frame.Open.Pop();
         ImGui.EndPopup();
     }

@@ -152,7 +152,7 @@ public sealed partial class MainWindow
         var listH = pos.Y + size.Y - S(16) - top.Y;
         Kit.PopBox();
         if (rows.Count == 0 || listH < S(40)) return;
-        Kit.BeginPane(id, new Vector2(pos.X + S(12), top.Y), new Vector2(size.X - S(24), listH), 6, 0, 0);
+        Kit.BeginPane(id, new Vector2(pos.X + S(12), top.Y), new Vector2(size.X - S(24), listH), 12, 0, 0, padRight: 6);
         for (var i = 0; i < rows.Count; i++) RoomRow(rows[i], iconCss, nameWeight);
         Kit.EndPane();
     }

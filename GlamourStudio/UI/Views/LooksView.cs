@@ -114,7 +114,7 @@ public sealed partial class MainWindow
         var dl = Kit.Dl;
         dl.AddRectFilled(asideMin, asideMin + new Vector2(asideW, size.Y), Palette.U32(Palette.Rail), S(14), ImDrawFlags.RoundCornersBottomRight);
         dl.AddLine(new Vector2(asideMin.X + 0.5f, asideMin.Y), new Vector2(asideMin.X + 0.5f, asideMin.Y + size.Y), Palette.U32(Palette.Divider), 1f);
-        Kit.BeginPane("##looks-aside", asideMin + new Vector2(1, 0), new Vector2(asideW - 1, size.Y), 22, 20, 20, scroll: false);
+        Kit.BeginPane("##looks-aside", asideMin + new Vector2(1, 0), new Vector2(asideW - 1, size.Y), 22, 20, 20);
         if (picked != null) DrawLookAside(picked);
         else Txt.Note(Linked ? "Pick a look to see it here." : "Your looks show here once you're linked.", Palette.Muted);
         Kit.EndPane();
@@ -136,6 +136,8 @@ public sealed partial class MainWindow
         {
             looksTab = picked;
             pickedLook = null;
+            // A job or mood of one tab's looks may be none of the next's.
+            jobFilter = moodFilter = null;
         }
         var fieldW = w - segW - S(12);
         if (fieldW >= S(160))
@@ -171,13 +173,9 @@ public sealed partial class MainWindow
         x += rw + S(8);
 
         // A job and a mood, each from the looks in this tab.
-        var looks = TabLooks(looksTab);
-        x += FilterChip("##job", new Vector2(x, at.Y), jobFilter ?? "Any job", jobFilter != null,
-            looks.Select(l => l.Job).OfType<string>().Where(j => j.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(j => j).ToList(),
-            "Any job", v => jobFilter = v) + S(8);
-        x += FilterChip("##mood", new Vector2(x, at.Y), moodFilter ?? "Any mood", moodFilter != null,
-            looks.Select(l => l.Mood).OfType<string>().Where(m => m.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(m => m).ToList(),
-            "Any mood", v => moodFilter = v) + S(8);
+        var (jobs, moods) = FilterChoices();
+        x += FilterChip("##job", new Vector2(x, at.Y), jobFilter ?? "Any job", jobFilter != null, jobs, "Any job", v => jobFilter = v) + S(8);
+        x += FilterChip("##mood", new Vector2(x, at.Y), moodFilter ?? "Any mood", moodFilter != null, moods, "Any mood", v => moodFilter = v) + S(8);
 
         var hint = LooksHints[Math.Clamp(looksTab, 0, 2)];
         var hw = Txt.Measure(hint, Face.Sans, 12).X;
@@ -186,20 +184,45 @@ public sealed partial class MainWindow
         Kit.Reserve(at, w, S(24));
     }
 
+    private (int Tab, int Sync, List<string> Jobs, List<string> Moods)? filterChoices;
+
+    /// <summary>The jobs and moods the tab's looks say, worked out again only when they change.</summary>
+    private (List<string> Jobs, List<string> Moods) FilterChoices()
+    {
+        if (filterChoices is { } c && c.Tab == looksTab && c.Sync == sync.Version) return (c.Jobs, c.Moods);
+        var looks = TabLooks(looksTab);
+        var jobs = looks.Select(l => l.Job).OfType<string>().Where(j => j.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(j => j).ToList();
+        var moods = looks.Select(l => l.Mood).OfType<string>().Where(m => m.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(m => m).ToList();
+        filterChoices = (looksTab, sync.Version, jobs, moods);
+        return (jobs, moods);
+    }
+
     /// <summary>A chip that opens a menu of choices (and the "any" one first); returns its width.</summary>
     private float FilterChip(string id, Vector2 pos, string text, bool on, IReadOnlyList<string> choices, string any, Action<string?> pick)
     {
         var w = Kit.ChipW(text);
-        var (clicked, hovered, _) = Kit.Hit(id, pos, new Vector2(w, S(24)), choices.Count == 0 && !on);
+        var none = choices.Count == 0 && !on;
+        var (clicked, _, _) = Kit.Hit(id, pos, new Vector2(w, S(24)), none);
+        var old = Palette.Opacity;
+        if (none) Palette.Opacity = old * 0.5f;
         Kit.Chip(pos, text, on ? ChipKind.Rose : ChipKind.Plain);
-        if (hovered && choices.Count == 0) Kit.Tooltip("None of these looks says one");
+        Palette.Opacity = old;
+        if (none && !Kit.Blocked && ImGui.IsWindowHovered() && ImGui.IsMouseHoveringRect(pos, pos + new Vector2(w, S(24))))
+            Kit.Tooltip("None of these looks says one");
         if (clicked) ImGui.OpenPopup(id + "-menu");
         if (Kit.BeginMenu(id + "-menu"))
         {
-            if (Kit.MenuItem(id + "-any", any)) pick(null);
+            if (Kit.MenuItem(id + "-any", any))
+            {
+                pick(null);
+                ImGui.CloseCurrentPopup();
+            }
             foreach (var c in choices)
                 if (Kit.MenuItem(id + "-" + c, c))
+                {
                     pick(c);
+                    ImGui.CloseCurrentPopup();
+                }
             Kit.EndMenu();
         }
         return w;
@@ -251,9 +274,25 @@ public sealed partial class MainWindow
     {
         if (openSent != null && openSent.Look.Id == look.Id)
             return "Sent from the site" + (openSent.Plate is { } sp ? $" · for plate {sp}" : string.Empty);
-        var plannedFor = Enumerable.Range(1, Plates.Count).FirstOrDefault(p => sync.PlanFor(p)?.Id == look.Id);
+        var plannedFor = PlannedPlateOf(look.Id);
         var who = look.Mine ? "Your look" : sync.Library.Loved.Any(l => l.Id == look.Id) ? $"Loved · by {look.Maker}" : $"Wear now · by {look.Maker}";
         return plannedFor > 0 ? $"{who} · planned for plate {plannedFor}" : who;
+    }
+
+    private (int Sync, string? Key, Dictionary<string, int> Plates)? plannedPlates;
+
+    /// <summary>The plate a look's planned for on the site for this character (0: none), worked out once per change.</summary>
+    private int PlannedPlateOf(string lookId)
+    {
+        var key = wardrobe.Current?.Key;
+        if (plannedPlates is not { } c || c.Sync != sync.Version || c.Key != key)
+        {
+            var map = new Dictionary<string, int>();
+            for (var p = Plates.Count; p >= 1; p--)
+                if (sync.PlanFor(p) is { } l) map[l.Id] = p;
+            plannedPlates = c = (sync.Version, key, map);
+        }
+        return c.Plates.TryGetValue(lookId, out var n) ? n : 0;
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -308,25 +347,31 @@ public sealed partial class MainWindow
 
         var ready = ReadinessOf(look);
         Kit.Heading("Pieces", ReadyWords(ready), 14);
-        Kit.Gap(8);
+        Kit.Gap(16);
         var openH = Kit.ButtonHeight(BtnSize.Md);
-        var listH = MathF.Max(S(80), Kit.PaneRoom() - openH - S(14));
+        // The list takes what's left above Open the look (the pane scrolls when there's too little).
+        var listH = MathF.Max(S(80), Kit.PaneRoom() - openH - S(16));
         var lat = Kit.At;
         Kit.BeginPane("##aside-pieces", lat, new Vector2(w, listH), 0, 0, 0);
         foreach (var slot in Slots.All)
         {
             if (!look.Pieces.TryGetValue(slot, out var p)) continue;
             CompactPieceRow(slot, p);
+            Kit.Gap(2);
         }
         Kit.EndPane();
         Kit.Reserve(lat, w, listH);
-        Kit.Gap(14);
+        Kit.Gap(16);
         var bat = Kit.At;
         const string open = "Open the look";
-        if (Kit.Button("##aside-open", bat, open, Btn.Glass, BtnSize.Md, null, w))
-            Later(() => OpenLook(look, null, Screen.Looks));
+        // The words then the chevron, centred together (a padded label leaves room for the icon after).
         var textW = Txt.Measure(open, Face.SansMedium, 14).X;
-        Icons.Draw(dl, Icon.ChevronRight, new Vector2(bat.X + (w + textW) / 2 + S(8), bat.Y + (openH - S(16)) / 2), S(16), Palette.Ink);
+        var group = textW + S(8) + S(16);
+        if (Kit.Button("##aside-open", bat, string.Empty, Btn.Glass, BtnSize.Md, null, w, false, null, openH))
+            Later(() => OpenLook(look, null, Screen.Looks));
+        var gx = bat.X + (w - group) / 2;
+        Txt.Line(dl, new Vector2(gx, bat.Y), open, Face.SansMedium, 14, Palette.Ink, openH / S(1));
+        Icons.Draw(dl, Icon.ChevronRight, new Vector2(gx + textW + S(8), bat.Y + (openH - S(16)) / 2), S(16), Palette.Ink);
         Kit.Reserve(bat, w, openH);
     }
 

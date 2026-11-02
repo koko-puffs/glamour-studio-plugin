@@ -51,9 +51,10 @@ public sealed unsafe class Recorder : IDisposable
     public static readonly string[] GlamourWindows =
     {
         "MiragePrismMiragePlate", "MiragePrismPrismBox", "MiragePrismPrismSetConvert", "MiragePrismPrismSetConvertC", "MiragePrismPrismItemDetail",
-        "MiragePrismMiragePlateConfirm", "MiragePrismE", "Cabinet", "CabinetWithdraw", "CharacterInspect", "GearSetList", "Character",
-        "Tryon", "ColorantColoring", "ColorantEquipment", "ContextMenu", "ContextIconMenu", "SelectYesno", "SelectString", "SelectIconString",
-        "InventoryBuddy", "InventoryBuddy2", "InventoryRetainer", "InventoryRetainerLarge", "ArmouryBoard",
+        "MiragePrismExecute", "MiragePrismRemove", "MiragePrismPrismBoxCrystallize", "Cabinet", "CabinetWithdraw", "CharacterInspect", "GearSetList",
+        "Character", "Tryon", "ColorantColoring", "ColorantEquipment", "ContextMenu", "ContextIconMenu", "SelectYesno", "SelectString",
+        "SelectIconString", "InventoryBuddy", "InventoryBuddy2", "InventoryRetainer", "InventoryRetainerLarge", "RetainerList", "ArmouryBoard",
+        "Inventory", "InventoryLarge", "InventoryExpansion",
     };
 
     private static readonly HashSet<string> Glamour = new(GlamourWindows, StringComparer.Ordinal);
@@ -73,7 +74,7 @@ public sealed unsafe class Recorder : IDisposable
         (AgentId.MiragePrismMiragePlate, "MiragePlate"), (AgentId.MiragePrismPrismBox, "PrismBox"), (AgentId.MiragePrismPrismSetConvert, "PrismSetConvert"),
         (AgentId.MiragePrismPrismItemDetail, "PrismItemDetail"), (AgentId.MiragePrism, "MiragePrism"), (AgentId.Cabinet, "Cabinet"),
         (AgentId.CabinetWithdraw, "CabinetWithdraw"), (AgentId.Inspect, "Inspect"), (AgentId.GearSet, "GearSet"), (AgentId.Tryon, "Tryon"),
-        (AgentId.Colorant, "Colorant"),
+        (AgentId.Colorant, "Colorant"), (AgentId.InventoryContext, "InventoryContext"), (AgentId.Context, "Context"), (AgentId.RetainerList, "RetainerList"),
     };
 
     /// <summary>The recording going now (for the game's code to write PLUGIN lines into), or null.</summary>
@@ -81,6 +82,9 @@ public sealed unsafe class Recorder : IDisposable
 
     /// <summary>Writes a PLUGIN line into the recording going, if one is.</summary>
     public static void Log(string line) => Active?.Add("PLUGIN " + line);
+
+    /// <summary>Writes a SITE line (or any line as given) into the recording going; any thread.</summary>
+    public static void Raw(string line) => Active?.Add(line);
 
     /// <summary>Writes a PLUGIN line, if this is recording.</summary>
     public void Note(string line)
@@ -91,6 +95,21 @@ public sealed unsafe class Recorder : IDisposable
     private readonly GameData data;
     private readonly Hook<AtkUnitBase.Delegates.FireCallback>? callbackHook;
     private readonly Dictionary<nint, Hook<AgentInterface.Delegates.ReceiveEvent>> agentHooks = new();
+
+    /// <summary>What was hooked (each agent's event functions, their place in the game, shared or not), for the header.</summary>
+    private readonly List<string> hookReport = new();
+
+    /// <summary>How deep in hooked event calls this thread is (an agent's own calling its base is written once).</summary>
+    [ThreadStatic]
+    private static int depth;
+
+    /// <summary>The lines kept when old ones go: the header and the start's state.</summary>
+    private int headerCount = HeaderLines;
+
+    /// <summary>The last line's words (without its time) and how many times it came again since.</summary>
+    private string lastBody = string.Empty;
+
+    private int repeats;
     private readonly Dictionary<nint, string> agentNames = new();
 
     /// <summary>The agents' detours, kept so they're never collected while hooked.</summary>
@@ -113,7 +132,13 @@ public sealed unsafe class Recorder : IDisposable
 
     public string? SetupError { get; private set; }
 
-    public int LineCount => lines.Count + dropped;
+    public int LineCount
+    {
+        get
+        {
+            lock (lines) return lines.Count + dropped;
+        }
+    }
 
     public int Marks { get; private set; }
 
@@ -134,41 +159,84 @@ public sealed unsafe class Recorder : IDisposable
         }
     }
 
-    /// <summary>The glamour agents' event functions, hooked once (framework thread, when recording starts).</summary>
+    /// <summary>
+    /// The glamour agents' event functions (ReceiveEvent and ReceiveEventWithResult), hooked once
+    /// (framework thread, when recording starts). One more than two agents share (the base's, or a
+    /// one-line stub) isn't hooked: it'd be called for most of the game's agents.
+    /// </summary>
     private void HookAgents()
     {
+        if (hookReport.Count > 0) return;
         try
         {
             var module = AgentModule.Instance();
             if (module == null) return;
+            var baseAddress = System.Diagnostics.Process.GetCurrentProcess().MainModule?.BaseAddress ?? 0;
+            int Sharing(nint fn, bool withResult)
+            {
+                var n = 0;
+                foreach (var p in module->Agents)
+                {
+                    var ag = p.Value;
+                    if (ag == null || ag->VirtualTable == null) continue;
+                    if ((withResult ? (nint)ag->VirtualTable->ReceiveEventWithResult : (nint)ag->VirtualTable->ReceiveEvent) == fn) n++;
+                }
+                return n;
+            }
             foreach (var (id, name) in Agents)
             {
                 var agent = module->GetAgentByInternalId(id);
-                if (agent == null || agent->VirtualTable == null) continue;
-                agentNames[(nint)agent] = name;
-                var fn = (nint)agent->VirtualTable->ReceiveEvent;
-                if (fn == 0 || agentHooks.ContainsKey(fn)) continue;
-                try
+                if (agent == null || agent->VirtualTable == null)
                 {
-                    // Each hook its own detour, so the original called is always this one's (a function
-                    // several agents share, or one an agent calls as its base, still reaches the game).
-                    Hook<AgentInterface.Delegates.ReceiveEvent>? hook = null;
-                    AgentInterface.Delegates.ReceiveEvent detour = (a, r, v, c, k) => AgentDetour(hook!, a, r, v, c, k);
-                    hook = Services.GameInterop.HookFromAddress(fn, detour);
-                    detours.Add(detour);
-                    agentHooks[fn] = hook;
+                    hookReport.Add($"{name}: no agent");
+                    continue;
                 }
-                catch (Exception ex)
+                agentNames[(nint)agent] = name;
+                foreach (var withResult in new[] { false, true })
                 {
-                    Services.Log.Warning(ex, $"Glamour Studio's recorder couldn't hook {name}'s events");
+                    var fn = withResult ? (nint)agent->VirtualTable->ReceiveEventWithResult : (nint)agent->VirtualTable->ReceiveEvent;
+                    var which = withResult ? "ReceiveEventWithResult" : "ReceiveEvent";
+                    if (fn == 0) continue;
+                    var rva = baseAddress != 0 ? $"+0x{fn - baseAddress:X}" : $"0x{fn:X}";
+                    if (agentHooks.ContainsKey(fn))
+                    {
+                        hookReport.Add($"{name}.{which} {rva}: hooked already (shared)");
+                        continue;
+                    }
+                    var shared = Sharing(fn, withResult);
+                    if (shared > 2)
+                    {
+                        hookReport.Add($"{name}.{which} {rva}: shared by {shared} agents, not hooked");
+                        continue;
+                    }
+                    try
+                    {
+                        // Each hook its own detour, so the original called is always this one's.
+                        Hook<AgentInterface.Delegates.ReceiveEvent>? hook = null;
+                        var label = withResult ? " (with result)" : string.Empty;
+                        AgentInterface.Delegates.ReceiveEvent detour = (ag, r, v, c, k) => AgentDetour(hook!, label, ag, r, v, c, k);
+                        hook = Services.GameInterop.HookFromAddress(fn, detour);
+                        detours.Add(detour);
+                        agentHooks[fn] = hook;
+                        hookReport.Add($"{name}.{which} {rva}: hooked{(shared > 1 ? $" (shared by {shared})" : string.Empty)}");
+                    }
+                    catch (Exception ex)
+                    {
+                        hookReport.Add($"{name}.{which} {rva}: couldn't hook ({ex.GetType().Name})");
+                        Services.Log.Warning(ex, $"Glamour Studio's recorder couldn't hook {name}'s {which}");
+                    }
                 }
             }
         }
         catch (Exception ex)
         {
+            hookReport.Add($"couldn't find the glamour agents ({ex.GetType().Name})");
             Services.Log.Warning(ex, "Glamour Studio's recorder couldn't find the glamour agents");
         }
     }
+
+    /// <summary>What was hooked, for the report.</summary>
+    public IReadOnlyList<string> HookReport => hookReport;
 
     // ---------------------------------------------------------------------------------------------
     // Starting and stopping.
@@ -177,7 +245,13 @@ public sealed unsafe class Recorder : IDisposable
     public void Start()
     {
         if (Recording) return;
-        lines.Clear();
+        lock (lines)
+        {
+            lines.Clear();
+            headerCount = HeaderLines;
+            lastBody = string.Empty;
+            repeats = 0;
+        }
         lastState.Clear();
         lastWords.Clear();
         dropped = 0;
@@ -188,9 +262,17 @@ public sealed unsafe class Recorder : IDisposable
         Recording = true;
         Active = this;
         Add($"Recording started {DateTime.Now:yyyy-MM-dd HH:mm:ss} (local). Glamour Studio {typeof(Recorder).Assembly.GetName().Version}, client {Services.ClientState.ClientLanguage}.");
-        foreach (var h in Header?.Invoke() ?? Array.Empty<string>()) Add(h);
+        try
+        {
+            foreach (var h in Header?.Invoke() ?? Array.Empty<string>()) Add(h);
+        }
+        catch (Exception ex)
+        {
+            Add($"(The header couldn't be written: {ex.GetType().Name}: {ex.Message})");
+        }
         if (SetupError != null) Add(SetupError);
         HookAgents();
+        Add("Hooks: " + string.Join("; ", hookReport));
         callbackHook?.Enable();
         foreach (var h in agentHooks.Values) h.Enable();
         Services.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, OnOpen);
@@ -201,16 +283,26 @@ public sealed unsafe class Recorder : IDisposable
         Services.Toasts.QuestToast += OnQuestToast;
         Services.Chat.ChatMessage += OnChat;
         Services.Chat.LogMessage += OnLogMessage;
+        Services.ClientState.Login += OnLogin;
+        Services.ClientState.Logout += OnLogout;
         listening = true;
         Add("Write a MARK before each step (Settings → Making a report, or /gstudio mark <what you'll do>), do it by hand, then stop and copy or save.");
         WriteAllState("START");
+        // The header and the start's state are kept when old lines go.
+        lock (lines) headerCount = lines.Count;
     }
 
+    private void OnLogin() => Add($"LOGIN content {Services.PlayerState.ContentId:X}");
+
+    private void OnLogout(int type, int code) => Add($"LOGOUT type {type} code {code}");
+
     /// <summary>Stops the recording (framework thread).</summary>
-    public void Stop()
+    public void Stop() => Stop(writeState: true);
+
+    private void Stop(bool writeState)
     {
         if (!Recording) return;
-        WriteAllState("END");
+        if (writeState) WriteAllState("END");
         Recording = false;
         if (ReferenceEquals(Active, this)) Active = null;
         callbackHook?.Disable();
@@ -225,6 +317,8 @@ public sealed unsafe class Recorder : IDisposable
             Services.Toasts.QuestToast -= OnQuestToast;
             Services.Chat.ChatMessage -= OnChat;
             Services.Chat.LogMessage -= OnLogMessage;
+            Services.ClientState.Login -= OnLogin;
+            Services.ClientState.Logout -= OnLogout;
             listening = false;
         }
         Add($"Recording stopped after {(DateTime.UtcNow - started).TotalMinutes:0.0} minutes, {Marks} marks.");
@@ -239,22 +333,34 @@ public sealed unsafe class Recorder : IDisposable
         WriteAllState("MARK");
     }
 
-    /// <summary>Every value the glamour windows hold now, and the whole state (framework thread).</summary>
+    /// <summary>Every value the glamour windows hold now, and the whole state, in lines of a hundred values (framework thread).</summary>
     public void DumpWindows()
     {
-        if (!Recording) return;
+        if (!Recording) Start();
         Add("DUMP: every value the open glamour windows hold, and the whole state.");
         foreach (var name in GlamourWindows)
         {
             var a = (AtkUnitBase*)Services.GameGui.GetAddonByName(name).Address;
             if (a == null) continue;
-            Add("VALUES " + AtkText.DumpValues(name));
+            var values = AtkText.Values(name);
+            Add($"VALUES {name}: {values.Count} values, visible {a->IsVisible}");
+            Chunked($"VALUES {name}", values, 100);
         }
-        Add("EDITOR DETAIL " + PlateEditor.Describe(data, detail: true));
-        Add("DRESSER DETAIL " + DescribeDresser(detail: true));
-        Add("PLATES DETAIL " + DescribePlates(detail: true));
-        Add("ARMOIRE DETAIL " + DescribeArmoire(detail: true));
+        Chunked("EDITOR DETAIL", PlateEditor.Describe(data, detail: true).Split("; ", StringSplitOptions.RemoveEmptyEntries), 12);
+        Chunked("DRESSER DETAIL", DescribeDresser(detail: true).Split(';', StringSplitOptions.RemoveEmptyEntries), 40);
+        Chunked("PLATES DETAIL", DescribePlates(detail: true).Split(" | ", StringSplitOptions.RemoveEmptyEntries), 2);
+        Chunked("ARMOIRE DETAIL", DescribeArmoire(detail: true).Split(';', StringSplitOptions.RemoveEmptyEntries), 40);
         WriteAllState("DUMP");
+    }
+
+    /// <summary>Parts written so many to a line, each line saying which they are.</summary>
+    private void Chunked(string label, IReadOnlyList<string> parts, int perLine)
+    {
+        for (var i = 0; i < parts.Count; i += perLine)
+        {
+            var to = Math.Min(parts.Count, i + perLine);
+            Add($"{label} [{i}-{to - 1}]: {string.Join(" ", parts.Skip(i).Take(to - i).Select(p => p.Trim()))}", cut: false);
+        }
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -319,6 +425,12 @@ public sealed unsafe class Recorder : IDisposable
         yield return ("examine", DescribeExamine);
         yield return ("worn", DescribeWorn);
         yield return ("bags", DescribeBags);
+        yield return ("dyes", DescribeDyes);
+        yield return ("dresser window", DescribeDresserWindow);
+        yield return ("armoire window", DescribeArmoireWindow);
+        yield return ("outfit sets", DescribeSetConvert);
+        yield return ("try-on", DescribeTryOn);
+        yield return ("retainers", DescribeRetainers);
         yield return ("windows", DescribeWindows);
         if (PluginState != null) yield return ("plugin", PluginState);
     }
@@ -445,8 +557,9 @@ public sealed unsafe class Recorder : IDisposable
             var glam = it->GlamourId;
             pieces.Add($"[{i}] {it->GetBaseItemId()}{(glam != 0 ? $" as {glam} {data.ItemName(glam % 500000)}" : $" {data.ItemName(it->GetBaseItemId())}")} {it->GetStain(0)}/{it->GetStain(1)}");
         }
-        var who = Services.Objects.SearchByEntityId(agent->CurrentEntityId)?.Name.TextValue ?? "(not in the object table)";
-        return head + $", who {who}, {pieces.Count} pieces: {string.Join("; ", pieces)}";
+        // (No names of other people in a recording: whether they're near is enough.)
+        var near = Services.Objects.SearchByEntityId(agent->CurrentEntityId) != null;
+        return head + $", {(near ? "in the object table" : "not in the object table")}, {pieces.Count} pieces: {string.Join("; ", pieces)}";
     }
 
     private string DescribeWorn()
@@ -501,12 +614,106 @@ public sealed unsafe class Recorder : IDisposable
                     var it = c->GetInventorySlot(i);
                     if (it == null || it->IsEmpty()) continue;
                     n++;
-                    hash = (hash ^ it->ItemId ^ ((ulong)i << 32) ^ ((ulong)(int)t << 44)) * 1099511628211;
+                    hash = (hash ^ it->ItemId ^ ((ulong)it->Quantity << 24) ^ ((ulong)i << 32) ^ ((ulong)(int)t << 44)) * 1099511628211;
+                    hash = (hash ^ it->GlamourId ^ ((ulong)it->GetStain(0) << 32) ^ ((ulong)it->GetStain(1) << 40) ^ ((ulong)(byte)it->Flags << 48)) * 1099511628211;
                 }
             }
             parts.Add($"{name} {n} in {loaded}/{types.Length} loaded ({(uint)hash:X8})");
         }
         return string.Join(", ", parts);
+    }
+
+    /// <summary>The dyes in your bags: each stain and how many bottles.</summary>
+    private string DescribeDyes()
+    {
+        var mgr = InventoryManager.Instance();
+        if (mgr == null) return "no inventory";
+        var counts = new SortedDictionary<byte, int>();
+        foreach (var t in BagGroups[0].Types)
+        {
+            var c = mgr->GetInventoryContainer(t);
+            if (c == null || !c->IsLoaded) continue;
+            for (var i = 0; i < c->Size; i++)
+            {
+                var it = c->GetInventorySlot(i);
+                if (it == null || it->IsEmpty()) continue;
+                var stain = data.DyeOfItem(it->GetBaseItemId());
+                if (stain != 0) counts[stain] = counts.GetValueOrDefault(stain) + it->Quantity;
+            }
+        }
+        return counts.Count == 0 ? "none in your bags" : string.Join(", ", counts.Select(kv => $"{kv.Key} {data.DyeName(kv.Key)} ×{kv.Value}"));
+    }
+
+    /// <summary>The dresser's window: its tab and page, the piece right-clicked, search and filters, what it's doing.</summary>
+    private static string DescribeDresserWindow()
+    {
+        var agent = AgentMiragePrismPrismBox.Instance();
+        if (agent == null) return "no agent";
+        var open = (AtkUnitBase*)Services.GameGui.GetAddonByName("MiragePrismPrismBox").Address != null;
+        var head = $"window {(open ? "open" : "closed")}, data loaded {agent->IsDataLoaded}, tab {agent->TabIndex}, page {agent->PageIndex}";
+        if (!open || agent->Data == null) return head;
+        var d = agent->Data;
+        return head + $", page picked {d->SelectedPageIndex}, items {d->ItemCount}, used {d->UsedSlots}, pending {d->PendingState}/{d->PendingStateStep} (last {d->LastProcessedStep}), "
+                    + $"right-clicked [{d->TempContextItemIndex}] {d->TempContextItem.ItemId} slot {d->TempContextItem.Slot}, "
+                    + $"search \"{d->SearchString}\" filter \"{d->FilterString}\" level {d->FilterLevel} sex {d->FilterSex} glamour {d->FilterGlamour} sort {d->SortType}";
+    }
+
+    /// <summary>The armoire's window: its category, the item picked, what it's waiting for.</summary>
+    private static string DescribeArmoireWindow()
+    {
+        var agent = AgentCabinet.Instance();
+        var ui = UIState.Instance();
+        var state = ui != null ? ui->Cabinet.State.ToString() : "?";
+        if (agent == null) return $"no agent, cabinet {state}";
+        var open = (AtkUnitBase*)Services.GameGui.GetAddonByName("Cabinet").Address != null;
+        return $"window {(open ? "open" : "closed")}, cabinet {state}, category {agent->SelectedCategoryIndex}, picked [{agent->SelectedIndex}] item {agent->SelectedItemId}, "
+               + $"mode {agent->OpenMode}, items {agent->ItemCount}, pending update {agent->PendingUpdate}";
+    }
+
+    /// <summary>Storing an outfit set: the set picked, where its pieces are, whether it goes in as one.</summary>
+    private static string DescribeSetConvert()
+    {
+        var agent = AgentMiragePrismPrismSetConvert.Instance();
+        if (agent == null) return "no agent";
+        var open = (AtkUnitBase*)Services.GameGui.GetAddonByName("MiragePrismPrismSetConvert").Address != null;
+        if (!open || agent->Data == null) return $"window {(open ? "open" : "closed")}";
+        var d = agent->Data;
+        var items = new List<string>();
+        var n = (int)Math.Min(d->NumItemsInSet, (uint)d->Items.Length);
+        for (var i = 0; i < n; i++)
+        {
+            ref var it = ref d->Items[i];
+            items.Add($"{it.ItemId} col {it.MirageStoreSetItemColumn} at {it.InventoryType}:{it.Slot}");
+        }
+        return $"window open, source {d->SourceItemId} at {d->SourceContainer}:{d->SourceSlot}, state {d->State}, set picked {d->SelectedSetIndex}, context {d->ContextMenuItemIndex}, "
+               + $"dresser index {d->PrismBoxIndex}, store into existing {d->StoreInExistingOutfit}, can store {d->EnableStoring}, sets {d->ItemSetCount}, pieces {d->NumItemsInSet}: {string.Join("; ", items)}";
+    }
+
+    /// <summary>The fitting room: what it shows, slot by slot, and what's hidden.</summary>
+    private static string DescribeTryOn()
+    {
+        var agent = AgentTryon.Instance();
+        if (agent == null) return "no agent";
+        var open = (AtkUnitBase*)Services.GameGui.GetAddonByName("Tryon").Address != null;
+        if (!open) return "window closed";
+        var v = &agent->CharaView;
+        var items = new List<string>();
+        foreach (ref var it in v->Items)
+        {
+            if (it.ItemId == 0 && it.GlamourItemId == 0) continue;
+            items.Add($"{it.SlotId}:{it.ItemId}{(it.GlamourItemId != 0 ? $" as {it.GlamourItemId}" : string.Empty)} {it.Stain0Id}/{it.Stain1Id}");
+        }
+        return $"window open, hide others {v->HideOtherEquipment}, headgear hidden {v->HeadgearHidden}, weapon hidden {v->WeaponHidden}, {items.Count} pieces: {string.Join("; ", items)}";
+    }
+
+    /// <summary>Retainers: whether their list is ready, the one picked, how many items it holds.</summary>
+    private static string DescribeRetainers()
+    {
+        var m = RetainerManager.Instance();
+        if (m == null) return "no retainer manager";
+        if (!m->IsReady) return "not ready";
+        var active = m->GetActiveRetainer();
+        return $"ready, last picked {m->LastSelectedRetainerId:X}" + (active != null ? $", active has {active->ItemCount} items" : ", none active");
     }
 
     private static string DescribeWindows()
@@ -555,28 +762,51 @@ public sealed unsafe class Recorder : IDisposable
         return callbackHook!.Original(self, count, values, close);
     }
 
-    private AtkValue* AgentDetour(Hook<AgentInterface.Delegates.ReceiveEvent> hook, AgentInterface* self, AtkValue* returnValue, AtkValue* values, uint valueCount, ulong eventKind)
+    private AtkValue* AgentDetour(Hook<AgentInterface.Delegates.ReceiveEvent> hook, string label, AgentInterface* self, AtkValue* returnValue, AtkValue* values, uint valueCount, ulong eventKind)
     {
+        var outer = depth == 0;
+        string? name = null;
         try
         {
-            if (Recording && self != null && agentNames.TryGetValue((nint)self, out var name))
-                Add($"AGENT {name} kind={eventKind} [{AtkText.Describe(values, valueCount)}]");
+            if (Recording && outer && self != null && agentNames.TryGetValue((nint)self, out name))
+                Add($"AGENT {name}{label} kind={eventKind} [{AtkText.Describe(values, valueCount)}]");
         }
         catch
         {
-            // Never let watching break the game's own call.
+            // Writing it down mustn't stop the game's own call.
         }
-        var result = hook.Original(self, returnValue, values, valueCount, eventKind);
+        AtkValue* result;
+        depth++;
         try
         {
-            if (Recording && self != null && agentNames.TryGetValue((nint)self, out var name) && result != null)
-                Add($"  AGENT {name} returned [{AtkText.Describe(result, 1)}]");
+            result = hook.Original(self, returnValue, values, valueCount, eventKind);
+        }
+        finally
+        {
+            depth--;
+        }
+        try
+        {
+            if (name != null && Recording && result != null && result->Type != 0)
+                Add($"  AGENT {name}{label} returned [{AtkText.Describe(result, 1)}]");
+            // A menu opened on an item: which item, from where.
+            if (name == "InventoryContext" && Recording) Add("  " + DescribeInventoryContext());
         }
         catch
         {
             // As above.
         }
         return result;
+    }
+
+    /// <summary>The item a menu was opened on: its container and slot, the item, the window it came from, how many entries.</summary>
+    private static string DescribeInventoryContext()
+    {
+        var a = AgentInventoryContext.Instance();
+        if (a == null) return "context: no agent";
+        var item = a->TargetInventorySlot;
+        return $"context: {a->TargetInventoryId}:{a->TargetInventorySlotId} item {(item != null ? item->ItemId : 0)} flags {a->TargetInventoryFlags}, owner window {a->OwnerAddonId}, "
+               + $"{a->ContextItemCount} entries from {a->ContexItemStartIndex}";
     }
 
     private void OnOpen(AddonEvent type, AddonArgs args)
@@ -587,6 +817,7 @@ public sealed unsafe class Recorder : IDisposable
         var words = a != null ? AtkText.Strings(a, full ? 600 : 10) : new List<string>();
         if (full) lastWords[args.AddonName] = string.Join("|", words).GetHashCode();
         Add($"OPEN {args.AddonName}{(a != null ? $" ({a->AtkValuesCount} values)" : string.Empty)}{(words.Count > 0 ? " " + string.Join(" ", words.Select(Cut)) : string.Empty)}");
+        if (args.AddonName is "ContextMenu" or "ContextIconMenu") Add("  " + DescribeInventoryContext());
     }
 
     /// <summary>A glamour window refreshed: its words again, when they changed.</summary>
@@ -595,15 +826,17 @@ public sealed unsafe class Recorder : IDisposable
         if (!Recording) return;
         var a = (AtkUnitBase*)args.Addon.Address;
         if (a == null) return;
+        // The values the refresh brought (not what the window held before it).
+        var sent = args is AddonRefreshArgs r && r.AtkValues != 0 ? AtkText.Describe((AtkValue*)r.AtkValues, r.AtkValueCount, 120) : string.Empty;
         var words = AtkText.Strings(a, 600);
-        var hash = string.Join("|", words).GetHashCode();
+        var hash = (string.Join("|", words) + sent).GetHashCode();
         if (lastWords.TryGetValue(args.AddonName, out var last) && last == hash)
         {
-            Add($"REFRESH {args.AddonName} (same words)");
+            Add($"REFRESH {args.AddonName} (the same)");
             return;
         }
         lastWords[args.AddonName] = hash;
-        Add($"REFRESH {args.AddonName} ({a->AtkValuesCount} values) {string.Join(" ", words.Select(Cut))}");
+        Add($"REFRESH {args.AddonName} ({a->AtkValuesCount} values){(sent.Length > 0 ? $" sent [{sent}]" : string.Empty)} {string.Join(" ", words.Select(Cut))}");
     }
 
     private void OnClose(AddonEvent type, AddonArgs args)
@@ -651,17 +884,32 @@ public sealed unsafe class Recorder : IDisposable
 
     private static string Cut(string w) => w.Length > WordsAtMost ? w[..WordsAtMost] + "…" : w;
 
-    private void Add(string line)
+    /// <summary>Writes a line (any thread). The same words again are counted, not written again.</summary>
+    private void Add(string line, bool cut = true)
     {
-        if (started == default) started = DateTime.UtcNow;
-        if (line.Length > LineAtMost) line = $"{line[..LineAtMost]}… (+{line.Length - LineAtMost:N0} characters)";
-        lines.Add($"{(DateTime.UtcNow - started).TotalSeconds,8:0.000}  {line}");
-        // The oldest lines after the header go, a batch at a time.
-        if (lines.Count > MaxLines + 500)
+        lock (lines)
         {
-            var cut = lines.Count - MaxLines;
-            lines.RemoveRange(HeaderLines, cut);
-            dropped += cut;
+            if (started == default) started = DateTime.UtcNow;
+            if (cut && line.Length > LineAtMost) line = $"{line[..LineAtMost]}… (+{line.Length - LineAtMost:N0} characters)";
+            if (line == lastBody && lines.Count > headerCount)
+            {
+                repeats++;
+                return;
+            }
+            if (repeats > 0)
+            {
+                lines.Add($"{(DateTime.UtcNow - started).TotalSeconds,8:0.000}    (the line above {repeats + 1} times in all)");
+                repeats = 0;
+            }
+            lastBody = line;
+            lines.Add($"{(DateTime.UtcNow - started).TotalSeconds,8:0.000}  {line}");
+            // The oldest lines after the header go, a batch at a time.
+            if (lines.Count > MaxLines + 500)
+            {
+                var drop = lines.Count - MaxLines;
+                lines.RemoveRange(headerCount, drop);
+                dropped += drop;
+            }
         }
     }
 
@@ -672,10 +920,14 @@ public sealed unsafe class Recorder : IDisposable
     {
         var sb = new StringBuilder();
         sb.AppendLine("Glamour Studio recording");
-        for (var i = 0; i < lines.Count; i++)
+        lock (lines)
         {
-            if (i == Math.Min(HeaderLines, lines.Count) && dropped > 0) sb.AppendLine($"          ({dropped:N0} earlier lines let go of: a recording keeps the last {MaxLines:N0}.)");
-            sb.AppendLine(lines[i]);
+            for (var i = 0; i < lines.Count; i++)
+            {
+                if (i == Math.Min(headerCount, lines.Count) && dropped > 0) sb.AppendLine($"          ({dropped:N0} earlier lines let go of: a recording keeps the last {MaxLines:N0}.)");
+                sb.AppendLine(lines[i]);
+            }
+            if (repeats > 0) sb.AppendLine($"              (the line above {repeats + 1} times in all)");
         }
         return sb.ToString();
     }
@@ -688,7 +940,7 @@ public sealed unsafe class Recorder : IDisposable
         {
             var dir = Path.Combine(Services.PluginInterface.GetPluginConfigDirectory(), "recordings");
             Directory.CreateDirectory(dir);
-            var path = Path.Combine(dir, $"gstudio-{DateTime.Now:yyyyMMdd-HHmmss}.txt");
+            var path = Path.Combine(dir, $"gstudio-{DateTime.Now:yyyyMMdd-HHmmss-fff}.txt");
             File.WriteAllText(path, text, new UTF8Encoding(false));
             SavedTo = path;
             return path;
@@ -703,7 +955,8 @@ public sealed unsafe class Recorder : IDisposable
 
     public void Dispose()
     {
-        Stop();
+        // (No END state while the plugin unloads: the game may be closing.)
+        Stop(writeState: false);
         callbackHook?.Dispose();
         foreach (var h in agentHooks.Values) h.Dispose();
         agentHooks.Clear();

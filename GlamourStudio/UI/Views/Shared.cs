@@ -47,7 +47,7 @@ public sealed partial class MainWindow
     private bool Linked => sync.Linked && !sync.TokenRefused;
 
     /// <summary>The look's pieces' icons, four at most, in a 2×2 tile (<paramref name="size"/> square).</summary>
-    private void Mosaic(Vector2 pos, float size, IReadOnlyDictionary<Slot, Piece> pieces, float radius = Palette.RadiusMd)
+    private void Mosaic(Vector2 pos, float size, IReadOnlyDictionary<Slot, Piece> pieces, float radius = Palette.RadiusMd, float cellRadius = 8)
     {
         var dl = Kit.Dl;
         var r = S(radius);
@@ -63,7 +63,7 @@ public sealed partial class MainWindow
         for (var i = 0; i < shown.Count; i++)
         {
             var p = pos + new Vector2(gap + (cell + gap) * (i % 2), gap + (cell + gap) * (i / 2));
-            Kit.GameIcon(p, cell, data.Item(pieces[shown[i]].Item)?.Icon ?? 0, 6);
+            Kit.GameIcon(p, cell, data.Item(pieces[shown[i]].Item)?.Icon ?? 0, cellRadius);
         }
     }
 

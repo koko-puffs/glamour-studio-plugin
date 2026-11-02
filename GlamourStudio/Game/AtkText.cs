@@ -68,6 +68,24 @@ public static unsafe class AtkText
         return list;
     }
 
+    /// <summary>Every value a window holds now, each "[i] value", the first <paramref name="max"/>.</summary>
+    public static List<string> Values(string name, int max = 4000)
+    {
+        var list = new List<string>();
+        try
+        {
+            var a = (AtkUnitBase*)Services.GameGui.GetAddonByName(name).Address;
+            if (a == null || a->AtkValues == null) return list;
+            var count = Math.Min((int)a->AtkValuesCount, max);
+            for (var i = 0; i < count; i++) list.Add($"[{i}] {Describe(&a->AtkValues[i], 1)}");
+        }
+        catch (Exception ex)
+        {
+            list.Add($"couldn't read ({ex.GetType().Name})");
+        }
+        return list;
+    }
+
     /// <summary>Every value a window holds now, by its index.</summary>
     public static string DumpValues(string name, int max = 1500)
     {
