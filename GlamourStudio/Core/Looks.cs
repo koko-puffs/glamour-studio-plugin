@@ -51,6 +51,9 @@ public sealed record Look(
 /// <summary>A look sent from the site to the game (<c>gs_plugin_inbox_list</c>), with the plate it was meant for.</summary>
 public sealed record SentLook(string Id, int? Plate, DateTimeOffset CreatedAt, Look Look);
 
+/// <summary>A look planned on the site for one of a character's plates (<c>gs_plugin_plans</c>).</summary>
+public sealed record PlannedPlate(int Plate, Look Look);
+
 /// <summary>Your looks and the ones you love (<c>gs_plugin_looks</c>), and what's on your shopping list.</summary>
 public sealed record Library(IReadOnlyList<Look> Mine, IReadOnlyList<Look> Loved, IReadOnlySet<uint> Wishes)
 {
@@ -166,6 +169,25 @@ public static class LookJson
                 if (Long(n) is { } id and >= 1 and <= 9_999_999)
                     wishes.Add((uint)id);
         return new Library(mine, loved, wishes);
+    }
+
+    /// <summary>A list of looks (<c>gs_plugin_wearable</c>); ones it can't read are left out. Null when it isn't a list.</summary>
+    public static List<Look>? ReadLooks(JsonNode? node)
+    {
+        if (node is null) return new List<Look>();
+        return node is JsonArray rows ? rows.Select(ReadLook).OfType<Look>().ToList() : null;
+    }
+
+    /// <summary>A character's plate plans, by plate; rows it can't read are left out. Null when it isn't a list.</summary>
+    public static List<PlannedPlate>? ReadPlans(JsonNode? node)
+    {
+        if (node is null) return new List<PlannedPlate>();
+        if (node is not JsonArray rows) return null;
+        var list = new List<PlannedPlate>();
+        foreach (var r in rows.OfType<JsonObject>())
+            if (Long(r["plate"]) is { } p and >= 1 and <= Plates.Count && ReadLook(r["look"]) is { } look && list.All(x => x.Plate != p))
+                list.Add(new PlannedPlate((int)p, look));
+        return list.OrderBy(p => p.Plate).ToList();
     }
 
     /// <summary>What's waiting from the site, newest first; rows it can't read are left out. Null when it isn't a list.</summary>

@@ -152,6 +152,36 @@ public sealed class GameData
         }
     }
 
+    /// <summary>Every outfit set: its item and its pieces' items.</summary>
+    public IReadOnlyDictionary<uint, uint[]> AllSets
+    {
+        get
+        {
+            SetPieces(0);
+            return allSets ??= sets!.ToDictionary(kv => kv.Key, kv => kv.Value.Select(p => p.Item).ToArray());
+        }
+    }
+
+    private Dictionary<uint, uint[]>? allSets;
+
+    private readonly Dictionary<uint, string> jobs = new();
+
+    /// <summary>A class or job's abbreviation ("WHM"), or "" for none.</summary>
+    public string Job(uint classJob)
+    {
+        if (jobs.TryGetValue(classJob, out var known)) return known;
+        var abbr = string.Empty;
+        try
+        {
+            if (Services.Data.GetExcelSheet<ClassJob>().GetRowOrDefault(classJob) is { } row) abbr = row.Abbreviation.ExtractText();
+        }
+        catch (Exception ex)
+        {
+            Services.Log.Debug(ex, "Glamour Studio couldn't read job {Id}", classJob);
+        }
+        return jobs[classJob] = abbr;
+    }
+
     /// <summary>An outfit set's pieces (its column, as the dresser counts them, and the item); empty when it isn't a set.</summary>
     public IReadOnlyList<(int Column, uint Item)> SetPieces(uint setItem)
     {

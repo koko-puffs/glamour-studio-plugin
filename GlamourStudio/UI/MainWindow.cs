@@ -12,11 +12,13 @@ using static GlamourStudio.UI.Theme;
 namespace GlamourStudio.UI;
 
 /// <summary>
-/// The plugin's one window, in Glamour Studio's look (the site's night sky and its rose). Four
-/// screens: Home (what the plugin's doing; the plate editor when it's open; looks sent from the site;
-/// your looks, the ones you love, your plates and your closet as tabs), a look (its pieces, where
-/// each is, and Put on plate N), a plate of yours (its pieces, Keep it as a look, Wear it) and
-/// Settings (General and Account). Below Home every screen has the back arrow at its top left, as
+/// The plugin's one window, in Glamour Studio's look (the site's night sky and its rose). Five
+/// screens: Home (what the plugin's doing; the plate editor when it's open, with the look planned
+/// for its plate; someone you examine; looks sent from the site; your looks, the ones you love, the
+/// looks you could wear now, your plates and your closet as tabs), a look (its pieces, where each
+/// is, Put on plate N, putting pieces away, a shot for the site), a plate of yours (its pieces, its
+/// plan, its gearsets, Keep it as a look, Wear it), Make room in your dresser, and Settings
+/// (General and Account). Below Home every screen has the back arrow at its top left, as
 /// Housing Studio's and Raid Planner's plugins have it.
 /// </summary>
 public sealed partial class MainWindow : Window
@@ -26,6 +28,7 @@ public sealed partial class MainWindow : Window
         Home,
         Look,
         Plate,
+        Cleanup,
         Settings,
     }
 
@@ -34,10 +37,11 @@ public sealed partial class MainWindow : Window
     private readonly WardrobeReader wardrobe;
     private readonly SiteSync sync;
     private readonly Fonts fonts;
+    private readonly Shots shots;
     private readonly List<Action> later = new();
     private Screen screen;
 
-    public MainWindow(Configuration config, GameData data, WardrobeReader wardrobe, SiteSync sync, Fonts fonts)
+    public MainWindow(Configuration config, GameData data, WardrobeReader wardrobe, SiteSync sync, Fonts fonts, Shots shots)
         : base("Glamour Studio###GlamourStudioMain")
     {
         this.config = config;
@@ -45,11 +49,12 @@ public sealed partial class MainWindow : Window
         this.wardrobe = wardrobe;
         this.sync = sync;
         this.fonts = fonts;
+        this.shots = shots;
         Txt.Fonts = fonts;
 
         Size = new Vector2(520, 760);
         SizeCondition = ImGuiCond.FirstUseEver;
-        // 490 wide at the least: the title in full beside Settings, and Home's four tabs on one line.
+        // 490 wide at the least: the title in full beside Settings, and Home's five tabs on one line (their counts left out when narrow).
         SizeConstraints = new WindowSizeConstraints { MinimumSize = new Vector2(490, 500), MaximumSize = new Vector2(1400, 2400) };
         Flags = ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse;
     }
@@ -119,6 +124,9 @@ public sealed partial class MainWindow : Window
                             break;
                         case Screen.Plate when openPlate >= 0:
                             DrawPlate(openPlate);
+                            break;
+                        case Screen.Cleanup:
+                            DrawCleanup();
                             break;
                         default:
                             screen = Screen.Home;

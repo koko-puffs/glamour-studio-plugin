@@ -13,19 +13,22 @@ public enum HomeTab
 {
     Looks,
     Loved,
+    WearNow,
     Plates,
     Closet,
 }
 
 /// <summary>
 /// Home: the title with Settings and a pill for what the plugin's doing; the plate editor's card when
-/// it's open (the plate it's on, and what to do); the looks sent from the site; then your looks, the
-/// ones you love, your plates and your closet as tabs, with a search over the looks. Not linked yet:
-/// three steps to begin with, and the plates and closet the game shows work all the same.
+/// it's open (the plate it's on, the look planned for it on the site, Fill it); someone's outfit while
+/// the Examine window's open (Try it on, Keep it as a look); the looks sent from the site; then your
+/// looks, the ones you love, the public looks you could wear now, your plates and your closet as
+/// tabs, with a search over the looks. Not linked yet: three steps to begin with, and the plates
+/// and closet the game shows work all the same.
 /// </summary>
 public sealed partial class MainWindow
 {
-    private static readonly string[] HomeTabNames = { "Looks", "Loved", "Plates", "Closet" };
+    private static readonly string[] HomeTabNames = { "Looks", "Loved", "Wear now", "Plates", "Closet" };
 
     private HomeTab homeTab;
     private string search = string.Empty;
@@ -84,6 +87,7 @@ public sealed partial class MainWindow
 
         Frame.BeginBody("##home", null, 18, 24);
         if (editorPlate > 0) DrawEditorCard(editorPlate);
+        if (Examine.IsOpen) DrawExamined();
         if (!sync.Linked) DrawGetStarted();
         DrawSent();
 
@@ -91,6 +95,7 @@ public sealed partial class MainWindow
         {
             Linked ? sync.Library.Mine.Count.ToString() : null,
             Linked ? sync.Library.Loved.Count.ToString() : null,
+            Linked && sync.Wearable.Count > 0 ? sync.Wearable.Count.ToString() : null,
             wardrobe.Current?.Plates.Count(p => p.Pieces.Count > 0) is { } n and > 0 ? n.ToString() : null,
             null,
         };
@@ -104,6 +109,9 @@ public sealed partial class MainWindow
                 break;
             case HomeTab.Closet:
                 DrawClosetTab();
+                break;
+            case HomeTab.WearNow:
+                DrawWearNowTab();
                 break;
             default:
                 DrawLooksTab(homeTab == HomeTab.Loved);
@@ -137,8 +145,110 @@ public sealed partial class MainWindow
         if (PlateEditor.HasChanges) line += " Not saved yet.";
         var lh = Txt.Flow(new Vector2(x, ty + th + S(2)), tw, new[] { new Run(line, Face.Sans, 13, Palette.Soft) }, 19.5f, out _);
         Kit.Reserve(at, w, MathF.Max(S(40), ty + th + S(2) + lh - at.Y));
+
+        // The look planned for this plate on the site: one press to fill it.
+        if (sync.PlanFor(plate) is { } planned)
+        {
+            Kit.Gap(12);
+            var row = Kit.At;
+            if (Plates.Same(current, planned.Pieces))
+                Txt.Line(Kit.Dl, row, Txt.Fit($"✓ It's the look planned for it, “{planned.Name}”.", Face.SansMedium, 13, w), Face.SansMedium, 13, Palette.Success, 30);
+            else
+            {
+                var label = $"Fill it with “{planned.Name}”";
+                var bw = MathF.Min(w - S(44), Kit.ButtonWidth(label, BtnSize.Md, Icon.Layers, Btn.Primary));
+                if (Kit.Button("##fill-planned", row, label, Btn.Primary, BtnSize.Md, Icon.Layers, bw, false,
+                        "The look planned for this plate on the site (Closet → Plates). Nothing's saved until you press Save in the game."))
+                    Later(() => Fill(planned, PlanFor(planned.Pieces)));
+                if (Kit.IconButton("##open-planned", new Vector2(row.X + bw + S(8), row.Y), Icon.ChevronRight, "See the look first", 36))
+                    Later(() => OpenLook(planned, null));
+            }
+            Kit.Reserve(row, w, S(36));
+        }
         Kit.EndPanel();
         Kit.Gap(18);
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Someone's outfit, while the Examine window's open.
+
+    private Examined? examined;
+    private DateTime examinedAt;
+
+    private void DrawExamined()
+    {
+        // (Read again twice a second at most: the window's open a while.)
+        if (DateTime.UtcNow - examinedAt > TimeSpan.FromSeconds(0.5) || examined == null)
+        {
+            examined = Examine.Read(data);
+            examinedAt = DateTime.UtcNow;
+        }
+        if (examined is not { } e) return;
+        Kit.BeginPanel("##examine", 16, 18, 16);
+        var at = Kit.At;
+        var w = Kit.Width;
+        Mosaic(at, S(48), e.Pieces);
+        var x = at.X + S(48) + S(14);
+        var tw = w - (x - at.X);
+        Kit.Eyebrow(new Vector2(x, at.Y), "Examining", Palette.Rose, tw);
+        var ty = at.Y + Txt.Natural(Face.Mono, 11) + S(3);
+        var th = Title(new Vector2(x, ty), e.Name.Length > 0 ? $"{e.Name}'s outfit" : "Their outfit", tw, 16, 1);
+        Txt.Line(Kit.Dl, new Vector2(x, ty + th + S(2)), Words.Count(e.Pieces.Count, "piece"), Face.Sans, 13, Palette.Muted, 19.5f);
+        Kit.Reserve(at, w, MathF.Max(S(48), ty + th + S(2) + S(19.5f) - at.Y));
+        Kit.Gap(12);
+        var row = Kit.At;
+        if (Kit.Button("##ex-try", row, "Try it on", Btn.Glass, BtnSize.Sm, Icon.Eye))
+        {
+            var pieces = e.Pieces;
+            Later(() => TryOn(pieces));
+        }
+        var bx = row.X + Kit.ButtonWidth("Try it on", BtnSize.Sm, Icon.Eye) + S(8);
+        const string keep = "Keep it as a look";
+        if (Kit.Button("##ex-keep", new Vector2(bx, row.Y), keepingExamined ? "Keeping…" : keep, Btn.Glass, BtnSize.Sm, Icon.Sparkles, 0, !Linked || keepingExamined,
+                Linked ? "A private look of yours on the site, to remix in the dressing room" : "Link your account first (Settings → Account)"))
+        {
+            keepingExamined = true;
+            var name = e.Name.Length > 0 ? $"{e.Name}'s outfit" : "An outfit I saw";
+            sync.SaveLook(name, e.Body, e.Pieces, r =>
+            {
+                keepingExamined = false;
+                Notify(r.Ok ? $"Kept as “{r.Value!.Name}” in your looks" : r.Why ?? "The site said no");
+            });
+        }
+        Kit.Reserve(row, w, Kit.ButtonHeight(BtnSize.Sm));
+        Kit.EndPanel();
+        Kit.Gap(18);
+    }
+
+    private bool keepingExamined;
+
+    // ---------------------------------------------------------------------------------------------
+    // Looks you could wear now: public looks you own every piece of.
+
+    private void DrawWearNowTab()
+    {
+        if (!Linked)
+        {
+            Empty("##wear-empty", Icon.Shirt, "Looks you could wear now",
+                "Link your account and the public looks you own every piece of are here, from the most loved.");
+            return;
+        }
+        var looks = sync.Wearable;
+        if (looks.Count == 0)
+        {
+            Empty("##wear-none", Icon.Shirt, "None yet",
+                "No public look on Glamour Studio is all yours yet. As your closet grows (open your dresser, armoire and retainers once), they show here.");
+            return;
+        }
+        Txt.Note("Public looks on Glamour Studio you own every piece of, the most loved first.", Palette.Muted);
+        Kit.Gap(10);
+        Kit.BeginPanel("##wear", 6, 6, 6);
+        for (var i = 0; i < looks.Count; i++)
+        {
+            var look = looks[i];
+            if (LookRow($"##wear{i}", i, look)) Later(() => OpenLook(look, null));
+        }
+        Kit.EndPanel();
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -338,12 +448,22 @@ public sealed partial class MainWindow
             Txt.Note("Log in to a character to read its wardrobe.");
             return;
         }
+        var dresserRead = me.Get(Place.Dresser) != null;
         Kit.Facts("##closet-facts", new List<Kit.Fact>
         {
-            new("Dresser", me.Get(Place.Dresser)?.Items.Count.ToString() ?? "—"),
+            new("Dresser", dresserRead ? DresserCleanup.Used(me.Dresser).ToString() : "—", dresserRead ? $"of {DresserCleanup.Capacity}" : null),
             new("Armoire", me.Get(Place.Armoire)?.Items.Count.ToString() ?? "—"),
             new("Plates", me.PlatesReadAt != null ? me.Plates.Count(p => p.Pieces.Count > 0).ToString() : "—"),
         });
+        if (dresserRead)
+        {
+            Kit.Gap(10);
+            var roomRow = Kit.At;
+            if (Kit.Button("##room", roomRow, "Make room in your dresser", Btn.Glass, BtnSize.Sm, Icon.Archive, 0, false,
+                    "Outfits you could store as one, and pieces no look or plate of yours uses"))
+                Later(() => OpenCleanup());
+            Kit.Reserve(roomRow, Kit.Width, Kit.ButtonHeight(BtnSize.Sm));
+        }
         Kit.Gap(16);
         Kit.Section("Where your gear is", me.Name.Length > 0 ? me.Name : null);
         Kit.Gap(10);
@@ -375,6 +495,7 @@ public sealed partial class MainWindow
         Kit.EndPanel();
 
         Kit.Gap(18);
+        DrawWishes(me);
         Kit.Section("On the site");
         Kit.Gap(10);
         if (!Linked)
@@ -400,5 +521,39 @@ public sealed partial class MainWindow
         if (Kit.Button("##open-closet", new Vector2(x2, row.Y), "Open my closet", Btn.Quiet, BtnSize.Md, Icon.ExternalLink))
             Dalamud.Utility.Util.OpenLink(SiteLink.ClosetUrl);
         Kit.Reserve(row, Kit.Width, Kit.ButtonHeight(BtnSize.Md));
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Your shopping list: where each piece is, if you have it now.
+
+    private void DrawWishes(CharacterWardrobe me)
+    {
+        var wishes = sync.Library.Wishes;
+        if (!Linked || wishes.Count == 0) return;
+        Kit.Section("Your shopping list", Words.Count(wishes.Count, "piece"));
+        Kit.Gap(10);
+        Kit.BeginPanel("##wishes", 6, 6, 6);
+        var dl = Kit.Dl;
+        var i = 0;
+        foreach (var id in wishes.Take(30))
+        {
+            var at = Kit.At;
+            var w = Kit.Width;
+            var h = S(10) * 2 + S(32);
+            if (i++ > 0) dl.AddLine(new Vector2(at.X + S(10), at.Y - 0.5f), new Vector2(at.X + w - S(10), at.Y - 0.5f), Palette.U32(Palette.Line), 1f);
+            var item = data.Item(id);
+            Kit.GameIcon(new Vector2(at.X + S(10), at.Y + S(10)), S(32), item?.Icon ?? 0);
+            var where = Where(id);
+            var chip = where is { } p ? Places.Word(p) : "Not yet";
+            var chipW = Kit.ChipWidth(chip, where != null);
+            var x = at.X + S(10) + S(32) + S(12);
+            Txt.Line(dl, new Vector2(x, at.Y + S(10)), Txt.Fit(item?.Name ?? $"Item {id}", Face.SansMedium, 14, at.X + w - S(20) - chipW - x), Face.SansMedium, 14, Palette.Ink, 32);
+            Kit.Chip(new Vector2(at.X + w - S(10) - chipW, at.Y + (h - S(24)) / 2), chip, where != null);
+            Kit.Reserve(at, w, h);
+        }
+        Kit.EndPanel();
+        Kit.Gap(8);
+        Txt.Note("A piece the plugin sees in your wardrobe comes off the list by itself.", Palette.Faint);
+        Kit.Gap(18);
     }
 }

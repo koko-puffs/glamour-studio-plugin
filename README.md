@@ -11,7 +11,11 @@ you are.
 Linked to your account on the site, it keeps your **closet** there up to date by itself: what's in
 your glamour dresser, armoire, bags, armoury chest, saddlebags and retainers, your glamour plates and
 what you're wearing. Looks you **Send to game** from the site wait in the plugin, and a plate (or your
-outfit) can be kept as a new look on the site.
+outfit, or someone you examine) can be kept as a new look on the site.
+
+It also fills plates with the looks you **planned** for them on the site, lists the public looks you
+could **wear now**, ticks off your **shopping list**, helps you **make room** in your dresser, links
+plates to **gearsets**, and takes **shots** of a look for its page on the site.
 
 ## Installing
 
@@ -33,7 +37,8 @@ outfit) can be kept as a new look on the site.
 The closet tab says what the plugin has read and when, and what to open so it can read the rest.
 
 **Please note:** plugins are against Square Enix's terms of service. This one reads what the game
-already shows you, and only changes a glamour plate when you ask it to (you save the plate yourself).
+already shows you, and only changes things when you press a button for it: a plate (you save it
+yourself), a gearset's plate, a piece into the armoire.
 Whether to use it is your call.
 
 ## Building it

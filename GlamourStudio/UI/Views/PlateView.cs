@@ -106,6 +106,11 @@ public sealed partial class MainWindow
                 if (!PlateEditor.Wear(plate)) Notify("Couldn't ask the game to wear it");
             });
         Kit.Reserve(row, Kit.Width, Kit.ButtonHeight(BtnSize.Md));
+        if (plate > 0)
+        {
+            DrawPlatePlan(plate, pieces);
+            DrawGearsets(plate);
+        }
         Kit.Gap(22);
         Kit.Section("Pieces", Words.Count(pieces.Count, "piece"));
         Kit.Gap(10);
@@ -116,5 +121,116 @@ public sealed partial class MainWindow
             Txt.Note("What you're wearing, glamour and all, as the plugin last saw it. It's on the site too, for the dressing room's Copy my outfit from the game.", Palette.Faint);
         }
         Frame.EndBody();
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // The plate's plan on the site, and the gearsets it's linked to.
+
+    private void DrawPlatePlan(int plate, IReadOnlyDictionary<Slot, Piece> pieces)
+    {
+        if (sync.PlanFor(plate) is not { } planned) return;
+        Kit.Gap(18);
+        var on = Plates.Same(pieces, planned.Pieces);
+        var runs = new[]
+        {
+            new Run(on ? "✓ It's the look planned for it on the site, " : "Planned for it on the site: ", Face.Sans, 13, on ? Palette.Success : Palette.Muted),
+            new Run($"“{planned.Name}”", Face.SansMedium, 13, Palette.Rose, Link: "plan"),
+            new Run(on ? "." : ". Open it to put it on at a glamour dresser.", Face.Sans, 13, on ? Palette.Success : Palette.Muted),
+        };
+        if (Txt.Para(runs) == "plan") Later(() => OpenLook(planned, null));
+    }
+
+    private List<Gearset> gearsets = new();
+    private DateTime gearsetsAt;
+
+    /// <summary>Your gearsets, read again a second after the last read (they change in the game's own window).</summary>
+    private List<Gearset> GearsetsNow()
+    {
+        if (DateTime.UtcNow - gearsetsAt > TimeSpan.FromSeconds(1))
+        {
+            gearsets = Gearsets.All();
+            gearsetsAt = DateTime.UtcNow;
+        }
+        return gearsets;
+    }
+
+    private void DrawGearsets(int plate)
+    {
+        var all = GearsetsNow();
+        if (all.Count == 0) return;
+        var linked = all.Where(g => g.Plate == plate).ToList();
+        Kit.Gap(22);
+        Kit.Section("Gearsets", linked.Count > 0 ? Words.Count(linked.Count, "linked", "linked") : "None linked");
+        Kit.Gap(8);
+        if (linked.Count > 0)
+        {
+            Kit.BeginPanel("##gearsets", 6, 6, 6);
+            var dl = Kit.Dl;
+            for (var i = 0; i < linked.Count; i++)
+            {
+                var g = linked[i];
+                var at = Kit.At;
+                var w = Kit.Width;
+                var h = S(9) * 2 + S(36);
+                if (i > 0) dl.AddLine(new Vector2(at.X + S(10), at.Y - 0.5f), new Vector2(at.X + w - S(10), at.Y - 0.5f), Palette.U32(Palette.Line), 1f);
+                var x = at.X + S(10);
+                var job = data.Job(g.Job);
+                var chipW = Kit.ChipWidth(job.Length > 0 ? job : "—");
+                Kit.Chip(new Vector2(x, at.Y + (h - S(24)) / 2), job.Length > 0 ? job : "—");
+                x += chipW + S(10);
+                const string change = "Change to it";
+                var cw = Kit.ButtonWidth(change, BtnSize.Sm, Icon.Shirt);
+                var ux = at.X + w - S(10) - S(32);
+                var bx = ux - S(8) - cw;
+                Txt.Line(dl, new Vector2(x, at.Y), Txt.Fit($"{g.Number}  {g.Name}", Face.SansMedium, 14, bx - S(10) - x), Face.SansMedium, 14, Palette.Ink, 54);
+                var by = at.Y + (h - Kit.ButtonHeight(BtnSize.Sm)) / 2;
+                var id = g.Id;
+                if (Kit.Button($"##gs-equip{i}", new Vector2(bx, by), change, Btn.Glass, BtnSize.Sm, Icon.Shirt, 0, false,
+                        "Changes to this gearset: its plate comes with it (in a city or an inn)"))
+                    Later(() =>
+                    {
+                        if (!Gearsets.Equip(id)) Notify("The game wouldn't change gearset now");
+                    });
+                if (Kit.IconButton($"##gs-unlink{i}", new Vector2(ux, at.Y + (h - S(32)) / 2), Icon.X, "Unlink the plate from this gearset", 32))
+                    Later(() =>
+                    {
+                        Notify(Gearsets.Link(id, 0) ? $"Gearset {id + 1} has no plate now" : "The game wouldn't unlink it");
+                        gearsetsAt = DateTime.MinValue;
+                    });
+                Kit.Reserve(at, w, h);
+            }
+            Kit.EndPanel();
+            Kit.Gap(10);
+        }
+        else
+        {
+            Txt.Note("Link it to a gearset and changing to that gearset puts the plate on.", Palette.Muted);
+            Kit.Gap(10);
+        }
+        var row = Kit.At;
+        const string link = "Link to a gearset";
+        if (Kit.Button("##gs-link", row, link, Btn.Glass, BtnSize.Sm, Icon.Link)) Dalamud.Bindings.ImGui.ImGui.OpenPopup("##gs-link-menu");
+        Kit.Reserve(row, Kit.Width, Kit.ButtonHeight(BtnSize.Sm));
+        if (Kit.BeginMenu("##gs-link-menu"))
+        {
+            var others = all.Where(g => g.Plate != plate).ToList();
+            if (others.Count == 0) Txt.Note("Every gearset has this plate.", Palette.Muted);
+            foreach (var g in others)
+            {
+                var job = data.Job(g.Job);
+                var label = $"{g.Number}  {(job.Length > 0 ? job + " · " : string.Empty)}{g.Name}" + (g.Plate > 0 ? $"  (plate {g.Plate} now)" : string.Empty);
+                if (Kit.MenuItem($"##gs-pick{g.Id}", label, null, S(300)))
+                {
+                    var id = g.Id;
+                    Later(() =>
+                    {
+                        Notify(Gearsets.Link(id, plate) ? $"Gearset {id + 1} wears plate {plate} now" : "The game wouldn't link it");
+                        gearsetsAt = DateTime.MinValue;
+                    });
+                    Dalamud.Bindings.ImGui.ImGui.CloseCurrentPopup();
+                }
+            }
+            Kit.EndMenu();
+        }
     }
 }

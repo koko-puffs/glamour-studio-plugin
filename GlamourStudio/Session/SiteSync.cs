@@ -48,6 +48,7 @@ public sealed class SiteSync : IDisposable
     private string lastSent = string.Empty;
     private DateTime nextLibrary;
     private DateTime nextInbox;
+    private DateTime nextPlans;
 
     public SiteSync(Configuration config, WardrobeReader wardrobe)
     {
@@ -64,6 +65,22 @@ public sealed class SiteSync : IDisposable
 
     // What came back, read by the window (framework thread).
     public Library Library { get; private set; } = Library.Empty;
+
+    /// <summary>The public looks you own every piece of (Wear now), as last read.</summary>
+    public IReadOnlyList<Look> Wearable { get; private set; } = Array.Empty<Look>();
+
+    /// <summary>The plate plans of the character they were read for (the one you're on), by plate.</summary>
+    public IReadOnlyList<PlannedPlate> Plans { get; private set; } = Array.Empty<PlannedPlate>();
+
+    /// <summary>The character <see cref="Plans"/> are for.</summary>
+    private string? plansFor;
+
+    /// <summary>The HTTP client the plugin's calls share (the shots' too).</summary>
+    public HttpClient Http => http;
+
+    /// <summary>The planned look for a plate of the character you're on, or null.</summary>
+    public Look? PlanFor(int plate) =>
+        plansFor != null && plansFor == wardrobe.Current?.Key ? Plans.FirstOrDefault(p => p.Plate == plate)?.Look : null;
 
     public DateTime? LibraryAt { get; private set; }
 
@@ -97,12 +114,15 @@ public sealed class SiteSync : IDisposable
         LibraryAt = null;
         LibraryProblem = null;
         Inbox = Array.Empty<SentLook>();
+        Wearable = Array.Empty<Look>();
+        Plans = Array.Empty<PlannedPlate>();
+        plansFor = null;
         LastSync = null;
         LastSyncAt = null;
         SyncProblem = null;
         lastSent = string.Empty;
         versionSent = -1;
-        nextLibrary = nextInbox = nextAutoSync = DateTime.MinValue;
+        nextLibrary = nextInbox = nextAutoSync = nextWearable = nextPlans = DateTime.MinValue;
         Version++;
     }
 
@@ -128,6 +148,13 @@ public sealed class SiteSync : IDisposable
         var now = DateTime.UtcNow;
 
         if (windowOpen && now >= nextLibrary && !LibraryBusy) RefreshLibrary();
+        if (windowOpen && now >= nextWearable) RefreshWearable();
+        // Another character: its plans.
+        if (wardrobe.Current?.Key is { } me && me != plansFor && now >= nextPlans)
+        {
+            nextPlans = now + TimeSpan.FromSeconds(30);
+            RefreshPlans();
+        }
         if (now >= nextInbox)
         {
             nextInbox = now + (windowOpen ? InboxOpen : InboxClosed);
@@ -183,6 +210,9 @@ public sealed class SiteSync : IDisposable
                 LastSyncAt = DateTime.UtcNow;
                 lastSent = fingerprint;
                 versionSent = version;
+                if (r.Value!.WishesGot is { Count: > 0 } got) WishesGot?.Invoke(got);
+                // What you could wear now may have changed with it.
+                if (r.Value.Added + r.Value.Removed > 0) nextWearable = DateTime.MinValue;
             }
             else
             {
@@ -194,12 +224,45 @@ public sealed class SiteSync : IDisposable
         });
     }
 
+    /// <summary>Pieces a read took off your shopping list (you have them now): the plugin says so.</summary>
+    public event Action<IReadOnlyList<uint>>? WishesGot;
+
+    private DateTime nextWearable;
+
+    /// <summary>Your plans for the character you're on: read again when it changes, or with your looks.</summary>
+    public void RefreshPlans()
+    {
+        var key = wardrobe.Current?.Key;
+        if (!Linked || key == null) return;
+        Run(SiteLink.PlansAsync(http, config.SiteToken, key, stopping.Token), r =>
+        {
+            if (r.Ok)
+            {
+                Plans = r.Value!;
+                plansFor = key;
+            }
+            else TokenRefused |= r.TokenRefused;
+        });
+    }
+
+    public void RefreshWearable()
+    {
+        if (!Linked) return;
+        nextWearable = DateTime.UtcNow + LibraryEvery;
+        Run(SiteLink.WearableAsync(http, config.SiteToken, stopping.Token), r =>
+        {
+            if (r.Ok) Wearable = r.Value!;
+            else TokenRefused |= r.TokenRefused;
+        });
+    }
+
     public void RefreshLibrary()
     {
         if (!Linked || LibraryBusy) return;
         LibraryBusy = true;
         nextLibrary = DateTime.UtcNow + LibraryEvery;
         Version++;
+        RefreshPlans();
         Run(SiteLink.LooksAsync(http, config.SiteToken, stopping.Token), r =>
         {
             LibraryBusy = false;

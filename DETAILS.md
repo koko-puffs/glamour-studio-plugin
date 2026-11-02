@@ -31,6 +31,20 @@ dressed in any piece of gear, dyed, saved, shared. The plugin is its half in the
 - **Both ways.** Looks you Send to game on the site wait in the plugin (Sent from the site); a
   plate or your outfit can be kept as a new private look on the site (Keep it as a look), and the
   dressing room's Copy my outfit from the game reads what it sent.
+- **Plates planned on the site.** On the site's Closet → Plates, pick a look for each plate of a
+  character; at a dresser the plugin's plate editor card offers Fill it with “that look”.
+- **Wear now.** The public looks on the site you own every piece of, the most loved first.
+- **Your shopping list ticks itself.** A piece on your list that the plugin sees in your wardrobe
+  comes off it on the site (and a line in chat says so, if you like).
+- **Make room in your dresser.** How full it is, the outfit sets whose loose pieces could be kept
+  as one outfit, and the pieces none of your looks or plates uses.
+- **Put away.** The pieces a look needs that are in your bags or armoury chest, and with the armoire
+  open, Into the armoire for the ones it takes.
+- **Gearsets.** A plate's linked gearsets, Link to a gearset, Unlink, Change to it.
+- **Shots for the site.** Take a shot of a public look as worn (the HUD hides for a moment), see it,
+  caption it and send it to the look's Worn in game.
+- **Examine.** While the game's Examine window is open, the outfit you're looking at: Try it on, or
+  Keep it as a look of yours.
 
 `/gstudio` opens the window, `/gstudio settings` opens Settings, `/gstudio send` sends your
 closet now.
@@ -49,8 +63,12 @@ right, a card of rows for settings, the question as a card over the window.
 - **The header:** the title, Settings, and a pill for what's going on: the plate editor open (and
   on which plate), not linked, sending your closet, sent and when, or what went wrong.
 - **The plate editor's card** (only while it's open): the plate open in the game, what's on it
-  (empty, one of your looks by name, or so many pieces) and whether it's saved. While it's open,
-  the looks ready for a plate come first in the lists.
+  (empty, one of your looks by name, or so many pieces) and whether it's saved. With a look
+  planned for that plate on the site: ✓ when it's on, else **Fill it with “the look”** (and › to
+  see the look first). While it's open, the looks ready for a plate come first in the lists.
+- **Examining** (only while the game's Examine window shows someone): their outfit as the window
+  shows it (glamour and dyes), with Try it on and Keep it as a look (a private look of yours named
+  "Their name's outfit", their body for the mannequin).
 - **Get started** (only while not linked): three steps (link, open the dresser and armoire once,
   put a look on a plate) with Link your account and Open Glamour Studio.
 - **Sent from the site:** looks you sent from the site (a look's ⋯ → Send to game as a plate, or
@@ -60,11 +78,15 @@ right, a card of rows for settings, the question as a card over the window.
   - *Looks* and *Loved*: your looks and the public ones you love, with a search (name, maker, job,
     mood) and Refresh. Each row: four of its pieces' icons, its name, its pieces (and maker), and
     how ready it is for a plate (Ready for a plate, so many to store, so many of so many ready).
+  - *Wear now*: the public looks on the site (`gs_plugin_wearable`, 60 at most) whose every piece
+    is in your closet, the most loved first. Read when the window opens and every 10 minutes, and
+    again after a sync that changed your closet.
   - *Plates*: what you're wearing, then each plate with something on it (the look it is, when it's
     one of yours). Shown once the game has your plates (you've opened them at a dresser).
   - *Closet*: the dresser, armoire and plates in numbers; each place with how many pieces and when
-    it was read, or what to open so it can be; and the site: what was sent and when, Send it now,
-    Open my closet.
+    it was read, or what to open so it can be; Make room in your dresser; your shopping list, each
+    piece with where it is if you have it; and the site: what was sent and when, Send it now, Open
+    my closet.
 
 ### A look
 
@@ -84,11 +106,36 @@ Armoire (green: a plate can take it), Armoury chest, Bags, Saddlebags or Retaine
 dresser first), On your list (your shopping list on the site) or Missing. The chip's tooltip says
 what to do. With the editor open, a piece whose dyes won't be the look's says so.
 
+**Put away first** (when some pieces are yours but not in the dresser or armoire): each with where
+it is and whether the armoire takes it. With the armoire's window open (at an inn), **Into the
+armoire** stores one from your bags or armoury chest (`Cabinet.StoreCabinetItem` by its Cabinet
+row; not yet watched in the game). The dresser has no such call the plugin knows: it says to store
+them there.
+
+**Worn in game** (public looks only: the site takes shots for those): **Take a shot** hides the HUD
+(as Scroll Lock does) for a few frames, grabs the game's frame before Dalamud draws its windows,
+shows the HUD again, and makes the picture 2560 at most on its long side (1920 if no quality fits)
+as a JPEG under 3 MB, with a preview. Under the preview: a caption, **Send it to the look**, Take
+another, Discard. Sent, it goes to the edge function `gs-plugin-shot` and shows on the look's page
+under Worn in game as yours (three of yours a look, three a minute, twenty a day).
+
 ### A plate (or what you're wearing)
 
 Its pieces, the look it is (when it's one of yours), and Keep it as a look (a new private look on
 the site named "Plate 3" or "Koko's outfit", then Open it on the site), Try it on and Wear it
-(`/glamourplate N`).
+(`/glamourplate N`). For a plate: the look planned for it on the site (a link to it, ✓ when it's
+on), and **Gearsets**: the ones it's linked to, each with Change to it (`EquipGearset`: the plate
+comes with it) and × to unlink, and Link to a gearset (a menu of the others, with the plate each
+has now; `LinkGlamourPlate`, saved by the game as its own gearset window does).
+
+### Make room in your dresser
+
+From Closet. The dresser's places used of 800 (an outfit's pieces share one), free, and how many
+gathering outfits would free. **Keep as outfits**: each outfit set (`MirageStoreSetItem`) with two
+or more loose pieces in the dresser (one, when the set's already stored), the most freed first.
+**Not in any look or plate**: loose pieces none of your looks, the looks you love, looks sent or
+planned, your plates or your outfit uses. It only shows: the storing and taking out are the
+dresser's own.
 
 ## Settings
 
@@ -101,6 +148,7 @@ the site named "Plate 3" or "Koko's outfit", then Open it on the site), Try it o
 | Open with the plate editor | on | Opening Glamour Plates opens the window. |
 | Keep it up to date by itself | on | Sends your closet as it changes (see [The site](#the-site)). |
 | Send my plates and outfit | on | Your plates and what you wear go along, with your character's name and world (only you see them). |
+| Say in chat when a wish comes true | on | A line in chat when pieces on your shopping list are seen in your wardrobe (they come off the list either way). |
 | Forget this character | | Forgets what the plugin has read of the character you're playing (it's read again as you play). |
 
 **Account:** the token (pasted, shown masked once linked, Unlink), Get a token (the site's
@@ -186,7 +234,13 @@ runs them off the framework thread and takes the answers back to it.
 | `gs_plugin_looks` | the window opens, every 10 min while it's open, Refresh | your looks (300), the public ones you love (200), your shopping list's items |
 | `gs_plugin_inbox_list` | every minute while the window's open, every 5 otherwise | the looks sent to the game, each whole, with the plate meant |
 | `gs_plugin_inbox_remove` | a sent look went on a plate | it's off the list |
-| `gs_plugin_save_look` | Keep it as a look | a new private look of yours |
+| `gs_plugin_save_look` | Keep it as a look (a plate, your outfit, someone examined) | a new private look of yours |
+| `gs_plugin_plans` | the window opens and with the looks, and when you change character (30 s at most) | that character's plate plans, each look whole |
+| `gs_plugin_wearable` | the window opens, every 10 min while it's open, after a sync that changed the closet | public looks you own every piece of, the most loved first |
+| `gs-plugin-shot` (edge function) | Send it to the look | multipart: token, look, caption, the JPEG; the site checks the token, the look (public), the limits, and stores the shot |
+
+`gs_plugin_sync`'s answer has `wishes_got`: the items it took off your shopping list because this
+sync had them.
 
 On the site, each character's reads are kept apart (`gs_closet_reads`), and the plugin's pieces in
 your closet are made again from all of them, each in its handiest place. So another PC, or one
@@ -200,9 +254,9 @@ you wear are kept per character (eight at most), and the site's Settings tab lis
 | --- | --- |
 | `Plugin.cs`, `Services.cs`, `Configuration.cs` | Loading, the command, the framework tick (reading, the site, opening with the plate editor), settings. |
 | `Core/` | Game-free, tested: slots and the game's orders (`Slots`), looks and their JSON (`Looks`), the wardrobe and what's sent (`Wardrobe`), the plan for a plate (`PlatePlan`), how ready a look is (`Readiness`), the site's calls (`SiteLink`), words (`Words`). |
-| `Game/` | The game: its sheets (`GameData`: items, dyes, armoire rows, outfit sets), reading your wardrobe (`WardrobeReader`), the plate editor, try-on and wearing a plate (`PlateEditor`). |
-| `Session/` | `SiteSync`: the site in the background. |
-| `UI/` | `MainWindow` and its screens (`Views/Home`, `LookView`, `PlateView`, `Settings`, `Shared`); `Kit/` the controls, colours, fonts and icons; `Model/` the kit's game-free parts (SVG paths). |
+| `Game/` | The game: its sheets (`GameData`: items, dyes, armoire rows, outfit sets, jobs), reading your wardrobe (`WardrobeReader`), the plate editor, try-on and wearing a plate (`PlateEditor`), the armoire (`Armoire`), gearsets (`Gearsets`), the Examine window (`Examine`). |
+| `Session/` | `SiteSync`: the site in the background. `Shots`: taking, making and sending a shot. |
+| `UI/` | `MainWindow` and its screens (`Views/Home`, `LookView`, `PlateView`, `CleanupView`, `Settings`, `Shared`); `Kit/` the controls, colours, fonts and icons; `Model/` the kit's game-free parts (SVG paths). |
 | `GlamourStudio.Tests/` | xUnit over `Core/` and `UI/Model/`: builds and runs without the game or Dalamud. |
 
 ## Releasing
@@ -219,6 +273,18 @@ this one too, within a few minutes of a release.
 The workflows need Settings → Actions → General → Workflow permissions → Read and write.
 
 ## Release notes
+
+### 0.2.0
+
+- **Plates planned on the site**: pick a look for each plate on the site (Closet → Plates); at a
+  dresser, the plate editor's card offers Fill it with that look, and a plate's screen shows its plan.
+- **Wear now**: a new tab with the public looks you own every piece of.
+- **Your shopping list ticks itself** when the plugin sees a piece in your wardrobe (and says so in chat).
+- **Make room in your dresser**: how full it is, outfit sets to gather, pieces nothing uses.
+- **Put away first** on a look, with Into the armoire while the armoire's open.
+- **Gearsets** on a plate's screen: linked ones, Change to it, Link to a gearset, Unlink.
+- **Take a shot** of a public look for its Worn in game on the site.
+- **Examine**: someone's outfit while you examine them, to try on or keep as a look.
 
 ### 0.1.2
 

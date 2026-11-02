@@ -86,10 +86,177 @@ public sealed partial class MainWindow
         PieceRows("##look-pieces", look.Pieces, plate > 0 ? plan : null);
         if (ready.ToStore > 0)
         {
-            Kit.Gap(10);
-            Txt.Note("A plate takes pieces from your glamour dresser or armoire only: put the ones elsewhere in your dresser first.", Palette.Faint);
+            Kit.Gap(22);
+            DrawPutAway(look);
+        }
+        if (look.Visibility == "public")
+        {
+            Kit.Gap(22);
+            DrawShot(look);
         }
         Frame.EndBody();
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Putting away: the look's pieces that are yours but not where a plate takes them from.
+
+    private void DrawPutAway(Look look)
+    {
+        var away = Slots.All.Where(look.Pieces.ContainsKey).Select(s => look.Pieces[s].Item)
+            .Select(i => (Item: i, Where: Where(i)))
+            .Where(x => x.Where is { } p && p != Place.Dresser && p != Place.Armoire)
+            .ToList();
+        if (away.Count == 0) return;
+        var armoireOpen = Armoire.IsOpen;
+        Kit.Section("Put away first", Words.Count(away.Count, "piece"));
+        Kit.Gap(8);
+        Txt.Note(armoireOpen
+            ? "A plate takes pieces from your dresser or armoire. The armoire's open: put in it the ones it takes, from your bags or armoury chest."
+            : "A plate takes pieces from your dresser or armoire. At a glamour dresser, store these from your bags or armoury chest (take them from your saddlebags or retainers first). At an inn, the armoire takes the ones it can.",
+            Palette.Muted);
+        Kit.Gap(10);
+        Kit.BeginPanel("##away", 6, 6, 6);
+        var dl = Kit.Dl;
+        for (var i = 0; i < away.Count; i++)
+        {
+            var (itemId, where) = away[i];
+            var at = Kit.At;
+            var w = Kit.Width;
+            var nameH = Txt.Natural(Face.SansMedium, 14);
+            var icon = S(36);
+            var h = S(9) * 2 + MathF.Max(icon, nameH + S(2) + S(18));
+            if (i > 0) dl.AddLine(new Vector2(at.X + S(10), at.Y - 0.5f), new Vector2(at.X + w - S(10), at.Y - 0.5f), Palette.U32(Palette.Line), 1f);
+            var item = data.Item(itemId);
+            Kit.GameIcon(new Vector2(at.X + S(10), at.Y + (h - icon) / 2), icon, item?.Icon ?? 0);
+            var x = at.X + S(10) + icon + S(12);
+            var row = data.CabinetOf(itemId);
+            var canArmoire = row != null && where is Place.Inventory or Place.Armoury;
+            const string put = "Into the armoire";
+            var bw = armoireOpen && canArmoire ? Kit.ButtonWidth(put, BtnSize.Sm, Icon.Archive) : 0;
+            var tw = at.X + w - S(10) - (bw > 0 ? bw + S(10) : 0) - x;
+            var top = at.Y + (h - (nameH + S(2) + S(18))) / 2;
+            Txt.Line(dl, new Vector2(x, top), Txt.Fit(item?.Name ?? $"Item {itemId}", Face.SansMedium, 14, tw), Face.SansMedium, 14, Palette.Ink);
+            var line = $"{Places.Word(where!.Value)}" + (row != null ? " · the armoire takes it" : " · for the dresser");
+            Txt.Line(dl, new Vector2(x, top + nameH + S(2)), Txt.Fit(line, Face.Sans, 12, tw), Face.Sans, 12, Palette.Muted, 18);
+            if (bw > 0)
+            {
+                var cabinet = row!.Value;
+                var name = item?.Name ?? "It";
+                if (Kit.Button($"##armoire{i}", new Vector2(at.X + w - S(10) - bw, at.Y + (h - Kit.ButtonHeight(BtnSize.Sm)) / 2), put, Btn.Glass, BtnSize.Sm, Icon.Archive))
+                    Later(() =>
+                    {
+                        if (!Armoire.Store(cabinet))
+                        {
+                            Notify("The armoire didn't take it");
+                            return;
+                        }
+                        wardrobe.Tick(now: true);
+                        Notify($"{name}: in the armoire");
+                    });
+            }
+            Kit.Reserve(at, w, h);
+        }
+        Kit.EndPanel();
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // A shot from the game for the look's Worn in game on the site.
+
+    private string shotCaption = string.Empty;
+
+    private void DrawShot(Look look)
+    {
+        Kit.Section("Worn in game", "A shot for the site");
+        Kit.Gap(8);
+        var taken = shots.Taken is { } t && t.LookId == look.Id ? t : null;
+        if (taken == null)
+        {
+            Txt.Note("Wear the look, frame it with the camera, and take a shot: the HUD hides for a moment. You see it before it goes to the look's page on Glamour Studio.", Palette.Muted);
+            Kit.Gap(10);
+            var row = Kit.At;
+            var label = shots.Capturing ? "Taking it…" : "Take a shot";
+            if (Kit.Button("##shot", row, label, Btn.Glass, BtnSize.Md, Icon.Camera, 0, !Linked || shots.Capturing,
+                    Linked ? "Hides the HUD, takes the game's picture, and shows it here to send" : "Link your account first (Settings → Account)"))
+            {
+                var id = look.Id;
+                var name = look.Name;
+                Later(() =>
+                {
+                    shotCaption = string.Empty;
+                    if (!shots.Take(id, name, out var why)) Notify(why);
+                });
+            }
+            Kit.Reserve(row, Kit.Width, Kit.ButtonHeight(BtnSize.Md));
+            if (shots.Problem is { } problem && !shots.Capturing)
+            {
+                Kit.Gap(8);
+                Txt.Note(problem, Palette.Danger);
+            }
+            return;
+        }
+
+        Kit.BeginPanel("##shot-taken", 14, 14, 14);
+        var at = Kit.At;
+        var w = Kit.Width;
+        if (taken.Thumb is { } thumb && thumb.Width > 0 && thumb.Height > 0)
+        {
+            var h = MathF.Min(w * thumb.Height / thumb.Width, S(320));
+            var iw = h * thumb.Width / thumb.Height;
+            var p = new Vector2(at.X + (w - iw) / 2, at.Y);
+            Kit.Dl.AddImageRounded(thumb.Handle, p, p + new Vector2(iw, h), Vector2.Zero, Vector2.One, Palette.U32(Vector4.One), S(Palette.RadiusMd));
+            Kit.Reserve(at, w, h);
+        }
+        Kit.Gap(10);
+        if (taken.Jpeg is { } jpeg) Txt.Note($"{taken.Width} × {taken.Height} · {jpeg.Length / 1024} KB", Palette.Faint);
+        Kit.Gap(10);
+        if (taken.Sent)
+        {
+            if (taken.Note is { } n) Txt.Note(n.Text, Palette.Success);
+            Kit.Gap(10);
+            var row = Kit.At;
+            if (Kit.Button("##shot-site", row, "See it on the site", Btn.Glass, BtnSize.Sm, Icon.ExternalLink))
+                Dalamud.Utility.Util.OpenLink(SiteLink.LookUrl(look.Id));
+            var x = row.X + Kit.ButtonWidth("See it on the site", BtnSize.Sm, Icon.ExternalLink) + S(8);
+            if (Kit.Button("##shot-done", new Vector2(x, row.Y), "Done", Btn.Quiet, BtnSize.Sm, Icon.Check))
+                Later(shots.Discard);
+            Kit.Reserve(row, w, Kit.ButtonHeight(BtnSize.Sm));
+        }
+        else
+        {
+            var field = Kit.At;
+            var text = shotCaption;
+            if (Kit.Field("##shot-caption", field, w, ref text, "A caption (if you like)", null, 200)) shotCaption = text;
+            Kit.Reserve(field, w, S(36));
+            Kit.Gap(10);
+            if (taken.Note is { Bad: true } n)
+            {
+                Txt.Note(n.Text, Palette.Danger);
+                Kit.Gap(10);
+            }
+            var row = Kit.At;
+            var send = taken.Sending ? "Sending…" : "Send it to the look";
+            if (Kit.Button("##shot-send", row, send, Btn.Primary, BtnSize.Sm, Icon.Upload, 0, taken.Sending || !Linked,
+                    "Goes on the look's page under Worn in game, as yours (three per look at most)"))
+            {
+                var caption = shotCaption.Trim();
+                shots.Send(caption, r => Notify(r.Ok ? "Sent to the look" : r.Why ?? "The site said no"));
+            }
+            var x = row.X + Kit.ButtonWidth(send, BtnSize.Sm, Icon.Upload, Btn.Primary) + S(8);
+            if (Kit.Button("##shot-again", new Vector2(x, row.Y), "Take another", Btn.Glass, BtnSize.Sm, Icon.Camera, 0, taken.Sending))
+            {
+                var id = look.Id;
+                var name = look.Name;
+                Later(() =>
+                {
+                    if (!shots.Take(id, name, out var why)) Notify(why);
+                });
+            }
+            x += Kit.ButtonWidth("Take another", BtnSize.Sm, Icon.Camera) + S(8);
+            if (Kit.Button("##shot-discard", new Vector2(x, row.Y), "Discard", Btn.Quiet, BtnSize.Sm, Icon.Trash, 0, taken.Sending))
+                Later(shots.Discard);
+            Kit.Reserve(row, w, Kit.ButtonHeight(BtnSize.Sm));
+        }
+        Kit.EndPanel();
     }
 
     /// <summary>The one thing to do: Put on plate N, or how to get there; Try it on and the site beside.</summary>

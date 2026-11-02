@@ -117,6 +117,12 @@ public sealed partial class MainWindow
             config.SendPlates = !config.SendPlates;
             config.Save();
         }
+        if (SwitchRow(i++, "##chat-notes", "Say in chat when a wish comes true", "A piece from your shopping list, seen in your wardrobe", config.ChatNotes,
+                "Pieces on your shopping list on the site come off it by themselves once the plugin sees them in your wardrobe. On, a line in chat says which."))
+        {
+            config.ChatNotes = !config.ChatNotes;
+            config.Save();
+        }
         if (ButtonRow(i, "##forget", "Forget this character", "What the plugin has read of it, here", "Forget", Btn.Glass, wardrobe.Current == null, null,
                 "Its dresser, armoire, saddlebags, retainers and plates as last read are forgotten (they're read again as you open them). The site keeps what it was sent until you forget the character there too."))
         {

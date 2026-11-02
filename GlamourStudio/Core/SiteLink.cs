@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -35,7 +36,11 @@ public sealed record SiteReply<T>(T? Value, string? Why = null, string? Hint = n
 }
 
 /// <summary>What the site kept of a read of your wardrobe (<c>gs_plugin_sync</c>).</summary>
-public sealed record SyncResult(int Total, int Added, int Moved, int Removed, int Plates, DateTimeOffset? ReadAt);
+/// <param name="WishesGot">The pieces taken off your shopping list: the read shows you have them now.</param>
+public sealed record SyncResult(int Total, int Added, int Moved, int Removed, int Plates, DateTimeOffset? ReadAt, IReadOnlyList<uint>? WishesGot = null);
+
+/// <summary>A shot the site added to a look's Worn in game (<c>gs-plugin-shot</c>).</summary>
+public sealed record ShotSent(string Id, string LookName);
 
 /// <summary>A look kept on the site from the game (<c>gs_plugin_save_look</c>).</summary>
 public sealed record SavedLook(string Id, string Name);
@@ -206,7 +211,8 @@ public static class SiteLink
     {
         if (node is not JsonObject o || o["closet"] is not JsonObject c) return null;
         DateTimeOffset? at = Text(o["read_at"]) is { } s && DateTimeOffset.TryParse(s, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var t) ? t : null;
-        return new SyncResult(Int(c["total"]), Int(c["added"]), Int(c["moved"]), Int(c["removed"]), Int(o["plates"]), at);
+        var got = (o["wishes_got"] as JsonArray)?.Select(Int).Where(i => i > 0).Select(i => (uint)i).ToList() ?? new List<uint>();
+        return new SyncResult(Int(c["total"]), Int(c["added"]), Int(c["moved"]), Int(c["removed"]), Int(o["plates"]), at, got);
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -248,6 +254,116 @@ public static class SiteLink
         var r = await CallAsync(http, "gs_plugin_sync", body, LongTimeout, cancel).ConfigureAwait(false);
         if (!r.Ok) return r.As<SyncResult>();
         return ReadSync(r.Value) is { } result ? new SiteReply<SyncResult>(result) : Unreadable<SyncResult>();
+    }
+
+    /// <summary>A character's plate plans (the looks planned on the site for its plates).</summary>
+    public static async Task<SiteReply<List<PlannedPlate>>> PlansAsync(HttpClient http, string token, string character, CancellationToken cancel = default)
+    {
+        if (!LooksRight(token)) return NoToken<List<PlannedPlate>>();
+        var r = await CallAsync(http, "gs_plugin_plans", new JsonObject { ["p_token"] = token, ["p_character"] = character }, CallTimeout, cancel).ConfigureAwait(false);
+        if (!r.Ok) return r.As<List<PlannedPlate>>();
+        return LookJson.ReadPlans(r.Value) is { } list ? new SiteReply<List<PlannedPlate>>(list) : Unreadable<List<PlannedPlate>>();
+    }
+
+    /// <summary>The public looks you own every piece of, the most loved first.</summary>
+    public static async Task<SiteReply<List<Look>>> WearableAsync(HttpClient http, string token, CancellationToken cancel = default)
+    {
+        if (!LooksRight(token)) return NoToken<List<Look>>();
+        var r = await CallAsync(http, "gs_plugin_wearable", new JsonObject { ["p_token"] = token }, LongTimeout, cancel).ConfigureAwait(false);
+        if (!r.Ok) return r.As<List<Look>>();
+        return LookJson.ReadLooks(r.Value) is { } list ? new SiteReply<List<Look>>(list) : Unreadable<List<Look>>();
+    }
+
+    /// <summary>The edge function that takes shots from the game.</summary>
+    public static string ShotUrl => $"{SupabaseUrl}/functions/v1/gs-plugin-shot";
+
+    /// <summary>The most a shot's picture may be: the shots bucket's 3 MB, less room for the form.</summary>
+    public const int ShotMaxBytes = 3_000_000;
+
+    /// <summary>The longest a shot's upload waits.</summary>
+    public static readonly TimeSpan ShotTimeout = TimeSpan.FromSeconds(90);
+
+    /// <summary>The shot's form: <c>token</c>, <c>look</c>, <c>caption</c> and <c>image</c> (the JPEG, as a file).</summary>
+    public static MultipartFormDataContent ShotForm(string token, string lookId, string caption, byte[] jpeg)
+    {
+        var form = new MultipartFormDataContent();
+        form.Add(Field("token", token));
+        form.Add(Field("look", lookId));
+        form.Add(Field("caption", caption));
+        var image = new ByteArrayContent(jpeg);
+        image.Headers.ContentType = new MediaTypeHeaderValue("image/jpeg");
+        image.Headers.ContentDisposition = new ContentDispositionHeaderValue("form-data") { Name = "\"image\"", FileName = "\"shot.jpg\"" };
+        form.Add(image);
+        return form;
+    }
+
+    private static StringContent Field(string name, string value)
+    {
+        var c = new StringContent(value, Encoding.UTF8);
+        c.Headers.ContentDisposition = new ContentDispositionHeaderValue("form-data") { Name = $"\"{name}\"" };
+        return c;
+    }
+
+    /// <summary>Sends a shot of you wearing a public look to its Worn in game; never throws.</summary>
+    public static async Task<SiteReply<ShotSent>> ShotAsync(HttpClient http, string token, string lookId, string caption, byte[] jpeg, CancellationToken cancel = default)
+    {
+        if (!LooksRight(token)) return NoToken<ShotSent>();
+        if (!LookJson.IsUuid(lookId)) return new SiteReply<ShotSent>(null, "The plugin didn't say which look.", "look");
+        if (jpeg.Length == 0 || jpeg.Length > ShotMaxBytes) return new SiteReply<ShotSent>(null, "That picture is too big to send.", "image");
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancel);
+        timeout.CancelAfter(ShotTimeout);
+        try
+        {
+            using var form = ShotForm(token, lookId, caption, jpeg);
+            using var request = new HttpRequestMessage(HttpMethod.Post, ShotUrl) { Content = form };
+            request.Headers.Add("apikey", PublishableKey);
+            request.Headers.Accept.ParseAdd("application/json");
+            using var response = await http.SendAsync(request, timeout.Token).ConfigureAwait(false);
+            var text = await response.Content.ReadAsStringAsync(timeout.Token).ConfigureAwait(false);
+            return ReadShot(response.StatusCode, text);
+        }
+        catch (OperationCanceledException) when (!cancel.IsCancellationRequested)
+        {
+            return new SiteReply<ShotSent>(null, "The site didn't answer in time. Look on the look's page before sending it again.", "wait");
+        }
+        catch (OperationCanceledException)
+        {
+            return new SiteReply<ShotSent>(null, "Stopped.", "stopped");
+        }
+        catch (Exception ex) when (ex is HttpRequestException or IOException)
+        {
+            return new SiteReply<ShotSent>(null, "Couldn't reach the site. Check your connection and try again.", "offline");
+        }
+    }
+
+    /// <summary>A shot's size with its longest side at most <paramref name="longEdge"/>, its shape kept; null when it's too small (under 64).</summary>
+    public static (int Width, int Height)? FitShot(int width, int height, int longEdge)
+    {
+        if (width < 64 || height < 64 || longEdge < 64) return null;
+        var scale = Math.Min(1.0, (double)longEdge / Math.Max(width, height));
+        return ((int)Math.Round(width * scale), (int)Math.Round(height * scale));
+    }
+
+    /// <summary>The edge function's answer: the shot (its <c>id</c> and the look's <c>name</c>), or <c>{message, hint}</c> in words.</summary>
+    public static SiteReply<ShotSent> ReadShot(HttpStatusCode status, string? body)
+    {
+        var code = (int)status;
+        if (code is >= 200 and < 300)
+        {
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(body) && JsonNode.Parse(body) is JsonObject o && Text(o["id"]) is { } id && LookJson.IsUuid(id))
+                    return new SiteReply<ShotSent>(new ShotSent(id, LookJson.Named(o["name"], "the look")));
+            }
+            catch (JsonException)
+            {
+                // Said below.
+            }
+            return new SiteReply<ShotSent>(null, "The site answered, but not with the shot. Look on the look's page before sending it again.", "answer");
+        }
+        var (why, hint) = Refusal(status, body);
+        if (code == 404 && hint == null) return new SiteReply<ShotSent>(null, "The site can't take shots from the plugin right now. The plugin may need updating.");
+        return new SiteReply<ShotSent>(null, why, hint);
     }
 
     /// <summary>Keeps an outfit from the game as a new private look of yours.</summary>

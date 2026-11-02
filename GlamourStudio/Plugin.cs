@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Dalamud.Game.Command;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin;
@@ -23,6 +24,7 @@ public sealed class Plugin : IDalamudPlugin
     private readonly WardrobeReader wardrobe;
     private readonly SiteSync sync;
     private readonly Fonts fonts;
+    private readonly Shots shots;
     private readonly WindowSystem windows = new("GlamourStudio");
     private readonly MainWindow window;
 
@@ -39,7 +41,8 @@ public sealed class Plugin : IDalamudPlugin
             wardrobe = new WardrobeReader(data);
             sync = new SiteSync(config, wardrobe);
             fonts = new Fonts();
-            window = new MainWindow(config, data, wardrobe, sync, fonts);
+            shots = new Shots(sync.Http, () => config.SiteToken);
+            window = new MainWindow(config, data, wardrobe, sync, fonts, shots);
             windows.AddWindow(window);
 
             Services.Commands.AddHandler(Command, new CommandInfo(OnCommand)
@@ -50,6 +53,7 @@ public sealed class Plugin : IDalamudPlugin
             Services.PluginInterface.UiBuilder.OpenMainUi += window.ShowMain;
             Services.PluginInterface.UiBuilder.OpenConfigUi += window.ShowSettings;
             Services.Framework.Update += OnUpdate;
+            sync.WishesGot += OnWishesGot;
         }
         catch
         {
@@ -84,6 +88,7 @@ public sealed class Plugin : IDalamudPlugin
         {
             wardrobe.Tick();
             sync.Tick(window.IsOpen);
+            shots.Tick();
             var editor = PlateEditor.IsOpen;
             if (editor && !editorWasOpen && config.OpenWithEditor && !window.IsOpen) window.ShowMain();
             editorWasOpen = editor;
@@ -94,9 +99,19 @@ public sealed class Plugin : IDalamudPlugin
         }
     }
 
+    /// <summary>Pieces from your shopping list the plugin has just seen in your wardrobe: a line in chat.</summary>
+    private void OnWishesGot(System.Collections.Generic.IReadOnlyList<uint> items)
+    {
+        if (!config.ChatNotes || items.Count == 0) return;
+        var names = Core.Words.List(items.Take(4).Select(data.ItemName));
+        var more = items.Count > 4 ? $" and {items.Count - 4} more" : string.Empty;
+        Services.Chat.Print($"Glamour Studio: {names}{more} came off your shopping list.");
+    }
+
     public void Dispose()
     {
         Safely(() => Services.Framework.Update -= OnUpdate);
+        if (sync != null) Safely(() => sync.WishesGot -= OnWishesGot);
         Safely(() => Services.PluginInterface.UiBuilder.Draw -= windows.Draw);
         if (window != null)
         {
@@ -105,6 +120,7 @@ public sealed class Plugin : IDalamudPlugin
         }
         Safely(() => Services.Commands.RemoveHandler(Command));
         Safely(windows.RemoveAllWindows);
+        Safely(() => shots?.Dispose());
         Safely(() => sync?.Dispose());
         Safely(() => wardrobe?.Flush());
         Safely(() => fonts?.Dispose());

@@ -321,7 +321,7 @@ public class SiteLinkTests
     public void ReadsWhatASyncKept()
     {
         var r = SiteLink.ReadSync(JsonNode.Parse("""{"closet":{"total":1204,"added":12,"moved":0,"removed":2},"plates":5,"read_at":"2026-11-02T04:00:00Z"}"""));
-        Assert.Equal(new SyncResult(1204, 12, 0, 2, 5, DateTimeOffset.Parse("2026-11-02T04:00:00Z")), r);
+        Assert.Equal(new SyncResult(1204, 12, 0, 2, 5, DateTimeOffset.Parse("2026-11-02T04:00:00Z")), r! with { WishesGot = null });
         Assert.Equal("Your closet on the site: 1,204 pieces (12 new, 2 gone)", Words.Synced(r!));
         Assert.Null(SiteLink.ReadSync(JsonNode.Parse("[]")));
     }
@@ -343,5 +343,103 @@ public class WordsTests
         Assert.Equal("All 8 pieces are yours", Words.Owned(8, 8));
         Assert.Equal("6 of 8 pieces are yours", Words.Owned(6, 8));
         Assert.Equal("None of the 3 pieces is yours yet", Words.Owned(0, 3));
+    }
+}
+
+public class FeatureTests
+{
+    private const string Id = "6168b2b8-f0fe-4c50-b1a0-8748b5235533";
+    private const string Id2 = "7168b2b8-f0fe-4c50-b1a0-8748b5235533";
+
+    private static string LookText(string id) =>
+        """{"id":"ID","name":"Rose","body":"feminine","pieces":{"body":{"item":100}},"visibility":"public","mine":false,"maker":"Koko","loves":3}""".Replace("ID", id);
+
+    [Fact]
+    public void ReadsPlansOnePerPlateInOrder()
+    {
+        var node = JsonNode.Parse("[" + string.Join(",",
+            "{\"plate\":5,\"look\":" + LookText(Id) + "}",
+            "{\"plate\":2,\"look\":" + LookText(Id2) + "}",
+            "{\"plate\":5,\"look\":" + LookText(Id2) + "}",
+            "{\"plate\":21,\"look\":" + LookText(Id) + "}",
+            "{\"plate\":3,\"look\":{\"id\":\"nope\"}}") + "]");
+        var plans = LookJson.ReadPlans(node)!;
+        Assert.Equal(new[] { 2, 5 }, plans.Select(p => p.Plate));
+        Assert.Equal(Id, plans[1].Look.Id);
+        Assert.Empty(LookJson.ReadPlans(null)!);
+        Assert.Null(LookJson.ReadPlans(JsonNode.Parse("{}")));
+    }
+
+    [Fact]
+    public void ReadsWearableLooks()
+    {
+        var looks = LookJson.ReadLooks(JsonNode.Parse($"[{LookText(Id)},{{\"id\":\"x\"}}]"))!;
+        Assert.Single(looks);
+        Assert.Equal("public", looks[0].Visibility);
+        Assert.Empty(LookJson.ReadLooks(null)!);
+        Assert.Null(LookJson.ReadLooks(JsonNode.Parse("{}")));
+    }
+
+    [Fact]
+    public void ReadsTheWishesTheSyncTookOff()
+    {
+        var r = SiteLink.ReadSync(JsonNode.Parse("""{"closet":{"total":5,"added":1,"moved":0,"removed":0},"plates":2,"wishes_got":[100,200,0,-4]}"""))!;
+        Assert.Equal(new uint[] { 100, 200 }, r.WishesGot);
+        var none = SiteLink.ReadSync(JsonNode.Parse("""{"closet":{"total":5}}"""))!;
+        Assert.Empty(none.WishesGot!);
+    }
+
+    [Fact]
+    public void ReadsTheShotsAnswer()
+    {
+        var ok = SiteLink.ReadShot(HttpStatusCode.OK, """{"id":"ID","name":"Rose"}""".Replace("ID", Id));
+        Assert.True(ok.Ok);
+        Assert.Equal("Rose", ok.Value!.LookName);
+        var odd = SiteLink.ReadShot(HttpStatusCode.OK, "{}");
+        Assert.False(odd.Ok);
+        var full = SiteLink.ReadShot(HttpStatusCode.Conflict, """{"message":"This look has three shots of yours already.","hint":"full"}""");
+        Assert.Equal("full", full.Hint);
+        Assert.Contains("three shots", full.Why);
+        var token = SiteLink.ReadShot(HttpStatusCode.Unauthorized, """{"message":"The site doesn't know this token.","hint":"token"}""");
+        Assert.Equal("token", token.Hint);
+        Assert.False(SiteLink.ReadShot(HttpStatusCode.NotFound, null).Ok);
+    }
+
+    [Fact]
+    public void FindsOutfitsToGather()
+    {
+        var dresser = new List<DresserPiece>
+        {
+            new(0, 10, 0, 0), new(1, 11, 0, 0), new(2, 12, 0, 0), // set 1's pieces, loose
+            new(3, 20, 0, 0), // set 2: only one loose piece
+            new(4, 31, 0, 0, 30), new(4, 32, 0, 0, 30), new(5, 33, 0, 0), // set 3 stored, one piece loose
+            new(6, 1_000_011, 0, 0), // an HQ copy of 11, a second place
+        };
+        var sets = new Dictionary<uint, uint[]> { [1] = new uint[] { 10, 11, 12 }, [2] = new uint[] { 20, 21 }, [30] = new uint[] { 31, 32, 33 } };
+        var chances = DresserCleanup.Outfits(dresser, sets);
+        Assert.Equal(new uint[] { 1, 30 }, chances.Select(c => c.SetItem));
+        Assert.Equal(2, chances[0].Frees);
+        Assert.True(chances[1].Stored);
+        Assert.Equal(1, chances[1].Frees);
+        Assert.Equal(7, DresserCleanup.Used(dresser));
+    }
+
+    [Fact]
+    public void FindsUnusedPieces()
+    {
+        var dresser = new List<DresserPiece> { new(0, 10, 0, 0), new(1, 11, 0, 0), new(2, 31, 0, 0, 30), new(3, 1_000_012, 0, 0) };
+        var looks = new[] { (IReadOnlyDictionary<Slot, Piece>)new Dictionary<Slot, Piece> { [Slot.Body] = new(10) } };
+        var unused = DresserCleanup.Unused(dresser, looks);
+        Assert.Equal(new uint[] { 11, 1_000_012 }, unused.Select(d => d.Item));
+        var plate = new[] { (IReadOnlyDictionary<Slot, Piece>)new Dictionary<Slot, Piece> { [Slot.Head] = new(12), [Slot.Body] = new(11) } };
+        Assert.Equal(new uint[] { 10 }, DresserCleanup.Unused(dresser, plate).Select(d => d.Item));
+    }
+
+    [Fact]
+    public void FitsShotsToTheLongEdge()
+    {
+        Assert.Equal((2560, 1440), SiteLink.FitShot(3840, 2160, 2560));
+        Assert.Equal((1280, 720), SiteLink.FitShot(1280, 720, 2560));
+        Assert.Null(SiteLink.FitShot(30, 720, 2560));
     }
 }

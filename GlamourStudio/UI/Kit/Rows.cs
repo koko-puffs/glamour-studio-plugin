@@ -1,3 +1,4 @@
+using System.Linq;
 using System;
 using System.Collections.Generic;
 using System.Numerics;
@@ -90,8 +91,8 @@ public static partial class Kit
     // ---------------------------------------------------------------------------------------------
     // Tabs.
 
-    public static float TabWidth(TabSpec tab) =>
-        S(14) * 2 + Txt.Measure(tab.Label, Face.SansSemibold, 13).X + (tab.Count != null ? S(6) + Txt.Measure(tab.Count, Face.Mono, 11).X : 0);
+    public static float TabWidth(TabSpec tab, float pad = 14) =>
+        S(pad) * 2 + Txt.Measure(tab.Label, Face.SansSemibold, 13).X + (tab.Count != null ? S(6) + Txt.Measure(tab.Count, Face.Mono, 11).X : 0);
 
     /// <summary>
     /// Tabs as the site's pick-one pill (36 tall, the strong edge, 3px inside): the picked one a soft
@@ -102,8 +103,18 @@ public static partial class Kit
         var at = At;
         var h = S(36);
         var inner = S(28);
-        var total = S(4) * 2 + S(3) * (tabs.Count - 1);
-        foreach (var t in tabs) total += TabWidth(t);
+        // Too wide for the room: the counts go first, then the tabs' padding tightens.
+        var pad = 14f;
+        float Total(IReadOnlyList<TabSpec> ts, float pd)
+        {
+            var sum = S(4) * 2 + S(3) * (ts.Count - 1);
+            foreach (var t in ts) sum += TabWidth(t, pd);
+            return sum;
+        }
+        var room = Width;
+        if (Total(tabs, pad) > room) tabs = tabs.Select(t => t with { Count = null }).ToList();
+        while (pad > 8 && Total(tabs, pad) > room) pad -= 1;
+        var total = Total(tabs, pad);
         var dl = Dl;
         dl.AddRect(at + new Vector2(0.5f), at + new Vector2(total, h) - new Vector2(0.5f), Palette.U32(Palette.LineStrong), h / 2, ImDrawFlags.None, 1f);
         var result = selected;
@@ -111,7 +122,7 @@ public static partial class Kit
         for (var i = 0; i < tabs.Count; i++)
         {
             var tab = tabs[i];
-            var w = TabWidth(tab);
+            var w = TabWidth(tab, pad);
             var p = new Vector2(x, at.Y + S(4));
             var max = p + new Vector2(w, inner);
             var (clicked, hovered, held) = Hit($"{id}{i}", p, new Vector2(w, inner));
@@ -119,7 +130,7 @@ public static partial class Kit
             var on = i == selected;
             if (on) dl.AddRectFilled(p, max, Palette.U32(Palette.Picked), inner / 2);
             else if (held || hovered) dl.AddRectFilled(p, max, Palette.U32(held ? Palette.LinePicked : Palette.LineFaint), inner / 2);
-            var tx = p.X + S(14);
+            var tx = p.X + S(pad);
             tx += Txt.Line(dl, new Vector2(tx, p.Y), tab.Label, Face.SansSemibold, 13, on ? Palette.OnPicked : hovered ? Palette.Ink : Palette.Muted, 28);
             if (tab.Count != null) Txt.Line(dl, new Vector2(tx + S(6), p.Y), tab.Count, Face.Mono, 11, on ? Palette.Faint : Palette.Faint, 28);
             FocusRing(p, max, inner / 2);
