@@ -372,6 +372,17 @@ The workflows need Settings → Actions → General → Workflow permissions →
 
 ## Release notes
 
+### 0.3.1
+
+From the first recording:
+
+- **Wear it** works: it sends `/gearset change <your gearset> N` (there's no `/glamourplate`).
+- The plugin fills plates only in the plate window opened at a glamour dresser, not in the one from
+  the Character window (which only applies plates).
+- "Not saved yet" is now right (it was always "saved"), and the plugin no longer writes the flag it
+  went by.
+- Dyes from your bags count the new Spectrum bottles for every colour they make.
+
 ### 0.3.0
 
 - **A new, wider layout**: a rail down the left (Home, Looks, Plates, Closet, Make room, your
