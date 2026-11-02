@@ -236,6 +236,7 @@ The workflows need Settings → Actions → General → Workflow permissions →
   to send when nothing changed; looks sent from the site are looked for every 15 minutes while the
   window's closed (at once when it opens).
 - The window: no line over the title, and 490 wide at the least so the title fits.
+- A link of several words (Settings' What's new) lights up as one when pointed at, not word by word.
 
 ### 0.1.0
 

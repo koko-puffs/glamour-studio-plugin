@@ -174,6 +174,27 @@ public static class Txt
 
         var dl = ImGui.GetWindowDrawList();
         var cursor = ImGui.GetCursorScreenPos();
+
+        // The link pointed at, as a whole: every word of its run lights up together.
+        var hoveredRun = -1;
+        if (!Kit.Blocked && ImGui.IsWindowHovered())
+        {
+            var hy = pos.Y;
+            foreach (var (a, b, w) in lines)
+            {
+                var hx = pos.X + (center ? (width - w) / 2 : 0);
+                for (var t = a; t < b && hoveredRun < 0; t++)
+                {
+                    var tok = tokens[t];
+                    var link = runs[tok.Run].Link;
+                    var wide = tok.Width + (t < b - 1 && link != null && runs[tokens[t + 1].Run].Link == link ? tok.Trailing : 0);
+                    if (link != null && ImGui.IsMouseHoveringRect(new Vector2(hx, hy), new Vector2(hx + wide, hy + box))) hoveredRun = tok.Run;
+                    hx += tok.Width + tok.Trailing;
+                }
+                hy += box;
+            }
+        }
+
         var y = pos.Y;
         var linkIndex = 0;
         foreach (var (a, b, w) in lines)
@@ -200,9 +221,8 @@ public static class Txt
                         var max = new Vector2(lx + tok.Width + (t < b - 1 && runs[tokens[t + 1].Run].Link == run.Link ? tok.Trailing : 0), y + box);
                         ImGui.SetCursorScreenPos(min);
                         var hit = ImGui.InvisibleButton($"##link{run.Link}{linkIndex++}", Vector2.Max(max - min, new Vector2(1)));
-                        var hovered = ImGui.IsItemHovered() && !Kit.Blocked;
                         if (hit && !Kit.Blocked) clicked = run.Link;
-                        if (hovered)
+                        if (hoveredRun == tok.Run)
                         {
                             ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
                             color = Palette.Ink;
