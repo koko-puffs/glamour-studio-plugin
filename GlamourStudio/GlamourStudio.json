@@ -1,0 +1,23 @@
+{
+  "Author": "koko",
+  "Name": "Glamour Studio",
+  "InternalName": "GlamourStudio",
+  "Punchline": "Your wardrobe on Glamour Studio, and its looks on your glamour plates.",
+  "Description": "Puts any look from Glamour Studio on a glamour plate in a press: every piece is found in your glamour dresser or armoire and the plate filled, ready to save. It also tries looks on in the fitting room, and, linked to your account, keeps your closet on the site up to date (your dresser, armoire, bags, armoury chest, saddlebags and retainers), with your glamour plates and what you're wearing.\n\nOpen it with /gstudio.",
+  "ApplicableVersion": "any",
+  "RepoUrl": "https://github.com/koko-puffs/glamour-studio-plugin",
+  "IconUrl": "https://raw.githubusercontent.com/koko-puffs/glamour-studio-plugin/main/GlamourStudio/images/icon.png",
+  "Tags": [
+    "glamour",
+    "glamour plates",
+    "glamour dresser",
+    "armoire",
+    "outfits",
+    "fashion",
+    "glamour studio"
+  ],
+  "CategoryTags": [
+    "utility"
+  ],
+  "AcceptsFeedback": true
+}
