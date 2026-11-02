@@ -192,6 +192,22 @@ public sealed class GameData
         return jobs[classJob] = abbr;
     }
 
+    private Dictionary<uint, uint>? setOfPiece;
+
+    /// <summary>The outfit set a piece belongs to (its own item), or 0.</summary>
+    public uint SetOf(uint piece)
+    {
+        if (setOfPiece == null)
+        {
+            var map = new Dictionary<uint, uint>();
+            foreach (var (set, pieces) in AllSets)
+                foreach (var p in pieces)
+                    map.TryAdd(LookJson.BaseId(p), set);
+            setOfPiece = map;
+        }
+        return setOfPiece.TryGetValue(LookJson.BaseId(piece), out var s) ? s : 0;
+    }
+
     /// <summary>An outfit set's pieces (its column, as the dresser counts them, and the item); empty when it isn't a set.</summary>
     public IReadOnlyList<(int Column, uint Item)> SetPieces(uint setItem)
     {

@@ -101,11 +101,12 @@ public sealed partial class MainWindow
             widths.Add(ww);
             buttons.Add(p =>
             {
-                if (Kit.Button("##hero-wear", p, wear, Btn.Primary, BtnSize.Lg, Icon.Shirt, 0, editorChanges,
-                        editorChanges ? "Press Save in the game's window first" : "Puts the plate on your current gearset, as /gearset change does (in a city or an inn, on a job its gear fits)"))
+                var blocked = Gearsets.Blocked(true);
+                if (Kit.Button("##hero-wear", p, wear, Btn.Primary, BtnSize.Lg, Icon.Shirt, 0, editorChanges || blocked != null,
+                        editorChanges ? "Press Save in the game's window first" : blocked ?? "Puts the plate on your current gearset, as /gearset change does (in a sanctuary, on a job its gear fits)"))
                     Later(() =>
                     {
-                        if (!PlateEditor.Wear(plate)) Notify("You're on no gearset: change to one first");
+                        if (PlateEditor.Wear(plate) is { } why) Notify(why);
                     });
             });
             const string again = "Fill it again";

@@ -265,13 +265,14 @@ public sealed partial class MainWindow
         var wrap = new Wrap(8);
         const string wearLabel = "Wear it";
         var wearW = Kit.ButtonWidth(wearLabel, BtnSize.Sm, Icon.Shirt, Btn.Primary);
-        if (Kit.Button("##wear-plate", wrap.Next(wearW, Kit.ButtonHeight(BtnSize.Sm)), wearLabel, Btn.Primary, BtnSize.Sm, Icon.Shirt, 0, pieces.Count == 0,
-                "Puts the plate on your current gearset, as /gearset change does (in a city or an inn, on a job its gear fits)"))
+        var wearBlocked = Gearsets.Blocked(true);
+        if (Kit.Button("##wear-plate", wrap.Next(wearW, Kit.ButtonHeight(BtnSize.Sm)), wearLabel, Btn.Primary, BtnSize.Sm, Icon.Shirt, 0, pieces.Count == 0 || wearBlocked != null,
+                wearBlocked ?? "Puts the plate on your current gearset, as /gearset change does (in a sanctuary, on a job its gear fits)"))
             Later(() =>
             {
-                var ok = PlateEditor.Wear(plate);
-                recorder.Note($"WEAR plate {plate}: {(ok ? "asked the game" : "couldn't ask")}");
-                if (!ok) Notify("You're on no gearset: change to one first");
+                var why = PlateEditor.Wear(plate);
+                recorder.Note($"WEAR plate {plate}: {why ?? "asked the game"}");
+                if (why != null) Notify(why);
             });
         const string tryLabel = "Try it on";
         var tryW = Kit.ButtonWidth(tryLabel, BtnSize.Sm, Icon.Eye);
@@ -371,13 +372,15 @@ public sealed partial class MainWindow
             var nw = Txt.Draw(dl, new Vector2(x, at.Y + (h - Txt.Natural(Face.Mono, 13)) / 2), num, Face.Mono, 13, Palette.Dim);
             Txt.Draw(dl, new Vector2(x + nw + S(6), at.Y + (h - Txt.Natural(Face.Sans, 13)) / 2), Txt.Fit(g.Name, Face.Sans, 13, bx - S(8) - x - nw - S(6)), Face.Sans, 13, Palette.Ink);
             var id = g.Id;
-            if (Kit.Button($"##gs-equip{i}", new Vector2(bx, at.Y + (h - S(30)) / 2), change, Btn.Quiet, BtnSize.Sm, null, cw, false,
-                    "Changes to this gearset: its plate comes with it (in a city or an inn)", S(30)))
+            var equipBlocked = Gearsets.Blocked(false);
+            if (Kit.Button($"##gs-equip{i}", new Vector2(bx, at.Y + (h - S(30)) / 2), change, Btn.Quiet, BtnSize.Sm, null, cw, equipBlocked != null,
+                    equipBlocked ?? (Gearsets.InSanctuary ? "Changes to this gearset: its plate comes with it" : "Changes to this gearset (its plate goes on only in a sanctuary: a city, an inn or a residential area)"), S(30)))
                 Later(() =>
                 {
-                    var ok = Gearsets.Equip(id);
-                    recorder.Note($"GEARSET EQUIP {id + 1}: {(ok ? "the game took it" : "the game said no")}");
-                    if (!ok) Notify("The game wouldn't change gearset now");
+                    var why = Gearsets.Equip(id);
+                    recorder.Note($"GEARSET EQUIP {id + 1}: {why ?? "the game took it"}");
+                    if (why != null) Notify(why);
+                    else if (!Gearsets.InSanctuary) Notify("Changed. Its plate goes on only in a sanctuary.");
                 });
             if (Kit.IconButton($"##gs-unlink{i}", new Vector2(ux, at.Y + (h - S(30)) / 2), Icon.X, "Unlink the plate from this gearset", 30, Btn.Glass, false, 14))
                 Later(() =>

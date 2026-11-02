@@ -327,8 +327,11 @@ and the soul crystal at 13; an outfit set lists main hand … bracelets and one 
 (`AgentMiragePrismMiragePlate`), as choosing in its window does: for each slot, the slot is picked
 (`Data->SelectedItemIndex`) and given its copy with `SetSelectedItemData` (the dresser
 (`PrismBox`, its place) or the armoire (`Cabinet`, its row), the copy's item id and dyes), or
-emptied with `ClearItemData`. Dyes from your bags go on with `SetSelectedItemStains` (the bottles'
-inventory items, as dragging a dye onto the slot does). The slot picked before is put back. The
+emptied with `ClearItemData`. Dyes from your bags go on with `SetItemStain` (the slot, the dye,
+the bottle's inventory item and the channel, as dragging a dye onto the slot does). Before 0.4.1 it
+was `SetSelectedItemStains`, which dyes the slot the editor's own menu has picked, not the one just
+filled: a recording saw every dye of a look land on the weapon, the last one winning, and nothing
+else dyed. The slot picked before is put back. The
 dresser and armoire are read again the moment before. Nothing is saved: the game's Save does that.
 
 "Not saved yet" is worked out by the plugin: the plate's slots against the plate as the game keeps
@@ -364,9 +367,15 @@ Your own setting of it is put back when the try-on ends. The toast says how many
 a piece your race or gender can't wear is the game's to refuse. **Wear it** sends
 `/gearset change <the gearset you're on> N` (`UIModule.ProcessChatBoxEntry`): the game has no
 command for a plate alone (`/glamourplate` isn't one), and allows this in a sanctuary, for a job
-whose gear the plate fits. Watched: it changes to the gearset and projects the plate in an inn, in a
-city and out in a field ("Unable to fully apply…" is the game's for pieces your job or character
-can't wear). The game also sets the gearset's instant portrait, as changing gearset always does.
+whose gear the plate fits. Watched: it changes to the gearset and projects the plate in an inn and
+in a city ("Unable to fully apply…" is the game's for pieces your job or character can't wear).
+Out in a field the game changes gearset but says "Unable to apply glamour plates here"; in combat
+it refuses ("Unable to execute command during combat"); at a glamour dresser, or with Glamour
+Plates opened there, "Unable to execute command while occupied". So Wear and a gearset's Change
+to it (`Gearsets.Blocked`) are greyed out, the reason their tooltip, in combat, at the dresser or
+in its plate window, while loading or busy (an event, a bell, casting), and Wear outside a
+sanctuary (Change to it there says the plate waits for one). The game also sets the gearset's
+instant portrait, as changing gearset always does (and says so when the portrait doesn't fit).
 
 ### What recordings showed (2 November 2026)
 
@@ -381,6 +390,15 @@ the dye window waits on the slot as `StainState` 1 with its colour and bottle un
 By hand, a slot is picked with `[13, slot]`, then a dresser piece with the dresser's `[2, index on
 the page]`; the dresser's `[5]` (with a slot picked) opens the armoire's list (`CabinetWithdraw`), where
 `[1, index]` picks a piece. A slot's menu `[16, slot]` → Remove Item Image from Plate empties it.
+
+The third batch (0.3.3): the dresser read at once as pieces go in, come out, and an outfit set is
+stored (its pieces leave your bags, the set takes one place); the game stores a set with a piece
+missing too ("Includes items that can be stored in an armoire"), the rest added later. Storing a
+set (`MiragePrismPrismSetConvert`): the agent's source is the piece it was opened from (0 when
+adding to a set stored already), each piece listed with the bag it's put from (`Invalid` until
+picked), so the panel works the set out from its pieces. Gearsets: linking and unlinking a plate
+from the plugin shows in the game's Gear Set list and lasts through logging out; changing gearset
+behaves as Wear's above.
 
 ## The site
 
@@ -441,6 +459,18 @@ this one too, within a few minutes of a release.
 The workflows need Settings → Actions → General → Workflow permissions → Read and write.
 
 ## Release notes
+
+### 0.4.1
+
+From the third batch of recordings:
+
+- **Dyes from your bags** go on the right pieces (they all went to the weapon, and only the last
+  one stuck).
+- **Wear** and **Change to it** are greyed out where the game says no, the reason in their
+  tooltip: in combat, at the glamour dresser or its Glamour Plates, and (Wear) outside a
+  sanctuary. Glamour Plates' panel no longer offers Wear right after saving (the dresser's open):
+  it says where to wear it.
+- The outfit set panel names the set being stored (it took the piece it was opened from for it).
 
 ### 0.4.0
 

@@ -66,36 +66,14 @@ Saved files are in `%AppData%\XIVLauncher\pluginConfigs\GlamourStudio\recordings
 
 ## A · Glamour plates by hand, and filled by the plugin
 
-**Done (two recordings):** A1 to A10, A12, A14 to A16 (the plugin's fill was watched through A13's Put on plate). **Still to do:** A11 (Fill plate 3 from the plan, the recording you said you'd make on its own), A13 (needs a look on the site
-with a dyed piece whose dresser copy has other dyes, and Settings → Dye pieces with the dyes in your
-bags on) and A17.
-
-**You need:** an inn room's glamour dresser (or one in a house); at least 3 pieces in your dresser
-(one of them a piece that takes two dyes), 2 pieces in your armoire, one outfit set stored as an
-outfit in the dresser if you have one, and 2 or 3 bottles of a dye you'll use (for example Snow
-White) in your bags. Plates 1 to 3 can be changed (or use three you don't mind changing).
-
-| Id | Do this | DUMP |
-| --- | --- | --- |
-| A1 | Open the glamour dresser, then **Glamour Plates**. | yes, with Glamour Plates open |
-| A2 | Click plate 1, then plate 2, then plate 3 (stay on plate 3). | |
-| A3 | In the **plate window** (Glamour Plates, on plate 3): click the plate's **Body** slot, then in the glamour dresser list beside it pick a body piece and put it on that slot (the way you normally set a plate's piece; not the dresser's "Apply Glamour", which glamours what you wear). | yes, with the piece on the slot |
-| A4 | Still in the plate window: click the **Legs** slot and put on it a legs piece that's **in your armoire** (the plate window lets you pick armoire pieces too). | yes |
-| A5 | Still in the plate window: put on a slot one piece **from an outfit stored as one in your dresser** (an outfit set's piece). | yes |
-| A6 | Still in the plate window: right-click a slot with a piece → **Remove Item Image from Plate**. | |
-| A7 | Dye the Body slot's piece with a dye **from your bags** (channel 1). | yes |
-| A8 | On the two-dye piece, dye **channel 2** from your bags. | yes |
-| A9 | Press **Save**. Answer any question the game asks. | yes, after saving |
-| A10 | Change a slot again, then close Glamour Plates **without saving** and answer the question to leave without saving. | |
-| A11 | Open Glamour Plates again on plate 3. In the plugin (Home), use **Fill plate 3** if a look is planned for it on the site, or open a look ready for a plate and press **Put on plate 3**. Don't save yet. | yes, before saving |
-| A12 | Press **Save** in the game. | yes, after saving |
-| A13 | Settings → **Dye pieces with the dyes in your bags**: on. Open a look with a piece whose dresser copy has other dyes, and press **Put on plate 3**. Then **Save**. Write in a note how many bottles you had before and after. | yes, before and after saving |
-| A14 | Turn that setting off again. Close Glamour Plates. Make sure you're on a gearset. In the plugin's Plates, pick plate 3 and press **Wear it** (in the inn). (It now sends `/gearset change <your gearset> 3`.) | |
-| A15 | Type `/gearset change` + your current gearset's number + `3` in chat by hand (for gearset 11: `/gearset change 11 3`). Note what the game says. | |
-| A16 | Go outside the inn into the city and press **Wear it** once more. Then step out of the city (any field) and press it again. Note what the game says. | |
-| A17 | Open the Character window → **Glamour Plate** (the plate window that only applies plates), pick plate 3 and apply it. Note whether the plugin's window changed (it shouldn't offer to fill the plate there). | yes |
+**Done (three recordings):** A1 to A12, A14 to A17. **Still to do:** A13 again with 0.4.1 (in
+0.3.3 every dye went to the weapon: fixed). Same as before: Settings → Dye pieces with the dyes in
+your bags on, a look with a dyed piece whose dresser copy has other dyes, Put on plate 3 (or Fill
+plate 3 in the panel), DUMP, then Save and DUMP again; note the bottles before and after.
 
 ## B · The glamour dresser
+
+**Done (0.3.3):** B1 to B9.
 
 **You need:** a glamour dresser; 2 gear pieces in your bags that the dresser takes; a full outfit
 set's pieces in your dresser or bags if you have one (any set the dresser can keep as one outfit),
@@ -132,6 +110,8 @@ one in your armoury chest, and one you're **wearing** that it takes (if you can)
 | C9 | Close the armoire. | |
 
 ## D · Gearsets and plates
+
+**Done (0.3.3):** D1 to D9. With 0.4.1, D6 and D7 are greyed out where the game says no: no need to redo them.
 
 **You need:** a city (a sanctuary) and at least two gearsets; plate 3 saved with something on it.
 

@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using Dalamud.Game.ClientState.Conditions;
+using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Misc;
 using GlamourStudio.Core;
 
@@ -61,20 +63,69 @@ public static unsafe class Gearsets
     }
 
     /// <summary>Changes to a gearset (its linked plate goes on where the game allows it).</summary>
-    public static bool Equip(int gearset)
+    /// <summary>
+    /// Why changing gearset (or wearing a plate, <paramref name="plate"/>) won't work now, in words;
+    /// null when it will. From the recordings: the game refuses in combat ("Unable to execute command
+    /// during combat") and at a glamour dresser or with Glamour Plates opened there ("…while
+    /// occupied"), and changes gearset outside a sanctuary but puts no plate on ("Unable to apply
+    /// glamour plates here").
+    /// </summary>
+    public static string? Blocked(bool plate)
     {
         try
         {
+            var c = Services.Condition;
+            if (c[ConditionFlag.InCombat]) return "Not in combat: the game won't change gearset then";
+            if (PlateEditor.Mode == 0 || GameWindows.IsShown("MiragePrismPrismBox")) return "Close Glamour Plates and the dresser first";
+            if (c[ConditionFlag.BetweenAreas] || c[ConditionFlag.BetweenAreas51]) return "Wait until you've arrived";
+            if (c[ConditionFlag.OccupiedInEvent] || c[ConditionFlag.OccupiedInQuestEvent] || c[ConditionFlag.Occupied] || c[ConditionFlag.OccupiedSummoningBell] || c[ConditionFlag.Casting])
+                return "Not while you're busy (talking to someone, a bell, casting)";
+            if (plate)
+            {
+                var t = TerritoryInfo.Instance();
+                if (t != null && !t->InSanctuary) return "Plates only go on in a sanctuary: a city, an inn or a residential area";
+            }
+        }
+        catch (Exception ex)
+        {
+            Services.Log.Debug(ex, "Glamour Studio couldn't tell whether a gearset change would work");
+        }
+        return null;
+    }
+
+    /// <summary>Whether you're in a sanctuary (where a plate goes on), true when it can't be told.</summary>
+    public static bool InSanctuary
+    {
+        get
+        {
+            try
+            {
+                var t = TerritoryInfo.Instance();
+                return t == null || t->InSanctuary;
+            }
+            catch
+            {
+                return true;
+            }
+        }
+    }
+
+    /// <summary>Changes to a gearset: null when the game took it, else why not, in words.</summary>
+    public static string? Equip(int gearset)
+    {
+        if (Blocked(false) is { } why) return why;
+        try
+        {
             var m = RaptureGearsetModule.Instance();
-            if (m == null || !m->IsValidGearset(gearset)) return false;
+            if (m == null || !m->IsValidGearset(gearset)) return "That gearset is gone";
             var r = m->EquipGearset(gearset, 0);
             Recorder.Log($"EquipGearset {gearset + 1} → returned {r}, current now {m->CurrentGearsetIndex + 1}");
-            return r == 0;
+            return r == 0 ? null : "The game wouldn't change gearset now";
         }
         catch (Exception ex)
         {
             Services.Log.Warning(ex, "Glamour Studio couldn't change gearset");
-            return false;
+            return "The game wouldn't change gearset now";
         }
     }
 }

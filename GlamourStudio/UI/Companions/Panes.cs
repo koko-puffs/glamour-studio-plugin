@@ -230,18 +230,13 @@ public sealed partial class MainWindow
             Kit.EndPanel();
             Kit.Gap(10);
         }
-        else if (filled is { } saved && on)
+        else if (filled is { } && on)
         {
-            var at = Kit.At;
-            var wear = $"Wear plate {plate}";
-            if (Kit.Button("##c-wear", at, wear, Btn.Glass, BtnSize.Sm, Icon.Shirt, 0, false, "Puts the plate on your current gearset, as /gearset change does"))
-                Later(() =>
-                {
-                    if (!PlateEditor.Wear(plate)) Notify("You're on no gearset: change to one first");
-                });
-            Kit.Reserve(at, Kit.Width, Kit.ButtonHeight(BtnSize.Sm));
+            // (Wearing it waits: the game won't change gearset with Glamour Plates open at a dresser.)
+            Kit.BeginPanel("##c-saved", 10, 12, 10, Palette.SuccessWash, Palette.SuccessEdge, 12);
+            Txt.Para(new[] { new Run("Saved. ", Face.SansSemibold, 12, Palette.Ink), new Run($"To wear it, close Glamour Plates and the dresser, then Wear plate {plate} in the plugin's Plates (or the Character window's Glamour Plate).", Face.Sans, 12, Palette.Soft) }, 18);
+            Kit.EndPanel();
             Kit.Gap(10);
-            _ = saved;
         }
 
         var row = Kit.At;
@@ -336,6 +331,7 @@ public sealed partial class MainWindow
         }
         var picked = PlateEditor.PickedPlate;
         var sets = GearsetsNow();
+        var wearBlocked = Gearsets.Blocked(true);
         var empty = 0;
         PaneNote("Wear puts a plate on the gearset you're on, as /gearset change does.");
         Kit.Gap(8);
@@ -363,11 +359,13 @@ public sealed partial class MainWindow
             if (!worn)
             {
                 var plate = p;
-                if (Kit.Button($"##c-wear-{p}", new Vector2(rx - bw, at.Y + (h - Kit.ButtonHeight(BtnSize.Tiny)) / 2), "Wear", Btn.Glass, BtnSize.Tiny))
+                if (Kit.Button($"##c-wear-{p}", new Vector2(rx - bw, at.Y + (h - Kit.ButtonHeight(BtnSize.Tiny)) / 2), "Wear", Btn.Glass, BtnSize.Tiny, null, 0, wearBlocked != null,
+                        wearBlocked ?? "Puts the plate on the gearset you're on"))
                     Later(() =>
                     {
-                        recorder.Note($"WEAR plate {plate} from the panel");
-                        Notify(PlateEditor.Wear(plate) ? $"Plate {plate} on" : "You're on no gearset: change to one first");
+                        var why = PlateEditor.Wear(plate);
+                        recorder.Note($"WEAR plate {plate} from the panel: {why ?? "asked the game"}");
+                        Notify(why ?? $"Plate {plate} on");
                     });
                 rx -= bw + S(6);
             }
@@ -518,14 +516,14 @@ public sealed partial class MainWindow
 
     private void PaneOutfitSet()
     {
-        var set = GameWindows.OutfitSet();
-        if (set == null || set.SetItem == 0)
+        var set = GameWindows.OutfitSet(data);
+        if (set == null)
         {
             PaneNote("Pick an outfit set in the game's window.");
             return;
         }
         var me = wardrobe.Current;
-        var pieces = data.SetPieces(set.SetItem).Select(p => LookJson.BaseId(p.Item)).ToList();
+        var pieces = set.SetItem != 0 ? data.SetPieces(set.SetItem).Select(p => LookJson.BaseId(p.Item)).ToList() : new List<uint>();
         if (pieces.Count == 0) pieces = set.Pieces.Select(p => p.Item).ToList();
         var loose = me?.Dresser.Count(d => !d.InSet && pieces.Contains(LookJson.BaseId(d.Item))) ?? 0;
         var stored = me?.Dresser.Any(d => LookJson.BaseId(d.SetItem) == set.SetItem) == true;
@@ -669,8 +667,9 @@ public sealed partial class MainWindow
             if (plate > 0)
             {
                 var label = $"Wear it · plate {plate}";
-                if (Kit.Button("##c-try-wear", row, label, Btn.Primary, BtnSize.Sm, Icon.Shirt, 0, false, "Puts the plate on your current gearset, as /gearset change does"))
-                    Later(() => Notify(PlateEditor.Wear(plate) ? $"Plate {plate} on" : "You're on no gearset: change to one first"));
+                var blocked = Gearsets.Blocked(true);
+                if (Kit.Button("##c-try-wear", row, label, Btn.Primary, BtnSize.Sm, Icon.Shirt, 0, blocked != null, blocked ?? "Puts the plate on your current gearset, as /gearset change does"))
+                    Later(() => Notify(PlateEditor.Wear(plate) ?? $"Plate {plate} on"));
                 Kit.Reserve(row, Kit.Width, Kit.ButtonHeight(BtnSize.Sm));
             }
             else

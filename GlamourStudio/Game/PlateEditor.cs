@@ -25,7 +25,7 @@ public sealed record FillResult(int Plate, int Set, int Cleared, int Dyed, IRead
 /// Save keeps it. Nothing is saved for you: you look, then press Save.
 /// <para>
 /// Dyeing from your bags (off unless Settings says so) gives the slot pending dyes from bottles in
-/// your bags with <c>SetSelectedItemStains</c>, as dragging a dye onto it does; the game spends them
+/// your bags with <c>SetItemStain</c>, as dragging a dye onto it does; the game spends them
 /// when the plate is saved. [unsure: written from FFXIVClientStructs' signatures, not yet watched in
 /// the game, hence off by default.]
 /// </para>
@@ -174,7 +174,7 @@ public static unsafe class PlateEditor
                             Recorder.Log($"  SetSelectedItemData slot {index} ({Slots.Key(step.Slot)}): source {step.Source} {step.SourceId}, item {(step.Item != 0 ? step.Item : want.Item)}, stains {step.Has1}/{step.Has2}"
                                          + $" → now {data->CurrentItems[index].ItemId} src {data->CurrentItems[index].Source}/{data->CurrentItems[index].SourceId} stains {data->CurrentItems[index].StainIds[0]}/{data->CurrentItems[index].StainIds[1]}");
                             set++;
-                            if (step.DyeFromBags && Dye(agent, step, want, dyeItems)) dyed++;
+                            if (step.DyeFromBags && Dye(agent, index, step, want, dyeItems)) dyed++;
                             break;
                         case StepKind.Clear:
                             if (data->CurrentItems[index].ItemId == 0) break;
@@ -200,24 +200,30 @@ public static unsafe class PlateEditor
         return new FillResult(plate, set, cleared, dyed, problems);
     }
 
-    private static bool Dye(AgentMiragePrismMiragePlate* agent, PlateStep step, Piece want, Func<byte, (InventoryType Type, int Slot)?> dyeItems)
+    /// <summary>
+    /// Dyes a slot's piece with bottles from your bags, channel by channel, with <c>SetItemStain</c>
+    /// (the slot named outright). 0.3.x used <c>SetSelectedItemStains</c>, which dyes the slot the
+    /// editor has picked for its own menu, not the one just filled: a recording saw every dye land on
+    /// the weapon, the last one winning.
+    /// </summary>
+    private static bool Dye(AgentMiragePrismMiragePlate* agent, int index, PlateStep step, Piece want, Func<byte, (InventoryType Type, int Slot)?> dyeItems)
     {
         var mgr = InventoryManager.Instance();
         if (mgr == null) return false;
-        InventoryItem* Bottle(byte stain)
+        var c = 0;
+        foreach (var (channel, outcome, stain) in new[] { (0, step.Dye1, want.Dye1), (1, step.Dye2, want.Dye2) })
         {
-            if (dyeItems(stain) is not { } at) return null;
-            var c = mgr->GetInventoryContainer(at.Type);
-            return c == null ? null : c->GetInventorySlot(at.Slot);
+            if (outcome != DyeOutcome.FromBags || stain == 0 || dyeItems(stain) is not { } at) continue;
+            var container = mgr->GetInventoryContainer(at.Type);
+            var bottle = container == null ? null : container->GetInventorySlot(at.Slot);
+            if (bottle == null || bottle->IsEmpty()) continue;
+            agent->SetItemStain((uint)index, stain, bottle, bottle->GetBaseItemId(), channel);
+            ref var now = ref agent->Data->CurrentItems[index];
+            Recorder.Log($"  SetItemStain slot {index} ({Slots.Key(step.Slot)}) channel {channel}: dye {stain} from bottle {bottle->GetBaseItemId()} at {at.Type}:{at.Slot}"
+                         + $" → pending {now.PendingStainIds[0]}/{now.PendingStainIds[1]}, stain state {now.StainState}");
+            c++;
         }
-        var b0 = step.Dye1 == DyeOutcome.FromBags ? Bottle(want.Dye1) : null;
-        var b1 = step.Dye2 == DyeOutcome.FromBags ? Bottle(want.Dye2) : null;
-        if (b0 == null && b1 == null) return false;
-        agent->SetSelectedItemStains(
-            b0, b0 != null ? want.Dye1 : step.Has1, b0 != null ? b0->GetBaseItemId() : 0,
-            b1, b1 != null ? want.Dye2 : step.Has2, b1 != null ? b1->GetBaseItemId() : 0);
-        Recorder.Log($"  SetSelectedItemStains {Slots.Key(step.Slot)}: dye1 {(b0 != null ? $"{want.Dye1} from bottle {b0->GetBaseItemId()}" : $"kept {step.Has1}")}, dye2 {(b1 != null ? $"{want.Dye2} from bottle {b1->GetBaseItemId()}" : $"kept {step.Has2}")}");
-        return true;
+        return c > 0;
     }
 
     /// <summary>
@@ -264,23 +270,26 @@ public static unsafe class PlateEditor
     /// <summary>
     /// Wears a glamour plate now, with the gearset you're on, as <c>/gearset change &lt;set&gt; &lt;plate&gt;</c>
     /// does (the game has no command for a plate alone: <c>/glamourplate</c> isn't one). In a
-    /// sanctuary, on a job whose gear the plate fits. False when you're on no gearset.
+    /// sanctuary, on a job whose gear the plate fits; not in combat, nor at a dresser
+    /// (<see cref="Gearsets.Blocked"/>).
     /// </summary>
-    public static bool Wear(int plate)
+    /// <returns>Null when it was asked of the game, else why not, in words.</returns>
+    public static string? Wear(int plate)
     {
-        if (plate is < 1 or > Plates.Count) return false;
+        if (plate is < 1 or > Plates.Count) return "There's no such plate";
+        if (Gearsets.Blocked(true) is { } why) return why;
         var ui = UIModule.Instance();
         var gs = FFXIVClientStructs.FFXIV.Client.UI.Misc.RaptureGearsetModule.Instance();
-        if (ui == null || gs == null) return false;
+        if (ui == null || gs == null) return "The game isn't ready";
         var current = gs->CurrentGearsetIndex;
-        if (current < 0 || !gs->IsValidGearset(current)) return false;
+        if (current < 0 || !gs->IsValidGearset(current)) return "You're on no gearset: change to one first";
         var command = $"/gearset change {current + 1} {plate}";
         var text = Utf8String.FromString(command);
         try
         {
             Recorder.Log($"WEAR {command}");
             ui->ProcessChatBoxEntry(text, nint.Zero, false);
-            return true;
+            return null;
         }
         finally
         {

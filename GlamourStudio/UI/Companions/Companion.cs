@@ -370,7 +370,7 @@ public sealed partial class MainWindow
     {
         Pane.Plates => editorPlate > 0 ? $"Plate {editorPlate}" : "Glamour Plates",
         Pane.PlatesApply => "Your plates, by look",
-        Pane.OutfitSet => GameWindows.OutfitSet() is { SetItem: > 0 } set ? data.ItemName(set.SetItem) : "Storing an outfit set",
+        Pane.OutfitSet => GameWindows.OutfitSet(data) is { SetItem: > 0 } set ? data.ItemName(set.SetItem) : "Storing an outfit set",
         Pane.Dye => GameWindows.DyedItem(data) is > 0 and var item ? data.ItemName(item) : "Dyeing",
         Pane.FittingRoom => "Trying on",
         Pane.Armoire => "At the armoire",

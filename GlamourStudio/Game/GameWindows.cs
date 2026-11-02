@@ -165,10 +165,14 @@ public static unsafe class GameWindows
     // ---------------------------------------------------------------------------------------------
     // Storing an outfit set.
 
-    /// <summary>The set being stored (its own item) and its pieces: each item and the bag it's in (none: not yours).</summary>
+    /// <summary>The set being stored (its own item, 0 when it can't be told) and its pieces: each item and the bag it's put from (Invalid: not picked).</summary>
     public sealed record OutfitSetNow(uint SetItem, IReadOnlyList<(uint Item, InventoryType Where)> Pieces);
 
-    public static OutfitSetNow? OutfitSet()
+    /// <summary>
+    /// The outfit set window's set. Its agent's "source" is the piece it was opened from (or 0, adding
+    /// to a set stored already: a recording saw both), so the set is the one its pieces belong to.
+    /// </summary>
+    public static OutfitSetNow? OutfitSet(GameData data)
     {
         if (Shown("MiragePrismPrismSetConvert") == null) return null;
         try
@@ -184,7 +188,10 @@ public static unsafe class GameWindows
                 if (it.ItemId == 0) continue;
                 list.Add((LookJson.BaseId(it.ItemId), it.InventoryType));
             }
-            return d->SourceItemId == 0 && list.Count == 0 ? null : new OutfitSetNow(LookJson.BaseId(d->SourceItemId), list);
+            if (list.Count == 0) return null;
+            var set = list.Select(p => data.SetOf(p.Item1)).FirstOrDefault(s => s != 0);
+            if (set == 0 && d->SourceItemId != 0) set = data.SetOf(d->SourceItemId);
+            return new OutfitSetNow(set, list);
         }
         catch (Exception ex)
         {
