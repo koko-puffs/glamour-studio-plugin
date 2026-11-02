@@ -296,14 +296,19 @@ Wide Spectrum #2…), each making many colours, as well as a colour's own bottle
 recording). The plugin counts, for each colour, the bottles that can make it (`GameData.StainsOfItem`,
 from the Stain sheet's items), and uses a colour's own bottle first, a Spectrum one after.
 
-Not yet watched in the game (written from FFXIVClientStructs' signatures and what Glamaholic
-found): a piece of an outfit set given as its set's place and its own item id, and the dyes from
-your bags (off by default). Tell us how they go.
+Watched in the game (the second recording): the plugin's fill leaves each slot exactly as picking
+the piece by hand does (the piece, its source and place, the copy's dyes, `StainState` 1 with no
+dye waiting), the window shows it, Save opens the game's confirmation, and closing asks to discard.
+A dresser piece is `PrismBox` and its place; an armoire piece `Cabinet` and its row; an outfit
+set's piece the set's dresser place with the piece's own item id. Not yet watched: the dyes from
+your bags (off by default).
 
 **Try it on** is `AgentTryon.TryOn` for each piece with its dyes; **Wear it** sends
 `/gearset change <the gearset you're on> N` (`UIModule.ProcessChatBoxEntry`): the game has no
 command for a plate alone (`/glamourplate` isn't one), and allows this in a sanctuary, for a job
-whose gear the plate fits. Not yet watched in the game.
+whose gear the plate fits. Watched: it changes to the gearset and projects the plate in an inn, in a
+city and out in a field ("Unable to fully apply…" is the game's for pieces your job or character
+can't wear). The game also sets the gearset's instant portrait, as changing gearset always does.
 
 ### What recordings showed (2 November 2026)
 
@@ -314,6 +319,10 @@ bottles to be used), answered `[0]`, then "Glamour plate N saved." (log message 
 `[18, 0]`, which with changes asks "Discard all changes?". From the Character window: `[15, plate−1]`
 applies a plate ("Glamours projected from plate N.", 4364; 4378 when it can't fully). A dye picked in
 the dye window waits on the slot as `StainState` 1 with its colour and bottle until saved.
+
+By hand, a slot is picked with `[13, slot]`, then a dresser piece with the dresser's `[2, index on
+the page]`; the dresser's `[5]` (with a slot picked) opens the armoire's list (`CabinetWithdraw`), where
+`[1, index]` picks a piece. A slot's menu `[16, slot]` → Remove Item Image from Plate empties it.
 
 ## The site
 

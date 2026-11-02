@@ -66,12 +66,9 @@ Saved files are in `%AppData%\XIVLauncher\pluginConfigs\GlamourStudio\recordings
 
 ## A · Glamour plates by hand, and filled by the plugin
 
-**Redo (after the first recording):** A3, A4, A5 and A6 as written now (all inside the plate
-window, not the dresser's own menu), and A11 to A16. A1, A2, A7 to A10 are done.
-
-**Also needed for A11 and A13:** at least one look of yours on the site whose pieces are in your
-dresser or armoire (the plugin's Looks shows "Ready for a plate" on it), and for A11 a look planned
-for plate 3 (site: Closet → Plates). Your first recording had no looks yet.
+**Done (two recordings):** A1 to A12, A14 to A16. **Still to do:** A13 (needs a look on the site
+with a dyed piece whose dresser copy has other dyes, and Settings → Dye pieces with the dyes in your
+bags on) and A17.
 
 **You need:** an inn room's glamour dresser (or one in a house); at least 3 pieces in your dresser
 (one of them a piece that takes two dyes), 2 pieces in your armoire, one outfit set stored as an
