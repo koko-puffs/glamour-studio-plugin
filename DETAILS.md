@@ -223,7 +223,10 @@ recording** puts it on the clipboard with what the plugin knows (the plugin's, D
 game's versions, the plugins loaded, the recorder's hooks, character, settings, what's been read,
 the last send); **Save it as a file** (`/gstudio save`) writes it to
 `pluginConfigs/GlamourStudio/recordings/gstudio-<time>.txt`. It keeps the last 20,000 lines and stops
-by itself after two hours. It sends nothing anywhere.
+by itself after two hours. It sends nothing anywhere, and leaves out other people's names (the
+Examine window's words and values, the names in a menu on someone). `/gstudio mark` and
+`/gstudio dump` start a recording when none is going, but not over a stopped one that hasn't been
+saved or copied yet.
 
 ## Reading your wardrobe
 

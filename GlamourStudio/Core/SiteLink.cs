@@ -95,10 +95,10 @@ public static class SiteLink
     // ---------------------------------------------------------------------------------------------
     // One call, and what came back.
 
-    /// <summary>Calls one of the site's database functions; its JSON answer, or why not.</summary>
     /// <summary>Told of each call and how it went (the recorder's SITE lines; any thread). Never the token or the body.</summary>
     public static Action<string>? Trace { get; set; }
 
+    /// <summary>Calls one of the site's database functions; its JSON answer, or why not.</summary>
     public static async Task<SiteReply<JsonNode?>> CallAsync(HttpClient http, string function, JsonObject args, TimeSpan wait, CancellationToken cancel = default)
     {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancel);

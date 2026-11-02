@@ -26,7 +26,8 @@ public static unsafe class AtkText
     }
 
     /// <summary>Values as text ("i:1, u:7, s:\"Store\""), the first <paramref name="max"/>.</summary>
-    public static string Describe(AtkValue* values, uint count, int max = 32)
+    /// <param name="hideText">Text values as "s:…" only (a menu of people's names).</param>
+    public static string Describe(AtkValue* values, uint count, int max = 32, bool hideText = false)
     {
         if (values == null) return string.Empty;
         var parts = new List<string>();
@@ -43,7 +44,7 @@ public static unsafe class AtkText
                 5 => $"u:{v.UInt}",
                 6 => $"u64:{v.UInt64}",
                 7 => $"f:{v.Float}",
-                _ when IsText(v.Type) && v.String.Value != null => $"s:\"{Text(v.String.Value)}\"",
+                _ when IsText(v.Type) && v.String.Value != null => hideText ? "s:…" : $"s:\"{Text(v.String.Value)}\"",
                 _ => $"type{(int)v.Type}",
             });
         }
@@ -84,23 +85,5 @@ public static unsafe class AtkText
             list.Add($"couldn't read ({ex.GetType().Name})");
         }
         return list;
-    }
-
-    /// <summary>Every value a window holds now, by its index.</summary>
-    public static string DumpValues(string name, int max = 1500)
-    {
-        try
-        {
-            var a = (AtkUnitBase*)Services.GameGui.GetAddonByName(name).Address;
-            if (a == null) return $"{name}: not open";
-            if (a->AtkValues == null) return $"{name}: no values";
-            var count = Math.Min((int)a->AtkValuesCount, max);
-            return $"{name} ({a->AtkValuesCount} values, visible {a->IsVisible}): "
-                   + string.Join(" ", Enumerable.Range(0, count).Select(i => $"[{i}] {Describe(&a->AtkValues[i], 1)}"));
-        }
-        catch (Exception ex)
-        {
-            return $"{name}: couldn't read ({ex.GetType().Name})";
-        }
     }
 }

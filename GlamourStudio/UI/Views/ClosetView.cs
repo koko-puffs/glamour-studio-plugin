@@ -254,7 +254,9 @@ public sealed partial class MainWindow
             var h = S(7) * 2 + S(32);
             if (!ImGui.IsRectVisible(r, r + new Vector2(rw, h)))
             {
+                // (As tall as a drawn row and its gap, so nothing moves as rows scroll in and out.)
                 Kit.Reserve(r, rw, h);
+                Kit.Gap(2);
                 continue;
             }
             var item = data.Item(id);

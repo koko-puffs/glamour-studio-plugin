@@ -206,6 +206,7 @@ public sealed partial class MainWindow
         if (ButtonRow(i++, "##rec-copy", "Copy the recording", "With what the plugin knows, to paste in a message", "Copy", Btn.Glass, recorder.LineCount == 0))
         {
             ImGui.SetClipboardText(Diagnostics());
+            recorder.Copied();
             Notify("Recording copied");
         }
         var saved = recorder.SavedTo;

@@ -92,13 +92,28 @@ public sealed class Plugin : IDalamudPlugin
                     : $"Glamour Studio: recording stopped ({recorder.LineCount:N0} lines). /gstudio save saves it as a file; Settings → Making a report copies it.");
                 return;
             case "mark":
-                if (!recorder.Recording) recorder.Start();
-                recorder.Mark(rest);
-                Services.Chat.Print($"Glamour Studio: mark {recorder.Marks}{(rest.Length > 0 ? $": {rest}" : string.Empty)}");
-                return;
             case "dump":
-                recorder.DumpWindows();
-                Services.Chat.Print("Glamour Studio: the glamour windows' values are written down.");
+                if (!recorder.Recording)
+                {
+                    // A stopped recording not yet saved isn't wiped by starting a new one.
+                    if (recorder.LineCount > 0 && !recorder.HandedOver)
+                    {
+                        Services.Chat.Print("Glamour Studio: the last recording isn't saved yet. /gstudio save (or copy it in Settings), then /gstudio record to start a new one.");
+                        return;
+                    }
+                    recorder.Start();
+                    Services.Chat.Print("Glamour Studio: recording started.");
+                }
+                if (verb == "mark")
+                {
+                    recorder.Mark(rest);
+                    Services.Chat.Print($"Glamour Studio: mark {recorder.Marks}{(rest.Length > 0 ? $": {rest}" : string.Empty)}");
+                }
+                else
+                {
+                    recorder.DumpWindows();
+                    Services.Chat.Print("Glamour Studio: the glamour windows' values are written down.");
+                }
                 return;
             case "save":
                 if (recorder.LineCount == 0)

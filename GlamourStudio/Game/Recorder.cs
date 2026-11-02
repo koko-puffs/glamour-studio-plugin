@@ -99,9 +99,12 @@ public sealed unsafe class Recorder : IDisposable
     /// <summary>What was hooked (each agent's event functions, their place in the game, shared or not), for the header.</summary>
     private readonly List<string> hookReport = new();
 
-    /// <summary>How deep in hooked event calls this thread is (an agent's own calling its base is written once).</summary>
+    /// <summary>The agents in a hooked event call on this thread: an agent calling its own base is written once; one agent handing to another is written.</summary>
     [ThreadStatic]
-    private static int depth;
+    private static HashSet<nint>? inCall;
+
+    /// <summary>Windows that show other people (their names): opened and closed, but not their words or values.</summary>
+    private static readonly HashSet<string> Private = new(StringComparer.Ordinal) { "CharacterInspect" };
 
     /// <summary>The lines kept when old ones go: the header and the start's state.</summary>
     private int headerCount = HeaderLines;
@@ -144,6 +147,12 @@ public sealed unsafe class Recorder : IDisposable
 
     /// <summary>Where the last recording was saved, if it was.</summary>
     public string? SavedTo { get; private set; }
+
+    /// <summary>The recording has been saved or copied since it was last added to (a new one won't lose it).</summary>
+    public bool HandedOver { get; private set; }
+
+    /// <summary>Says the recording's been copied (Settings' Copy).</summary>
+    public void Copied() => HandedOver = true;
 
     public Recorder(GameData data)
     {
@@ -254,10 +263,14 @@ public sealed unsafe class Recorder : IDisposable
         }
         lastState.Clear();
         lastWords.Clear();
-        dropped = 0;
+        lock (lines)
+        {
+            dropped = 0;
+            started = DateTime.UtcNow;
+        }
         Marks = 0;
         SavedTo = null;
-        started = DateTime.UtcNow;
+        HandedOver = false;
         nextState = DateTime.MinValue;
         Recording = true;
         Active = this;
@@ -336,12 +349,17 @@ public sealed unsafe class Recorder : IDisposable
     /// <summary>Every value the glamour windows hold now, and the whole state, in lines of a hundred values (framework thread).</summary>
     public void DumpWindows()
     {
-        if (!Recording) Start();
+        if (!Recording) return;
         Add("DUMP: every value the open glamour windows hold, and the whole state.");
         foreach (var name in GlamourWindows)
         {
             var a = (AtkUnitBase*)Services.GameGui.GetAddonByName(name).Address;
             if (a == null) continue;
+            if (Private.Contains(name))
+            {
+                Add($"VALUES {name}: {a->AtkValuesCount} values, visible {a->IsVisible} (not written down: someone else's)");
+                continue;
+            }
             var values = AtkText.Values(name);
             Add($"VALUES {name}: {values.Count} values, visible {a->IsVisible}");
             Chunked($"VALUES {name}", values, 100);
@@ -359,7 +377,7 @@ public sealed unsafe class Recorder : IDisposable
         for (var i = 0; i < parts.Count; i += perLine)
         {
             var to = Math.Min(parts.Count, i + perLine);
-            Add($"{label} [{i}-{to - 1}]: {string.Join(" ", parts.Skip(i).Take(to - i).Select(p => p.Trim()))}", cut: false);
+            Add($"{label} [{i}-{to - 1}]: {string.Join("; ", parts.Skip(i).Take(to - i).Select(p => p.Trim()))}", cut: false);
         }
     }
 
@@ -764,31 +782,31 @@ public sealed unsafe class Recorder : IDisposable
 
     private AtkValue* AgentDetour(Hook<AgentInterface.Delegates.ReceiveEvent> hook, string label, AgentInterface* self, AtkValue* returnValue, AtkValue* values, uint valueCount, ulong eventKind)
     {
-        var outer = depth == 0;
+        inCall ??= new HashSet<nint>();
+        var entered = inCall.Add((nint)self);
         string? name = null;
         try
         {
-            if (Recording && outer && self != null && agentNames.TryGetValue((nint)self, out name))
-                Add($"AGENT {name}{label} kind={eventKind} [{AtkText.Describe(values, valueCount)}]");
+            if (Recording && entered && self != null && agentNames.TryGetValue((nint)self, out name))
+                Add($"AGENT {name}{label} kind={eventKind} [{AtkText.Describe(values, valueCount, hideText: name == "Context")}]");
         }
         catch
         {
             // Writing it down mustn't stop the game's own call.
         }
         AtkValue* result;
-        depth++;
         try
         {
             result = hook.Original(self, returnValue, values, valueCount, eventKind);
         }
         finally
         {
-            depth--;
+            if (entered) inCall.Remove((nint)self);
         }
         try
         {
             if (name != null && Recording && result != null && result->Type != 0)
-                Add($"  AGENT {name}{label} returned [{AtkText.Describe(result, 1)}]");
+                Add($"  AGENT {name}{label} returned [{AtkText.Describe(result, 1, hideText: name == "Context")}]");
             // A menu opened on an item: which item, from where.
             if (name == "InventoryContext" && Recording) Add("  " + DescribeInventoryContext());
         }
@@ -804,6 +822,8 @@ public sealed unsafe class Recorder : IDisposable
     {
         var a = AgentInventoryContext.Instance();
         if (a == null) return "context: no agent";
+        // A menu on someone, or chat: the item menu's agent isn't open, and what it holds is the last item's.
+        if (!a->AgentInterface.IsAgentActive()) return "context: not an item's menu";
         var item = a->TargetInventorySlot;
         return $"context: {a->TargetInventoryId}:{a->TargetInventorySlotId} item {(item != null ? item->ItemId : 0)} flags {a->TargetInventoryFlags}, owner window {a->OwnerAddonId}, "
                + $"{a->ContextItemCount} entries from {a->ContexItemStartIndex}";
@@ -814,7 +834,7 @@ public sealed unsafe class Recorder : IDisposable
         if (!Recording || IsNoise(args.AddonName)) return;
         var a = (AtkUnitBase*)args.Addon.Address;
         var full = Glamour.Contains(args.AddonName);
-        var words = a != null ? AtkText.Strings(a, full ? 600 : 10) : new List<string>();
+        var words = a != null && !Private.Contains(args.AddonName) ? AtkText.Strings(a, full ? 600 : 10) : new List<string>();
         if (full) lastWords[args.AddonName] = string.Join("|", words).GetHashCode();
         Add($"OPEN {args.AddonName}{(a != null ? $" ({a->AtkValuesCount} values)" : string.Empty)}{(words.Count > 0 ? " " + string.Join(" ", words.Select(Cut)) : string.Empty)}");
         if (args.AddonName is "ContextMenu" or "ContextIconMenu") Add("  " + DescribeInventoryContext());
@@ -826,6 +846,11 @@ public sealed unsafe class Recorder : IDisposable
         if (!Recording) return;
         var a = (AtkUnitBase*)args.Addon.Address;
         if (a == null) return;
+        if (Private.Contains(args.AddonName))
+        {
+            Add($"REFRESH {args.AddonName} ({a->AtkValuesCount} values; its words aren't written down: they're someone else's)");
+            return;
+        }
         // The values the refresh brought (not what the window held before it).
         var sent = args is AddonRefreshArgs r && r.AtkValues != 0 ? AtkText.Describe((AtkValue*)r.AtkValues, r.AtkValueCount, 120) : string.Empty;
         var words = AtkText.Strings(a, 600);
@@ -943,6 +968,7 @@ public sealed unsafe class Recorder : IDisposable
             var path = Path.Combine(dir, $"gstudio-{DateTime.Now:yyyyMMdd-HHmmss-fff}.txt");
             File.WriteAllText(path, text, new UTF8Encoding(false));
             SavedTo = path;
+            HandedOver = true;
             return path;
         }
         catch (Exception ex)
