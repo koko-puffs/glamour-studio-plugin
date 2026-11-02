@@ -149,8 +149,13 @@ public sealed class Shots : IDisposable
             if (!Grab(w.LookId, w.LookName, out _)) ShowHudAgain();
             return;
         }
-        if (grab is { IsCompleted: false } && DateTime.UtcNow - grabAt > TimeSpan.FromSeconds(5))
+        if (grab is { IsCompleted: false } late && DateTime.UtcNow - grabAt > TimeSpan.FromSeconds(5))
         {
+            // Should the frame come after all, it's let go of then.
+            late.ContinueWith(x =>
+            {
+                if (x.IsCompletedSuccessfully) x.Result.Dispose();
+            }, TaskScheduler.Default);
             grab = null;
             grabFor = null;
             generation++;

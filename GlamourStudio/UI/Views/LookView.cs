@@ -139,7 +139,8 @@ public sealed partial class MainWindow
             var tw = at.X + w - S(10) - (bw > 0 ? bw + S(10) : 0) - x;
             var top = at.Y + (h - (nameH + S(2) + S(18))) / 2;
             Txt.Line(dl, new Vector2(x, top), Txt.Fit(item?.Name ?? $"Item {itemId}", Face.SansMedium, 14, tw), Face.SansMedium, 14, Palette.Ink);
-            var line = $"{Places.Word(where!.Value)}" + (row != null ? " · the armoire takes it" : " · for the dresser");
+            var worn = row != null && armoireOpen && Armoire.IsWorn(itemId);
+            var line = $"{Places.Word(where!.Value)}" + (row == null ? " · for the dresser" : worn ? " · take it off for the armoire" : " · the armoire takes it");
             Txt.Line(dl, new Vector2(x, top + nameH + S(2)), Txt.Fit(line, Face.Sans, 12, tw), Face.Sans, 12, Palette.Muted, 18);
             if (bw > 0)
             {

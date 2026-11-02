@@ -109,9 +109,14 @@ public sealed partial class MainWindow
         Kit.Section("Not in any look or plate", unused.Count > 0 && LooksKnown ? Words.Count(unused.Count, "piece") : null);
         Kit.Gap(8);
         if (!LooksKnown)
-            Txt.Note(Linked
-                ? "Reading your looks from the site… (the pieces they use aren't counted as unused)."
-                : "Link your account: then the pieces none of your looks or plates uses show here.", Palette.Muted);
+            Txt.Note(!Linked
+                ? sync.TokenRefused
+                    ? "The site doesn't know this token any more. Link again in Settings → Account, and the pieces none of your looks or plates uses show here."
+                    : "Link your account: then the pieces none of your looks or plates uses show here."
+                : sync.LibraryProblem is { } why
+                    ? $"Your looks couldn't be read, so nothing's called unused yet. {why}"
+                    : "Reading your looks from the site… (the pieces they use aren't counted as unused).",
+                sync.LibraryProblem != null && Linked ? Palette.Danger : Palette.Muted);
         else if (unused.Count == 0)
             Txt.Note("Every loose piece in your dresser is in one of your looks, the looks you love, or your plates.", Palette.Muted);
         else

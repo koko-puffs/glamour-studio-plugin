@@ -185,7 +185,6 @@ public sealed class SiteSync : IDisposable
         var character = config.SendPlates ? current : null;
         var version = wardrobe.Version;
         var fingerprint = Wardrobe.Fingerprint(closet, read, character);
-        nextAutoSync = DateTime.UtcNow + AutoSyncGap;
         if (auto && fingerprint == lastSent)
         {
             versionSent = version;
@@ -218,6 +217,8 @@ public sealed class SiteSync : IDisposable
                     var left = new HashSet<uint>(Library.Wishes);
                     left.ExceptWith(got);
                     Library = Library with { Wishes = left };
+                    // (A read of your looks already on its way could bring them back: read again after it.)
+                    nextLibrary = DateTime.MinValue;
                     WishesGot?.Invoke(got);
                 }
                 // What you could wear now may have changed with it.

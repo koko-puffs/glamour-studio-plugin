@@ -169,8 +169,8 @@ public static class LookJson
         var wishes = new HashSet<uint>();
         if (o["wishes"] is JsonArray w)
             foreach (var n in w)
-                if (Long(n) is { } id and >= 1 and <= 9_999_999)
-                    wishes.Add((uint)id);
+                if (ItemId(n) is { } id)
+                    wishes.Add(id);
         return new Library(mine, loved, wishes);
     }
 

@@ -88,7 +88,6 @@ public sealed partial class MainWindow : Window
 
     public override void OnClose()
     {
-        openSent = null;
         settingsTab = SettingsTab.General;
     }
 

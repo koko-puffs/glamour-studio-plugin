@@ -66,13 +66,13 @@ public static class Txt
     /// <summary>The height of a CSS line box in screen pixels.</summary>
     public static float LineBox(Face face, int px, float lineCss) => lineCss > 0 ? S(lineCss) : Natural(face, px);
 
+    /// <summary>Each of the first 256 characters as a string, made once (spaced capitals are drawn a letter at a time, every frame).</summary>
+    private static readonly string[] OneChar = Enumerable.Range(0, 256).Select(c => ((char)c).ToString()).ToArray();
+
     /// <summary>
     /// Letter-spaced text (CSS letter-spacing, which also follows the last letter): eyebrows at
     /// .18em, stamps at .1em. Returns the width.
     /// </summary>
-    /// <summary>Each of the first 256 characters as a string, made once (spaced capitals are drawn a letter at a time, every frame).</summary>
-    private static readonly string[] OneChar = Enumerable.Range(0, 256).Select(c => ((char)c).ToString()).ToArray();
-
     public static float Spaced(ImDrawListPtr dl, Vector2 pos, string text, Face face, int px, Vector4 color, float em, bool draw = true)
     {
         using (Fonts.Push(face, px))

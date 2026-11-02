@@ -18,7 +18,6 @@ public sealed partial class MainWindow
     /// <summary>The plate open (1 to 20), 0 for what you're wearing, −1 for none.</summary>
     private int openPlate = -1;
 
-    /// <summary>A look kept from the game just now, by the plate it came from.</summary>
     /// <summary>A look kept from the game just now, by the plate it came from, with the pieces it had then.</summary>
     private readonly Dictionary<(string Character, int Plate), (SavedLook Look, IReadOnlyDictionary<Slot, Piece> Pieces)> keptFrom = new();
 

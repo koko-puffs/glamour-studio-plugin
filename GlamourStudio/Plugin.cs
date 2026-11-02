@@ -105,7 +105,8 @@ public sealed class Plugin : IDalamudPlugin
         Services.Chat.Print($"Glamour Studio: {names}{more} came off your shopping list.");
     }
 
-    private DateTime quietUntil;
+    /// <summary>Per step: when its next failure may be logged.</summary>
+    private readonly System.Collections.Generic.Dictionary<string, DateTime> quietUntil = new();
 
     private void Step(Action step, string what)
     {
@@ -116,8 +117,8 @@ public sealed class Plugin : IDalamudPlugin
         catch (Exception ex)
         {
             // Said once every ten seconds at most, should it fail every frame.
-            if (DateTime.UtcNow < quietUntil) return;
-            quietUntil = DateTime.UtcNow + TimeSpan.FromSeconds(10);
+            if (quietUntil.TryGetValue(what, out var until) && DateTime.UtcNow < until) return;
+            quietUntil[what] = DateTime.UtcNow + TimeSpan.FromSeconds(10);
             Services.Log.Warning(ex, $"Glamour Studio's update failed ({what})");
         }
     }
