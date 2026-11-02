@@ -9,7 +9,7 @@ namespace GlamourStudio.Game;
 /// <summary>An item as the window shows it and the plate needs it.</summary>
 /// <param name="Slots">The slots it fits (a ring both hands; none: it isn't gear).</param>
 /// <param name="Dyes">How many dyes it takes (0, 1 or 2).</param>
-public sealed record ItemInfo(uint Id, string Name, uint Icon, Slot[] Slots, int Dyes, int Level)
+public sealed record ItemInfo(uint Id, string Name, uint Icon, Slot[] Slots, int Dyes, int Level, bool Untradable = false)
 {
     public bool IsGear => Slots.Length > 0;
 }
@@ -48,7 +48,7 @@ public sealed class GameData
                         c.Ears > 0, c.Neck > 0, c.Wrists > 0, c.FingerL > 0 || c.FingerR > 0)
                     : Array.Empty<Slot>();
                 if (cat is { SoulCrystal: > 0 }) slots = Array.Empty<Slot>();
-                info = new ItemInfo(id, string.IsNullOrWhiteSpace(name) ? $"Item {id}" : name, row.Icon, slots, Math.Clamp((int)row.DyeCount, 0, 2), row.LevelEquip);
+                info = new ItemInfo(id, string.IsNullOrWhiteSpace(name) ? $"Item {id}" : name, row.Icon, slots, Math.Clamp((int)row.DyeCount, 0, 2), row.LevelEquip, row.IsUntradable);
             }
         }
         catch (Exception ex)

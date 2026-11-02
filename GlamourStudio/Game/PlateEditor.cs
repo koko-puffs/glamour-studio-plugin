@@ -63,6 +63,35 @@ public static unsafe class PlateEditor
         }
     }
 
+    /// <summary>The plate window's mode: 0 opened at a dresser (editing), 1 from the Character window (applying only); -1 when it isn't open.</summary>
+    public static int Mode
+    {
+        get
+        {
+            try
+            {
+                var a = (AtkUnitBase*)Services.GameGui.GetAddonByName(Window).Address;
+                var agent = Agent();
+                return a != null && a->IsVisible && agent != null ? (int)agent->Data->OpenMode : -1;
+            }
+            catch
+            {
+                return -1;
+            }
+        }
+    }
+
+    /// <summary>The plate picked in the plate window, opened either way (1 to 20), or 0.</summary>
+    public static int PickedPlate
+    {
+        get
+        {
+            if (Mode < 0) return 0;
+            var n = (int)Agent()->Data->SelectedMiragePlateIndex + 1;
+            return n is >= 1 and <= Plates.Count ? n : 0;
+        }
+    }
+
     /// <summary>The plate open in the editor (1 to 20), or 0 when it isn't open.</summary>
     public static int SelectedPlate
     {

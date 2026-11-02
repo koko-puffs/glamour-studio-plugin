@@ -83,8 +83,77 @@ public sealed partial class MainWindow
         Kit.Gap(10);
     }
 
+    private static readonly string[] SideChoices = { "Auto", "Right", "Left" };
+
     private void DrawGeneralTab()
     {
+        GroupLabel("Beside the game's windows");
+        Kit.BeginPanel("##set-companions", 0, 0, 0);
+        var c = 0;
+        if (SwitchRow(c++, "##companions", "Show Glamour Studio beside the game's windows", "A small panel docked to the window, moving with it. This window stays closed.",
+                config.Companions,
+                "At the glamour dresser, Glamour Plates, the armoire, the fitting room, Examine and the rest: what the plugin knows for that window, beside it. Fold one to a tab with its arrow."))
+        {
+            config.Companions = !config.Companions;
+            config.Save();
+        }
+        if (config.Companions)
+        {
+            var side = Math.Clamp(config.CompanionSide, 0, 2);
+            SetRow(c++, "Side", "Auto takes the side with room.", Kit.SegmentedWidth(SideChoices), S(40),
+                p =>
+                {
+                    var picked = Kit.Segmented("##side", p, SideChoices, side);
+                    if (picked != side)
+                    {
+                        config.CompanionSide = picked;
+                        config.Save();
+                    }
+                });
+            if (SwitchRow(c++, "##folded", "Start folded", "Just the tab, until you open it", config.CompanionStartFolded,
+                    "A window's panel you haven't opened or folded yourself starts as its tab on the window's edge."))
+            {
+                config.CompanionStartFolded = !config.CompanionStartFolded;
+                config.Save();
+            }
+        }
+        Kit.EndPanel();
+        if (config.Companions)
+        {
+            Kit.Gap(10);
+            Kit.BeginPanel("##set-companion-list", 0, 0, 0);
+            var j = 0;
+            foreach (var (key, name) in CompanionList)
+            {
+                var on = !config.CompanionsOff.Contains(key);
+                if (SwitchRow(j++, $"##comp-{key}", name, null, on))
+                {
+                    if (on) config.CompanionsOff.Add(key);
+                    else config.CompanionsOff.Remove(key);
+                    config.Save();
+                }
+            }
+            Kit.EndPanel();
+        }
+
+        Kit.Gap(20);
+        GroupLabel("In menus and tooltips");
+        Kit.BeginPanel("##set-menus", 0, 0, 0);
+        if (SwitchRow(0, "##tooltip", "Glamour lines under item tooltips", "Which looks use a piece, its plate, a copy in the dresser", config.TooltipLines,
+                "Under the game's tooltip of a piece of gear: which of your looks have it, the plates it's on, whether your dresser has a copy, and whether it's on your shopping list."))
+        {
+            config.TooltipLines = !config.TooltipLines;
+            config.Save();
+        }
+        if (SwitchRow(1, "##menu", "Glamour Studio in the right-click menu", "On gear in your bags, the armoury, retainers and chat links", config.ContextMenu,
+                "Right-click a piece: add it to one of your looks, try it on with a look that has it, see which looks use it, put it on your shopping list, or store it in the armoire while that's open."))
+        {
+            config.ContextMenu = !config.ContextMenu;
+            config.Save();
+        }
+        Kit.EndPanel();
+
+        Kit.Gap(20);
         GroupLabel("Glamour plates");
         Kit.BeginPanel("##set-plates", 0, 0, 0);
         var i = 0;
@@ -101,8 +170,10 @@ public sealed partial class MainWindow
             config.DyeFromBags = !config.DyeFromBags;
             config.Save();
         }
-        if (SwitchRow(i, "##open-editor", "Open with the plate editor", "The window opens when Glamour Plates does", config.OpenWithEditor,
-                "At a glamour dresser, opening Glamour Plates opens this window too, on Home: the plate open, and the look planned for it."))
+        if (SwitchRow(i, "##open-editor", "Open with the plate editor", PlatesCompanionOn ? "Off while the panel beside Glamour Plates is on" : "The window opens when Glamour Plates does",
+                config.OpenWithEditor && !PlatesCompanionOn,
+                "At a glamour dresser, opening Glamour Plates opens this window too, on Home: the plate open, and the look planned for it. The panel beside Glamour Plates does this instead while it's on.",
+                PlatesCompanionOn))
         {
             config.OpenWithEditor = !config.OpenWithEditor;
             config.Save();

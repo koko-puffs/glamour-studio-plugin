@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Dalamud.Configuration;
 
 namespace GlamourStudio;
@@ -29,6 +30,27 @@ public sealed class Configuration : IPluginConfiguration
 
     /// <summary>A line in chat when pieces from your shopping list are seen in your wardrobe (and come off it).</summary>
     public bool ChatNotes { get; set; } = true;
+
+    /// <summary>A small panel beside the game's glamour windows (the dresser, Glamour Plates and the rest), moving with the window.</summary>
+    public bool Companions { get; set; } = true;
+
+    /// <summary>Which side of the game window the panel takes: 0 the side with room, 1 right, 2 left.</summary>
+    public int CompanionSide { get; set; }
+
+    /// <summary>A window's panel starts as its tab, until it's opened.</summary>
+    public bool CompanionStartFolded { get; set; }
+
+    /// <summary>The panels turned off, by their keys ("dresser", "plates"…).</summary>
+    public HashSet<string> CompanionsOff { get; set; } = new();
+
+    /// <summary>Each window's panel folded or open, as you left it (by key: true folded).</summary>
+    public Dictionary<string, bool> CompanionFolded { get; set; } = new();
+
+    /// <summary>Lines under the game's item tooltips: which of your looks use the piece, its plate, a copy in the dresser.</summary>
+    public bool TooltipLines { get; set; } = true;
+
+    /// <summary>A Glamour Studio entry in the right-click menu on gear.</summary>
+    public bool ContextMenu { get; set; } = true;
 
     public void Save() => Services.PluginInterface.SavePluginConfig(this);
 }

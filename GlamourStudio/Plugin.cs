@@ -50,7 +50,7 @@ public sealed class Plugin : IDalamudPlugin
                 Header = RecordingHeader,
                 PluginState = () =>
                     $"linked {sync.Linked} (refused {sync.TokenRefused}), syncing {sync.Syncing}, last sync {(sync.LastSyncAt is { } at ? at.ToString("HH:mm:ss") : "never")}{(sync.SyncProblem != null ? $" problem \"{sync.SyncProblem}\"" : string.Empty)}, "
-                    + $"wardrobe v{wardrobe.Version} dresser live {wardrobe.DresserLive} armoire live {wardrobe.ArmoireLive}, shot {(shots.Capturing ? "capturing" : shots.Taken is { } t ? (t.Sending ? "sending" : t.Sent ? "sent" : "taken") : "none")}",
+                    + $"wardrobe v{wardrobe.Version} dresser live {wardrobe.DresserLive} armoire live {wardrobe.ArmoireLive}, shot {(shots.Capturing ? "capturing" : shots.Taken is { } t ? (t.Sending ? "sending" : t.Sent ? "sent" : "taken") : "none")}, {window?.CompanionState() ?? "no panel"}",
             };
             window = new MainWindow(config, data, wardrobe, sync, fonts, shots, recorder);
             // The site's calls, as SITE lines in a recording (any thread; no token, no body).
@@ -63,6 +63,9 @@ public sealed class Plugin : IDalamudPlugin
                               + "/gstudio record starts or stops a recording for a report; /gstudio mark <what you'll do> notes a step in it; /gstudio dump writes down the glamour windows' values; /gstudio save saves it as a file.",
             });
             Services.PluginInterface.UiBuilder.Draw += windows.Draw;
+            Services.PluginInterface.UiBuilder.Draw += window.DrawCompanions;
+            Services.PluginInterface.UiBuilder.Draw += window.DrawTooltipLines;
+            Services.ContextMenu.OnMenuOpened += window.OnContextMenu;
             Services.PluginInterface.UiBuilder.OpenMainUi += window.ShowMain;
             Services.PluginInterface.UiBuilder.OpenConfigUi += window.ShowSettings;
             Services.Framework.Update += OnUpdate;
@@ -153,7 +156,8 @@ public sealed class Plugin : IDalamudPlugin
         Step(() =>
         {
             var editor = PlateEditor.IsOpen;
-            if (editor && !editorWasOpen && config.OpenWithEditor && !window.IsOpen) window.ShowMain();
+            // (Not while the panel beside Glamour Plates is on: it's there instead.)
+            if (editor && !editorWasOpen && config.OpenWithEditor && !window.PlatesCompanionOn && !window.IsOpen) window.ShowMain();
             editorWasOpen = editor;
         }, "the plate editor");
     }
@@ -192,6 +196,9 @@ public sealed class Plugin : IDalamudPlugin
         Safely(() => Services.PluginInterface.UiBuilder.Draw -= windows.Draw);
         if (window != null)
         {
+            Safely(() => Services.PluginInterface.UiBuilder.Draw -= window.DrawCompanions);
+            Safely(() => Services.PluginInterface.UiBuilder.Draw -= window.DrawTooltipLines);
+            Safely(() => Services.ContextMenu.OnMenuOpened -= window.OnContextMenu);
             Safely(() => Services.PluginInterface.UiBuilder.OpenMainUi -= window.ShowMain);
             Safely(() => Services.PluginInterface.UiBuilder.OpenConfigUi -= window.ShowSettings);
         }

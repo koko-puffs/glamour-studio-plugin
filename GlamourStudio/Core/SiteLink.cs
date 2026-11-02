@@ -396,4 +396,43 @@ public static class SiteLink
             return new SiteReply<SavedLook>(new SavedLook(id, LookJson.Named(o["name"], name)));
         return Unreadable<SavedLook>();
     }
+
+    /// <summary>Puts pieces on your shopping list (40 at most; one there already stays as it was). The value: how many went on.</summary>
+    public static async Task<SiteReply<int>> WishAddAsync(HttpClient http, string token, IReadOnlyList<Piece> pieces, CancellationToken cancel = default)
+    {
+        if (!LooksRight(token)) return NoToken<int>();
+        var items = pieces.Where(p => p.Item != 0).GroupBy(p => LookJson.BaseId(p.Item)).Take(40)
+            .Select(g => (JsonNode)new JsonObject { ["item"] = g.Key, ["dyes"] = new JsonArray(g.First().Dye1, g.First().Dye2) })
+            .ToArray();
+        if (items.Length == 0) return new SiteReply<int>(0, "There's nothing to put on the list.", "items");
+        var args = new JsonObject { ["p_token"] = token, ["p_items"] = new JsonArray(items) };
+        var r = await CallAsync(http, "gs_plugin_wish_add", args, CallTimeout, cancel).ConfigureAwait(false);
+        if (!r.Ok)
+        {
+            // An older site, without the call yet.
+            if (r.Hint == null && r.Why?.Contains("gs_plugin_wish_add", StringComparison.Ordinal) == true)
+                return new SiteReply<int>(0, "The site can't take shopping list pieces from the plugin yet.");
+            return r.As<int>();
+        }
+        if (r.Value is JsonObject o && o["added"] is JsonValue v && v.TryGetValue<int>(out var n)) return new SiteReply<int>(n);
+        return Unreadable<int>();
+    }
+
+    /// <summary>Puts a piece on one of your own looks, in a slot (its piece there replaced). The value: the look's name.</summary>
+    public static async Task<SiteReply<string>> LookPutAsync(HttpClient http, string token, string lookId, Slot slot, Piece piece, CancellationToken cancel = default)
+    {
+        if (!LooksRight(token)) return NoToken<string>();
+        var args = new JsonObject
+        {
+            ["p_token"] = token,
+            ["p_look"] = lookId,
+            ["p_slot"] = Slots.Key(slot),
+            ["p_item"] = LookJson.BaseId(piece.Item),
+            ["p_dye1"] = piece.Dye1,
+            ["p_dye2"] = piece.Dye2,
+        };
+        var r = await CallAsync(http, "gs_plugin_look_put", args, CallTimeout, cancel).ConfigureAwait(false);
+        if (!r.Ok) return r.As<string>();
+        return r.Value is JsonObject o ? new SiteReply<string>(LookJson.Named(o["name"], "your look")) : Unreadable<string>();
+    }
 }

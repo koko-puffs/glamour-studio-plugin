@@ -209,6 +209,29 @@ alt on the same account if you have one.
 | I4 | In the plugin's Plates, pick a plate that isn't one of your looks → **Keep it as a look**. Then **Keep it as a look** under What you're wearing. Check both on the site. | |
 | I5 | Press **Send now** in the plugin's Closet. | |
 
+## J · The panels beside the game's windows (0.4.0)
+
+**You need:** linked to the site; an inn room (dresser and armoire); a summoning bell and a market
+board (a city); a few looks of yours, one planned for a plate. Turn nothing off in Settings.
+
+| Id | Do this | DUMP |
+| --- | --- | --- |
+| J1 | Open your glamour dresser. MARK what the panel beside it shows, and whether it sits right against the window. Drag the dresser around the screen, then to the right edge: MARK whether the panel follows and moves to the left side. | yes |
+| J2 | In the dresser's panel, press **Plate it** on a ready look. MARK whether Glamour Plates opened by itself. Pick a plate: MARK whether the panel offers that look. | yes, with Glamour Plates open |
+| J3 | Still in Glamour Plates: pick the plate you planned a look for. Press **Fill plate N** in the panel, then **Save** in the game. MARK what the panel shows after each. Then **Another look** → pick one, and pick a different plate: MARK whether the pick went away. | |
+| J4 | Fold the panel (its arrow at the top right), close and open Glamour Plates again: MARK whether it stays folded. Open it again from the tab. | |
+| J5 | Open your armoire. Press **Store** on one piece, then **Store all** if there are more. MARK what happened. | yes |
+| J6 | At the dresser, start storing an outfit set (right-click a set piece → store as outfit). MARK what the panel says. Cancel. | yes |
+| J7 | Open the Character window → Glamour Plate button. MARK the panel; press **Wear** on a plate. | |
+| J8 | Open the fitting room with **Try it on** from any panel or the plugin, then use the panel's arrows twice. MARK whether each look shows whole. Try a piece on by hand from your bags, then MARK what the panel says. | yes |
+| J9 | Examine someone. MARK the panel; press **Add … to the shopping list** if it shows. | yes |
+| J10 | Dye a piece of gear from your bags (right-click → Dye). MARK the panel: does it name the right piece? | yes, with the dye window open |
+| J11 | Hover gear in your bags so its tooltip shows: MARK the lines under it. Right-click it → **Glamour Studio**: try **Which looks use it** and **Add it to a look…** (then check the look on the site). | |
+| J12 | At a summoning bell, open a retainer's bags. MARK the panel. | yes |
+| J13 | At a market board, open it. In the panel press **Search** on a piece from your list. MARK whether it searched (or copied the name). Open a result, MARK whether the cheapest price shows. | yes, with results open |
+| J14 | Open any shop that sells gear (a vendor or an exchange). MARK what the panel says. | yes |
+| J15 | Hide the HUD (Scroll Lock) with the dresser open, then show it. MARK whether the panel hid with it. | |
+
 ## Sending them
 
 Send the saved files (one per section). Screenshots of anything odd help, and so does a note of

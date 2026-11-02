@@ -339,6 +339,48 @@ public sealed class SiteSync : IDisposable
         }, () => done(new SiteReply<SavedLook>(null, "It didn't go through (the link changed, or the call failed). Try again.")));
     }
 
+    /// <summary>
+    /// Puts pieces on your shopping list; <paramref name="done"/> hears how many went on (framework
+    /// thread). They're on the list here at once (the site's list is read again after).
+    /// </summary>
+    public void AddWishes(IReadOnlyList<Piece> pieces, Action<SiteReply<int>> done)
+    {
+        if (!Linked)
+        {
+            done(new SiteReply<int>(0, "Link your account first (Settings → Account).", "token"));
+            return;
+        }
+        Run(SiteLink.WishAddAsync(http, config.SiteToken, pieces, stopping.Token), r =>
+        {
+            TokenRefused |= r.TokenRefused;
+            if (r.Ok)
+            {
+                var wishes = new HashSet<uint>(Library.Wishes);
+                foreach (var p in pieces) wishes.Add(LookJson.BaseId(p.Item));
+                Library = Library with { Wishes = wishes };
+                Version++;
+                nextLibrary = DateTime.MinValue;
+            }
+            done(r);
+        }, () => done(new SiteReply<int>(0, "It didn't go through (the link changed, or the call failed). Try again.")));
+    }
+
+    /// <summary>Puts a piece on one of your looks; <paramref name="done"/> hears the look's name (framework thread). Your looks are read again after.</summary>
+    public void PutOnLook(string lookId, Slot slot, Piece piece, Action<SiteReply<string>> done)
+    {
+        if (!Linked)
+        {
+            done(new SiteReply<string>(null, "Link your account first (Settings → Account).", "token"));
+            return;
+        }
+        Run(SiteLink.LookPutAsync(http, config.SiteToken, lookId, slot, piece, stopping.Token), r =>
+        {
+            TokenRefused |= r.TokenRefused;
+            if (r.Ok) nextLibrary = DateTime.MinValue;
+            done(r);
+        }, () => done(new SiteReply<string>(null, "It didn't go through (the link changed, or the call failed). Try again.")));
+    }
+
     /// <param name="dropped">Told when the answer isn't taken (the link changed meanwhile, or the call threw), so nothing waits on it for good.</param>
     private void Run<T>(Task<T> call, Action<T> then, Action? dropped = null)
     {

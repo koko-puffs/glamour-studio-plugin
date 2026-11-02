@@ -550,7 +550,17 @@ public sealed partial class MainWindow
 
     private void DrawExamined()
     {
-        // (Read again twice a second at most: the window's open a while.)
+        if (ExaminedNow() is not { } e) return;
+        DrawExaminedCard(e);
+    }
+
+    /// <summary>
+    /// The outfit the Examine window shows (read again twice a second at most: the window's open a
+    /// while), or null. Someone new counts once two reads half a second apart agree (the window may
+    /// still hold the last one's gear for a moment while the new one's loads).
+    /// </summary>
+    private Examined? ExaminedNow()
+    {
         if (DateTime.UtcNow - examinedAt > TimeSpan.FromSeconds(0.5))
         {
             examinedAt = DateTime.UtcNow;
@@ -570,7 +580,11 @@ public sealed partial class MainWindow
                 examinedSeen = read;
             }
         }
-        if (examined is not { } e) return;
+        return examined;
+    }
+
+    private void DrawExaminedCard(Examined e)
+    {
         Kit.BeginPanel("##examine", 16, 16, 16);
         var at = Kit.At;
         var w = Kit.Width;

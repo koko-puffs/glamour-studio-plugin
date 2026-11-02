@@ -135,15 +135,7 @@ public sealed partial class MainWindow : Window
         Frame.ResetFrame();
         editorPlate = PlateEditor.SelectedPlate;
         editorChanges = editorPlate > 0 && PlateEditor.HasChanges;
-        // Another character: what was worked out for the last one goes.
-        if (wardrobe.Current?.Key != drawnFor)
-        {
-            drawnFor = wardrobe.Current?.Key;
-            lastFill = null;
-            cleanup = null;
-            examined = null;
-            pickedLook = null;
-        }
+        CheckCharacter();
         Theme.PushInside();
         try
         {
@@ -212,6 +204,25 @@ public sealed partial class MainWindow : Window
             Theme.Pop();
         }
 
+        RunLater();
+    }
+
+    /// <summary>Another character: what was worked out for the last one goes.</summary>
+    private void CheckCharacter()
+    {
+        if (wardrobe.Current?.Key == drawnFor) return;
+        drawnFor = wardrobe.Current?.Key;
+        lastFill = null;
+        cleanup = null;
+        examined = null;
+        pickedLook = null;
+        companionPick = null;
+        storeQueue.Clear();
+    }
+
+    /// <summary>What was pressed this frame, done now that the frame's drawing is finished.</summary>
+    private void RunLater()
+    {
         if (later.Count > 0)
         {
             var actions = later.ToArray();

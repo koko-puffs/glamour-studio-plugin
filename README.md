@@ -13,6 +13,11 @@ your glamour dresser, armoire, bags, armoury chest, saddlebags and retainers, yo
 what you're wearing. Looks you **Send to game** from the site wait in the plugin, and a plate (or your
 outfit, or someone you examine) can be kept as a new look on the site.
 
+Most of it is right beside the game's own windows: open the glamour dresser, Glamour Plates, the
+armoire, the fitting room, Examine, a retainer's bags or the market board, and a small panel sits
+next to it with what you need there (Fill plate, Plate it, Store, Wear, your shopping list).
+Gear's tooltips and right-click menu get a few Glamour Studio lines too.
+
 It also fills plates with the looks you **planned** for them on the site, lists the public looks you
 could **wear now**, ticks off your **shopping list**, helps you **make room** in your dresser, links
 plates to **gearsets**, and takes **shots** of a look for its page on the site.
@@ -31,9 +36,9 @@ plates to **gearsets**, and takes **shots** of a look for its page on the site.
    and paste it in the plugin's Settings → Account.
 2. Open your glamour dresser and armoire once (at an inn): the game only shows them then, and the
    plugin remembers them.
-3. At a glamour dresser, open **Glamour Plates** and pick a plate. The plugin opens with your looks:
-   pick one and press **Fill plate** (or **Put on plate**). Check it in the game's window, then press
-   **Save** there.
+3. At a glamour dresser, open **Glamour Plates** and pick a plate. The panel beside it shows the
+   look planned for it (or pick another) and **Fill plate**. Check it in the game's window, then
+   press **Save** there.
 
 Closet says what the plugin has read and when, and what to open so it can read the rest.
 

@@ -159,6 +159,49 @@ already stored), the most freed first; a stored set's own pieces don't count as 
 planned for this character, your plates or your outfit uses (shown only once your looks have been
 read). It only shows: the storing and taking out are the dresser's own.
 
+## Beside the game's windows
+
+A small Glamour Studio panel (300 wide, the plugin's own look) docked to the edge of the game window
+you have open, its top level with the window's, moving with it as you drag it; on the side with room
+(right by default; Settings can pin a side). As tall as what's in it, up to the window's height (360
+at least), then it scrolls. Its header: the GS mark, GLAMOUR STUDIO over what it's beside, the arrow
+that opens the plugin's window on the matching screen, and the fold button: folded, a slim tab stays
+on the window's edge with its one number (looks ready, the plate, your list's length), remembered
+for each window. It's gone with its window, while the HUD's hidden, in cutscenes and in group pose.
+One panel at a time: the game window that has the game's focus, else the likeliest (Glamour Plates,
+an outfit set, the dye window, the fitting room, the armoire, the dresser, Examine, a retainer, the
+market board, a shop, in that order). It never opens the main window by itself; with the Glamour
+Plates panel on, opening Glamour Plates doesn't open it either (Settings → Open with the plate editor
+is off meanwhile). `UI/Companions/Companion.cs` is the panel, `Panes.cs` what each shows,
+`Game/GameWindows.cs` the game windows' places and the few reads and presses only the panels need.
+
+| Beside | It shows |
+| --- | --- |
+| **Glamour Dresser** | Places used of 800 as a bar, free, how many pieces could leave without breaking a look (and Make room); the looks the dresser and armoire have everything for, each with **Plate it** (presses the dresser's own Glamour Plates button, `[u:5]` as the first recording saw, and offers the look on whichever plate you pick, until it fills one); your looks' pieces still in your bags, armoury chest, saddlebags or on retainers. |
+| **Glamour Plates** (at a dresser) | Follows the plate picked in the game: its planned look (or one picked here: **Another look** lists the ready ones, then the rest of yours; a pick made here is for its plate), green when it's on the plate, its name opening it in the plugin; slot by slot, each marked On it, Changes, From the armoire, In your bags…, Don't have or Emptied; the dyes from your bags, the pieces to dye, and the missing bottles to put on your list; **Fill plate N**; then "Press Save in the game", and once saved Wear plate N. No plan: the ready looks, each with Fill with it. |
+| **Glamour Plates** (from the Character window) | Every plate with something on it, by its look's name (or how many pieces), its linked gearsets' jobs, On for the one you wear, **Wear** for the rest; the plate picked in the game highlighted. |
+| **Armoire** | Your looks' pieces stored in it (plates take them from there); what in your bags and armoury chest it takes, each with **Store**, and **Store all** (one by one, 0.6 s apart); how many pieces in your dresser it would take (and which), each a place freed once moved. |
+| **Storing an outfit set** | The set's name; dresser places freed by storing it (its loose pieces, less the one place the set takes); your looks that use it and which of its pieces; each piece and where it is. |
+| **Fitting Room** | Your looks (all, or just the ready ones) to step through with the arrows, each put on in the fitting room (the panel stays while it reopens); where each piece is; the ones you don't have onto your shopping list; Wear it · plate N when the look's on a plate. What you tried on by hand: Keep it as a look. |
+| **Examine** | How many of their pieces you have (a ring), each piece and where yours is, the missing ones onto your list, Try it on, Keep it as a look (named "An outfit I saw": never their name). |
+| **Dye** | The piece being dyed (the first dyeable gear in the window's values, else the one piece its preview shows: not yet watched), your looks that have it and the dyes each wants, the bottles in your bags for them, the missing ones onto your list. |
+| **A retainer's bags** | Your looks' pieces on this retainer that aren't in your dresser or armoire; how much glamour on it no look uses, and what of it the armoire takes (and which); your other retainers, each with how many of your looks' pieces it has (or not read yet). |
+| **Market board** | Your shopping list: what the market board sells (each with the look it's for, the cheapest listing while its results are open, **Search**, which types it into the market board's search and searches: not yet watched, else it copies the name), and what it doesn't (untradable). |
+| **Shops** (`Shop`, `ShopExchangeItem`, `ShopExchangeCurrency`, `ShopExchangeCoin`, `InclusionShop`, `GrandCompanyExchange`, `FreeShop`, `SkyIslandExchange`) | What on your shopping list the shop sells, as far as its window's values name the items (best effort: a price or an icon that happens to equal an item's number would count too). |
+
+**Under item tooltips:** while the game's item tooltip (`ItemDetail`) shows a piece of gear, a small
+box under it (above, with no room below): which of your looks have it, the plates it's on, on your
+shopping list, and whether your dresser or armoire has it. Nothing when none of that's so.
+
+**Right-click menu:** on gear in your bags, the armoury chest, a retainer's, an item linked in chat
+(and the market board, recipes, shops), a **Glamour Studio** entry: Add it to a look… (your looks;
+the piece goes in its slot, a ring on the free hand, `gs_plugin_look_put`), Try it on with the first
+look that has it, Which looks use it (a line in chat), Put it on the shopping list (when it isn't
+yours), Store it in the armoire (from your bags, while the armoire's open).
+
+Recordings write down which panel shows, where, folded or not, a look picked for a plate, and the
+piece the dye window has (`PLUGIN … panel …`); and the market board's and shops' windows opening and closing, never their words (sellers' and retainers' names), as Examine's.
+
 ## Settings
 
 **General**
@@ -167,7 +210,13 @@ read). It only shows: the storing and taking out are the dresser's own.
 | --- | --- | --- |
 | Empty the slots a look leaves bare | on | A look with no earrings empties the plate's earrings, so the plate is the look exactly. Weapons are left alone unless the look has one (a plate's weapon is its job's). |
 | Dye pieces with the dyes in your bags | off | A piece whose copy is dyed otherwise than the look gets the look's dyes from bottles in your bags (the game spends them when the plate is saved). New, and not yet watched in the game: off, the plugin says which pieces to dye in the plate editor. |
-| Open with the plate editor | on | Opening Glamour Plates opens the window. |
+| Show Glamour Studio beside the game's windows | on | The panels beside the game's windows (above). |
+| Side | Auto | Which side of the game window a panel takes: the side with room, right or left. |
+| Start folded | off | A window's panel you haven't opened or folded yourself starts as its tab. |
+| Each window's panel | on | Glamour Dresser, Glamour Plates, Armoire, Storing outfit sets, Fitting Room, Examine, Dye, Plates from the Character window, Retainers' bags, Market board and shops: one by one. |
+| Glamour lines under item tooltips | on | The box under a piece's tooltip. |
+| Glamour Studio in the right-click menu | on | The right-click entry on gear. |
+| Open with the plate editor | on | Opening Glamour Plates opens the window (off, and greyed out, while the Glamour Plates panel is on). |
 | Keep it up to date by itself | on | Sends your closet as it changes (see [The site](#the-site)). |
 | Send my plates and outfit | on | Your plates and what you wear go along, with your character's name and world (only you see them). |
 | Say in chat when a wish comes true | on | A line in chat when pieces on your shopping list are seen in your wardrobe (they come off the list either way). |
@@ -353,6 +402,8 @@ runs them off the framework thread and takes the answers back to it.
 | `gs_plugin_save_look` | Keep it as a look (a plate, your outfit, someone examined) | a new private look of yours |
 | `gs_plugin_plans` | the window opens and with the looks, and when you change character (30 s at most) | that character's plate plans, each look whole |
 | `gs_plugin_wearable` | the window opens, every 10 min while it's open, after a sync that changed the closet | public looks you own every piece of, the most loved first |
+| `gs_plugin_wish_add` | a panel's "Add … to the shopping list", the right-click menu's | up to 40 pieces (item and dyes) onto your shopping list; a piece on it already stays |
+| `gs_plugin_look_put` | the right-click menu's Add it to a look | the piece into one slot of one of your own looks |
 | `gs-plugin-shot` (edge function) | Send it to the look | multipart: token, look, caption, the JPEG; the site checks the token, the look (public), the limits, and stores the shot |
 
 `gs_plugin_sync`'s answer has `wishes_got`: the items it took off your shopping list because this
@@ -372,6 +423,7 @@ you wear are kept per character (eight at most), and the site's Settings tab lis
 | `Core/` | Game-free, tested: slots and the game's orders (`Slots`), looks and their JSON (`Looks`), the wardrobe and what's sent (`Wardrobe`), the plan for a plate (`PlatePlan`), how ready a look is (`Readiness`), the site's calls (`SiteLink`), words (`Words`). |
 | `Game/` | The game: its sheets (`GameData`: items, dyes, armoire rows, outfit sets, jobs), reading your wardrobe (`WardrobeReader`), the plate editor, try-on and wearing a plate (`PlateEditor`), the armoire (`Armoire`), gearsets (`Gearsets`), the Examine window (`Examine`), the recorder (`Recorder`, `AtkText`). |
 | `Session/` | `SiteSync`: the site in the background. `Shots`: taking, making and sending a shot. |
+| `UI/Companions/` | The panels beside the game's windows (`Companion`: docking, folding, the header; `Panes`: what each shows; `ItemExtras`: the tooltip lines and the right-click menu). `Game/GameWindows` holds their game side. |
 | `UI/` | `MainWindow` (the header, the rail, the screens) and its screens (`Views/Home`, `LooksView`, `LookView`, `PlateView`, `ClosetView`, `CleanupView`, `Settings`, `Shared`); `Kit/` the controls, colours, fonts and icons (`Layout`: panes, the rail's items, tabs with counts, chips, the ring); `Model/` the kit's game-free parts (SVG paths). |
 | `GlamourStudio.Tests/` | xUnit over `Core/` and `UI/Model/`: builds and runs without the game or Dalamud. |
 
@@ -389,6 +441,22 @@ this one too, within a few minutes of a release.
 The workflows need Settings → Actions → General → Workflow permissions → Read and write.
 
 ## Release notes
+
+### 0.4.0
+
+- **Beside the game's windows:** a small Glamour Studio panel docked to the glamour dresser, Glamour
+  Plates (at a dresser, and from the Character window), the armoire, storing an outfit set, the
+  fitting room, Examine, the dye window, a retainer's bags, the market board and shops, moving with
+  the window. Each shows what the plugin knows for that window and does what it can there (Fill
+  plate N, Plate it, Store, Wear, step through your looks in the fitting room, search the market
+  board for your shopping list…). Fold one to a tab; turn each on or off in Settings. The main
+  window stays closed (it no longer opens with Glamour Plates while that panel's on).
+- Lines under item tooltips: which of your looks have a piece, its plates, your shopping list.
+- A Glamour Studio entry in the right-click menu on gear: add it to a look, try it on with a look,
+  which looks use it, put it on your shopping list, store it in the armoire.
+- Pieces go on your shopping list from the panels (Examine, the fitting room, dyes).
+- Not yet watched in the game: the dresser's Glamour Plates button pressed from the panel, the
+  piece the dye window has, typing into the market board's search, what a shop sells.
 
 ### 0.3.3
 

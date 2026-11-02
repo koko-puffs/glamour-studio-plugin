@@ -420,11 +420,13 @@ public sealed partial class MainWindow
         Kit.EndPanel();
     }
 
-    private void TryOn(IReadOnlyDictionary<Slot, Piece> pieces)
+    /// <param name="say">Where to say how it went (a toast, else).</param>
+    private void TryOn(IReadOnlyDictionary<Slot, Piece> pieces, Action<string>? say = null)
     {
         recorder.Note($"TRY ON pressed: {pieces.Values.Count(p => p.Item != 0)} pieces");
-        Notify("Opening the fitting room");
-        FittingRoom.Start(pieces, (shown, wanted) => Notify(
+        say ??= Notify;
+        if (say == Notify) Notify("Opening the fitting room");
+        FittingRoom.Start(pieces, (shown, wanted) => say(
             shown == 0 ? "The fitting room didn't open"
             : shown == wanted ? "In the fitting room"
             : $"In the fitting room: {shown} of {wanted} pieces (the game wouldn't show the rest)"));

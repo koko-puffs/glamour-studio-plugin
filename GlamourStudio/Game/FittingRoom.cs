@@ -255,6 +255,30 @@ public static unsafe class FittingRoom
         return false;
     }
 
+    /// <summary>What the fitting room's list holds now, by slot (empty when it isn't open).</summary>
+    public static Dictionary<Slot, Piece> Shown(GameData data)
+    {
+        var pieces = new Dictionary<Slot, Piece>();
+        if (!WindowShown) return pieces;
+        var agent = AgentTryon.Instance();
+        if (agent == null) return pieces;
+        foreach (ref var it in agent->TryOnItems)
+        {
+            if (it.Id == 0) continue;
+            var id = LookJson.BaseId(it.Id);
+            var info = data.Item(id);
+            if (info is not { IsGear: true }) continue;
+            var slot = info.Slots[0];
+            // A second ring goes on the left hand.
+            if (slot == Slot.RingR && pieces.ContainsKey(Slot.RingR)) slot = Slot.RingL;
+            pieces.TryAdd(slot, new Piece(id, it.Stain0Id, it.Stain1Id));
+        }
+        return pieces;
+    }
+
+    /// <summary>The fitting room's window when it's shown (for the panel beside it).</summary>
+    public static bool IsShown => WindowShown;
+
     /// <summary>Whether the fitting room's list holds this piece.</summary>
     private static bool Listed(Want w)
     {

@@ -54,7 +54,7 @@ public sealed unsafe class Recorder : IDisposable
         "MiragePrismExecute", "MiragePrismRemove", "MiragePrismPrismBoxCrystallize", "Cabinet", "CabinetWithdraw", "CharacterInspect", "GearSetList",
         "Character", "Tryon", "ColorantColoring", "ColorantEquipment", "ContextMenu", "ContextIconMenu", "SelectYesno", "SelectString",
         "SelectIconString", "InventoryBuddy", "InventoryBuddy2", "InventoryRetainer", "InventoryRetainerLarge", "RetainerList", "ArmouryBoard",
-        "Inventory", "InventoryLarge", "InventoryExpansion",
+        "Inventory", "InventoryLarge", "InventoryExpansion", "ItemSearch", "ItemSearchResult", "Shop", "ShopExchangeItem", "ShopExchangeCurrency", "InclusionShop",
     };
 
     private static readonly HashSet<string> Glamour = new(GlamourWindows, StringComparer.Ordinal);
@@ -104,7 +104,11 @@ public sealed unsafe class Recorder : IDisposable
     private static HashSet<nint>? inCall;
 
     /// <summary>Windows that show other people (their names): opened and closed, but not their words or values.</summary>
-    private static readonly HashSet<string> Private = new(StringComparer.Ordinal) { "CharacterInspect" };
+    private static readonly HashSet<string> Private = new(StringComparer.Ordinal)
+    {
+        // Others' names: who you examine, the market board's sellers and retainers, a shop's.
+        "CharacterInspect", "ItemSearch", "ItemSearchResult", "Shop", "ShopExchangeItem", "ShopExchangeCurrency", "InclusionShop",
+    };
 
     /// <summary>The lines kept when old ones go: the header and the start's state.</summary>
     private int headerCount = HeaderLines;
