@@ -29,7 +29,7 @@ public sealed class GameData
     private Dictionary<uint, uint>? cabinetByItem;
     private Dictionary<uint, uint>? itemByCabinet;
     private Dictionary<uint, (int Column, uint Item)[]>? sets;
-    private Dictionary<uint, byte>? dyeByItem;
+    private Dictionary<uint, List<byte>>? stainsByItem;
 
     /// <summary>An item, or null when the game has none by that id. Its normal-quality id is looked up.</summary>
     public ItemInfo? Item(uint id)
@@ -91,19 +91,26 @@ public sealed class GameData
 
     public string DyeName(byte id) => id == 0 ? "No dye" : Dye(id)?.Name ?? $"Dye {id}";
 
-    /// <summary>The dye an item is (a bottle of dye in your bags), or 0.</summary>
-    public byte DyeOfItem(uint item)
+    /// <summary>
+    /// The dyes an item can make: a colour's own bottle one, a Spectrum dye (the general-purpose
+    /// bottles the game now uses, seen in a recording) many. Empty when it isn't a dye.
+    /// </summary>
+    public IReadOnlyList<byte> StainsOfItem(uint item)
     {
-        if (dyeByItem == null)
+        if (stainsByItem == null)
         {
-            dyeByItem = new Dictionary<uint, byte>();
+            stainsByItem = new Dictionary<uint, List<byte>>();
             try
             {
                 foreach (var row in Services.Data.GetExcelSheet<Stain>())
                 {
                     if (row.RowId is 0 or > 255) continue;
                     foreach (var r in row.Item)
-                        if (r.RowId != 0) dyeByItem.TryAdd(r.RowId, (byte)row.RowId);
+                    {
+                        if (r.RowId == 0) continue;
+                        if (!stainsByItem.TryGetValue(r.RowId, out var list)) stainsByItem[r.RowId] = list = new List<byte>();
+                        if (!list.Contains((byte)row.RowId)) list.Add((byte)row.RowId);
+                    }
                 }
             }
             catch (Exception ex)
@@ -111,8 +118,11 @@ public sealed class GameData
                 Services.Log.Warning(ex, "Glamour Studio couldn't read the dyes");
             }
         }
-        return dyeByItem.TryGetValue(LookJson.BaseId(item), out var d) ? d : (byte)0;
+        return stainsByItem.TryGetValue(LookJson.BaseId(item), out var l) ? l : Array.Empty<byte>();
     }
+
+    /// <summary>Whether a bottle (an item) can make a dye.</summary>
+    public bool Makes(uint item, byte stain) => stain != 0 && StainsOfItem(item).Contains(stain);
 
     /// <summary>The armoire's row that stores an item, or null when the armoire doesn't take it.</summary>
     public uint? CabinetOf(uint item)

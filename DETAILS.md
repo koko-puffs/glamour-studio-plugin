@@ -134,7 +134,7 @@ All twenty plates at once, five across: each its number, its pieces' icons, the 
 many pieces), a rose dot when one's planned for it on the site, and the jobs of the gearsets linked
 to it; an empty one dashed. Under them when the game last had them, and **What you're wearing**
 (Try it on, Keep it as a look). The plate picked, in the pane beside: what's on it, its plan (a
-link to the look, On it or Not on it yet), **Wear it** (`/glamourplate N`), Try it on, Keep it as a
+link to the look, On it or Not on it yet), **Wear it** (`/gearset change <your gearset> N`), Try it on, Keep it as a
 look (a new private look named "Plate 3", then Open it on the site), **Gearsets** (each linked one
 with its job, number and name, Change to it (`EquipGearset`: the plate comes with it) and × to
 unlink; Link to a gearset, a menu of the others with the plate each has now: `LinkGlamourPlate`)
@@ -279,17 +279,41 @@ and the soul crystal at 13; an outfit set lists main hand … bracelets and one 
 (`Data->SelectedItemIndex`) and given its copy with `SetSelectedItemData` (the dresser
 (`PrismBox`, its place) or the armoire (`Cabinet`, its row), the copy's item id and dyes), or
 emptied with `ClearItemData`. Dyes from your bags go on with `SetSelectedItemStains` (the bottles'
-inventory items, as dragging a dye onto the slot does). The slot picked before is put back and the
-plate marked changed (`HasChanges`), so the game asks before you leave it unsaved. The dresser and
-armoire are read again the moment before. Nothing is saved: the game's Save does that.
+inventory items, as dragging a dye onto the slot does). The slot picked before is put back. The
+dresser and armoire are read again the moment before. Nothing is saved: the game's Save does that.
+
+"Not saved yet" is worked out by the plugin: the plate's slots against the plate as the game keeps
+it saved (`MirageManager.GlamourPlates`), and any dye waiting (`StainState`). The agent's own
+`HasChanges` isn't used or written: in a recording it stayed false through a removed piece and a
+dye while the game asked to discard them.
+
+The plate editor counts as open only at a glamour dresser (`Data->OpenMode` 0). The same window
+opened from the Character window's Glamour Plate button (`OpenMode` 1) only shows and applies
+plates, so the plugin neither fills it nor opens with it.
+
+Dyes from your bags: the game now dyes with general **Spectrum** bottles (Standard Spectrum Dye,
+Wide Spectrum #2…), each making many colours, as well as a colour's own bottle (seen in a
+recording). The plugin counts, for each colour, the bottles that can make it (`GameData.StainsOfItem`,
+from the Stain sheet's items), and uses a colour's own bottle first, a Spectrum one after.
 
 Not yet watched in the game (written from FFXIVClientStructs' signatures and what Glamaholic
 found): a piece of an outfit set given as its set's place and its own item id, and the dyes from
 your bags (off by default). Tell us how they go.
 
 **Try it on** is `AgentTryon.TryOn` for each piece with its dyes; **Wear it** sends
-`/glamourplate N` (`UIModule.ProcessChatBoxEntry`), which the game allows in a sanctuary, for a
-job whose gear the plate fits.
+`/gearset change <the gearset you're on> N` (`UIModule.ProcessChatBoxEntry`): the game has no
+command for a plate alone (`/glamourplate` isn't one), and allows this in a sanctuary, for a job
+whose gear the plate fits. Not yet watched in the game.
+
+### What recordings showed (2 November 2026)
+
+The plate window, at a glamour dresser: opened from the dresser's callback `[5]`; a plate picked
+with `[17, plate−1]`; a slot's menu with `[16, slot]` ("Remove Item Image from Plate", "Dye", "Remove
+Dye" / "Restore Item"); Save `[14, 0]`, which with dyes opens `MiragePrismMiragePlateConfirm` (the
+bottles to be used), answered `[0]`, then "Glamour plate N saved." (log message 4382); closing
+`[18, 0]`, which with changes asks "Discard all changes?". From the Character window: `[15, plate−1]`
+applies a plate ("Glamours projected from plate N.", 4364; 4378 when it can't fully). A dye picked in
+the dye window waits on the slot as `StainState` 1 with its colour and bottle until saved.
 
 ## The site
 

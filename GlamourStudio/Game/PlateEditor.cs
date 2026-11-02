@@ -41,7 +41,11 @@ public static unsafe class PlateEditor
         return agent != null && agent->Data != null ? agent : null;
     }
 
-    /// <summary>Whether the plate editor is open and ready.</summary>
+    /// <summary>
+    /// Whether the plate editor is open at a glamour dresser, where plates can be changed. The same
+    /// window opened from the Character window (its Glamour Plate button) only shows and applies
+    /// plates: the agent's OpenMode is 0 at a dresser and 1 from there (seen in a recording).
+    /// </summary>
     public static bool IsOpen
     {
         get
@@ -49,7 +53,8 @@ public static unsafe class PlateEditor
             try
             {
                 var a = (AtkUnitBase*)Services.GameGui.GetAddonByName(Window).Address;
-                return a != null && a->IsVisible && Agent() != null;
+                var agent = Agent();
+                return a != null && a->IsVisible && agent != null && agent->Data->OpenMode == 0;
             }
             catch
             {
@@ -84,8 +89,31 @@ public static unsafe class PlateEditor
         return pieces;
     }
 
-    /// <summary>Whether the open plate has changes not yet saved.</summary>
-    public static bool HasChanges => IsOpen && Agent()->Data->HasChanges;
+    /// <summary>
+    /// Whether the open plate has changes not yet saved: its slots against the plate as the game
+    /// keeps it saved, and any dye waiting to be applied. (The agent's own HasChanges stayed false
+    /// through a removed piece and a dye in a recording, while the game asked to discard them.)
+    /// </summary>
+    public static bool HasChanges
+    {
+        get
+        {
+            if (!IsOpen) return false;
+            var data = Agent()->Data;
+            var plate = (int)data->SelectedMiragePlateIndex;
+            var mm = MirageManager.Instance();
+            if (mm == null || !mm->GlamourPlatesLoaded || plate < 0 || plate >= mm->GlamourPlates.Length) return false;
+            var saved = mm->GlamourPlates[plate];
+            var items = data->CurrentItems;
+            for (var i = 0; i < items.Length && i < saved.ItemIds.Length; i++)
+            {
+                ref var it = ref items[i];
+                if (it.StainState != 0) return true;
+                if (it.ItemId != saved.ItemIds[i] || it.StainIds[0] != saved.Stain0Ids[i] || it.StainIds[1] != saved.Stain1Ids[i]) return true;
+            }
+            return false;
+        }
+    }
 
     /// <summary>
     /// Fills the open plate as planned. <paramref name="dyeItems"/> finds a bottle of a dye in your bags
@@ -137,8 +165,8 @@ public static unsafe class PlateEditor
         }
         finally
         {
+            // (The agent's HasChanges isn't written: in a recording it isn't the flag the game goes by.)
             data->SelectedItemIndex = keep;
-            if (set + cleared > 0) data->HasChanges = true;
         }
         return new FillResult(plate, set, cleared, dyed, problems);
     }
@@ -223,16 +251,24 @@ public static unsafe class PlateEditor
         return shown;
     }
 
-    /// <summary>Wears a glamour plate now, as <c>/glamourplate</c> does (in a sanctuary, on a job whose gear it fits).</summary>
+    /// <summary>
+    /// Wears a glamour plate now, with the gearset you're on, as <c>/gearset change &lt;set&gt; &lt;plate&gt;</c>
+    /// does (the game has no command for a plate alone: <c>/glamourplate</c> isn't one). In a
+    /// sanctuary, on a job whose gear the plate fits. False when you're on no gearset.
+    /// </summary>
     public static bool Wear(int plate)
     {
         if (plate is < 1 or > Plates.Count) return false;
         var ui = UIModule.Instance();
-        if (ui == null) return false;
-        var text = Utf8String.FromString($"/glamourplate {plate}");
+        var gs = FFXIVClientStructs.FFXIV.Client.UI.Misc.RaptureGearsetModule.Instance();
+        if (ui == null || gs == null) return false;
+        var current = gs->CurrentGearsetIndex;
+        if (current < 0 || !gs->IsValidGearset(current)) return false;
+        var command = $"/gearset change {current + 1} {plate}";
+        var text = Utf8String.FromString(command);
         try
         {
-            Recorder.Log($"WEAR /glamourplate {plate}");
+            Recorder.Log($"WEAR {command}");
             ui->ProcessChatBoxEntry(text, nint.Zero, false);
             return true;
         }

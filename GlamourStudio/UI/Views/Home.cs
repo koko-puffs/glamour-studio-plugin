@@ -102,10 +102,10 @@ public sealed partial class MainWindow
             buttons.Add(p =>
             {
                 if (Kit.Button("##hero-wear", p, wear, Btn.Primary, BtnSize.Lg, Icon.Shirt, 0, editorChanges,
-                        editorChanges ? "Press Save in the game's window first" : "Puts the plate on what you wear now (in a city or an inn, on a job its gear fits)"))
+                        editorChanges ? "Press Save in the game's window first" : "Puts the plate on your current gearset, as /gearset change does (in a city or an inn, on a job its gear fits)"))
                     Later(() =>
                     {
-                        if (!PlateEditor.Wear(plate)) Notify("Couldn't ask the game to wear it");
+                        if (!PlateEditor.Wear(plate)) Notify("You're on no gearset: change to one first");
                     });
             });
             const string again = "Fill it again";

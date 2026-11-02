@@ -408,10 +408,10 @@ public sealed partial class MainWindow
         var saved = !editorChanges;
         var wear = $"Wear plate {result.Plate}";
         if (Kit.Button("##wear", row, wear, Btn.Glass, BtnSize.Sm, Icon.Shirt, 0, !saved,
-                saved ? "Puts the plate on what you wear now (in a city or an inn, on a job its gear fits)" : "Save the plate in the game first"))
+                saved ? "Puts the plate on your current gearset, as /gearset change does (in a city or an inn, on a job its gear fits)" : "Save the plate in the game first"))
             Later(() =>
             {
-                if (!PlateEditor.Wear(result.Plate)) Notify("Couldn't ask the game to wear it");
+                if (!PlateEditor.Wear(result.Plate)) Notify("You're on no gearset: change to one first");
             });
         var x2 = row.X + Kit.ButtonWidth(wear, BtnSize.Sm, Icon.Shirt) + S(8);
         if (Kit.Button("##again", new Vector2(x2, row.Y), "Fill it again", Btn.Quiet, BtnSize.Sm, Icon.Refresh))

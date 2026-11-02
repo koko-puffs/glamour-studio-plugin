@@ -266,12 +266,12 @@ public sealed partial class MainWindow
         const string wearLabel = "Wear it";
         var wearW = Kit.ButtonWidth(wearLabel, BtnSize.Sm, Icon.Shirt, Btn.Primary);
         if (Kit.Button("##wear-plate", wrap.Next(wearW, Kit.ButtonHeight(BtnSize.Sm)), wearLabel, Btn.Primary, BtnSize.Sm, Icon.Shirt, 0, pieces.Count == 0,
-                "Puts the plate on what you wear now (in a city or an inn, on a job its gear fits)"))
+                "Puts the plate on your current gearset, as /gearset change does (in a city or an inn, on a job its gear fits)"))
             Later(() =>
             {
                 var ok = PlateEditor.Wear(plate);
                 recorder.Note($"WEAR plate {plate}: {(ok ? "asked the game" : "couldn't ask")}");
-                if (!ok) Notify("Couldn't ask the game to wear it");
+                if (!ok) Notify("You're on no gearset: change to one first");
             });
         const string tryLabel = "Try it on";
         var tryW = Kit.ButtonWidth(tryLabel, BtnSize.Sm, Icon.Eye);

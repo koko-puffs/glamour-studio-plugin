@@ -646,7 +646,8 @@ public sealed unsafe class Recorder : IDisposable
     {
         var mgr = InventoryManager.Instance();
         if (mgr == null) return "no inventory";
-        var counts = new SortedDictionary<byte, int>();
+        // By bottle: a Spectrum dye makes many colours, a colour's own bottle one.
+        var counts = new SortedDictionary<uint, int>();
         foreach (var t in BagGroups[0].Types)
         {
             var c = mgr->GetInventoryContainer(t);
@@ -655,11 +656,15 @@ public sealed unsafe class Recorder : IDisposable
             {
                 var it = c->GetInventorySlot(i);
                 if (it == null || it->IsEmpty()) continue;
-                var stain = data.DyeOfItem(it->GetBaseItemId());
-                if (stain != 0) counts[stain] = counts.GetValueOrDefault(stain) + it->Quantity;
+                var id = it->GetBaseItemId();
+                if (data.StainsOfItem(id).Count > 0) counts[id] = counts.GetValueOrDefault(id) + it->Quantity;
             }
         }
-        return counts.Count == 0 ? "none in your bags" : string.Join(", ", counts.Select(kv => $"{kv.Key} {data.DyeName(kv.Key)} ×{kv.Value}"));
+        return counts.Count == 0 ? "none in your bags" : string.Join(", ", counts.Select(kv =>
+        {
+            var makes = data.StainsOfItem(kv.Key);
+            return $"{kv.Key} {data.ItemName(kv.Key)} ×{kv.Value} ({(makes.Count == 1 ? data.DyeName(makes[0]) : $"makes {makes.Count} colours")})";
+        }));
     }
 
     /// <summary>The dresser's window: its tab and page, the piece right-clicked, search and filters, what it's doing.</summary>

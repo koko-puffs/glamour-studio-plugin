@@ -275,8 +275,9 @@ public sealed unsafe class WardrobeReader
             {
                 var item = c->GetInventorySlot(i);
                 if (item == null || item->IsEmpty()) continue;
-                var dye = data.DyeOfItem(item->GetBaseItemId());
-                if (dye != 0) dyes[dye] = dyes.GetValueOrDefault(dye) + (int)item->GetQuantity();
+                // A Spectrum bottle counts for every colour it makes (so a count is "bottles that could make it").
+                foreach (var dye in data.StainsOfItem(item->GetBaseItemId()))
+                    dyes[dye] = dyes.GetValueOrDefault(dye) + (int)item->GetQuantity();
             }
         }
         return dyes;
@@ -288,6 +289,8 @@ public sealed unsafe class WardrobeReader
         if (stain == 0) return null;
         var mgr = InventoryManager.Instance();
         if (mgr == null) return null;
+        // The colour's own bottle first; a Spectrum bottle (it makes many) only when there's none.
+        (InventoryType, int)? general = null;
         foreach (var t in Bags)
         {
             var c = mgr->GetInventoryContainer(t);
@@ -296,10 +299,13 @@ public sealed unsafe class WardrobeReader
             {
                 var item = c->GetInventorySlot(i);
                 if (item == null || item->IsEmpty()) continue;
-                if (data.DyeOfItem(item->GetBaseItemId()) == stain) return (t, i);
+                var makes = data.StainsOfItem(item->GetBaseItemId());
+                if (!makes.Contains(stain)) continue;
+                if (makes.Count == 1) return (t, i);
+                general ??= (t, i);
             }
         }
-        return null;
+        return general;
     }
 
     /// <summary>A retainer's bags while its inventory window is open (the game has them only then).</summary>
