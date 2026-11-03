@@ -176,7 +176,7 @@ by: Tradewinds' body to feet were 0 to 3 in a recording; 0.6.1 sent the sheet's 
 and the game took nothing), a glamour prism a piece, as storing by hand spends. The set's pieces
 already in your bags go in with it. A restore the game refuses is asked again three times, 1.5,
 3 and 4.5 s later (a recording saw the fifth piece refused half a second after the fourth, with
-room in the bags); pieces go 0.9 s apart. Until it has stored a set once here, a run does one set
+room in the bags); pieces go 0.9 s apart, sets 2 s apart. Until it has stored a set once here, a run does one set
 (Try it on one set), so you can check it before it does them all. Before a set's first piece leaves the dresser, every piece is found again, your bags are
 checked for room and a Unique piece you hold is left; each restore is waited for until the dresser
 has one copy fewer and a new bag place holds it, the store until those places are empty, and a
@@ -546,6 +546,15 @@ this one too, within a few minutes of a release.
 The workflows need Settings → Actions → General → Workflow permissions → Read and write.
 
 ## Release notes
+
+### 0.6.3
+
+From Make room for me's first full run (it works: sets stored, a prism a piece):
+
+- Two seconds between sets: a set's first piece asked for a second after the last set was stored
+  was refused every time (then taken on the second ask).
+- The dresser's panel says the free bag places it needs, as Make room does.
+- Try it on one set was for the first run only: once a set's been stored, the button does them all.
 
 ### 0.6.2
 

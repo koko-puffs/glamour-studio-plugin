@@ -219,7 +219,9 @@ public static unsafe class OutfitStorer
                     }
                     job = null;
                     phase = Phase.Between;
-                    deadline = now + TimeSpan.FromSeconds(1);
+                    // (A set's first piece asked for a second after the last set was stored was
+                    // refused every time in a recording, and taken 1.5 s later: two seconds between sets.)
+                    deadline = now + TimeSpan.FromSeconds(2);
                     break;
                 }
                 if (now > deadline)

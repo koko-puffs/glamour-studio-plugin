@@ -224,6 +224,8 @@ board (a city); a few looks of yours, one planned for a plate. Turn nothing off 
 
 ## K · Make room for me (0.6.2)
 
+**Done (0.6.2):** K1 to K3 (one set tried, then the rest started).
+
 **You need:** a glamour dresser with an outfit set's pieces loose in it (undyed: the plugin leaves
 dyed ones), glamour prisms (one a piece), and free bag places (as many as the biggest set's loose
 pieces). Start the recording (`/gstudio record`) before K1.

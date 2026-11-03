@@ -261,7 +261,7 @@ public sealed partial class MainWindow
         if (plan.Jobs.Count > 0)
         {
             var blocked = AutoRoomBlocked(plan, have);
-            PaneNote(blocked ?? $"{Words.Count(plan.Jobs.Count, "set")} could gather {Words.Count(plan.Pieces, "loose piece")}: frees {Words.Count(plan.Frees, "place")}, for {Words.Count(plan.Pieces, "glamour prism")} (you have {have.Prisms}).",
+            PaneNote(blocked ?? $"{Words.Count(plan.Jobs.Count, "set")} could gather {Words.Count(plan.Pieces, "loose piece")}: frees {Words.Count(plan.Frees, "place")}, for {Words.Count(plan.Pieces, "glamour prism")} (you have {have.Prisms}). Needs {Words.Count(plan.MostAtOnce, "free bag place")} at a time (you have {have.FreeBag}).",
                 blocked != null ? Palette.RoseText : null);
             Kit.Gap(6);
             PaneArmedButton("##c-auto-room", config.OutfitStoreWorked ? $"Store {Words.Count(plan.Jobs.Count, "set")} for me" : "Try it on one set",
