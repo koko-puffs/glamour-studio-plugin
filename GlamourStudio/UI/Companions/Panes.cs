@@ -96,7 +96,7 @@ public sealed partial class MainWindow
                 });
             }
         }
-        if (!companionMore && ready.Count > 4) MoreLink(ready.Count - 4);
+        if (!companionMore && ready.Count > 4) MoreLink("##c-more-ready", ready.Count - 4);
         Kit.Gap(16);
 
         var bring = BringToDresser();
@@ -106,17 +106,21 @@ public sealed partial class MainWindow
             PaneNote("Every piece of your looks you have is in the dresser or armoire.");
             return;
         }
-        foreach (var (item, where, look) in bring.Take(6))
-            PieceRow($"##c-bring-{item}", item, null, null, $"for {look}", Places.Word(where), ChipKind.Plain);
-        if (bring.Count > 6) PaneNote($"and {bring.Count - 6} more");
+        foreach (var (item, _, look) in companionMore ? bring : bring.Take(6))
+        {
+            var (chip, kind) = WhereChipOf(item);
+            PieceRow($"##c-bring-{item}", item, null, null, $"for {look}", chip, kind);
+        }
+        if (!companionMore && bring.Count > 6) MoreLink("##c-more-bring", bring.Count - 6);
         Kit.Gap(6);
         PaneNote("Put them in the dresser from your bags and they count as ready above.");
     }
 
-    private void MoreLink(int more)
+    /// <summary>"and N more" under a list cut short: pressed, the panel's lists show in full.</summary>
+    private void MoreLink(string id, int more)
     {
         var at = Kit.At;
-        if (Kit.Link("##c-more", at, $"and {more} more", 12)) Later(() => companionMore = true);
+        if (Kit.Link(id, at, $"and {more} more", 12)) Later(() => companionMore = true);
         Kit.Reserve(at, Kit.Width, Txt.Natural(Face.Sans, 12) + S(4));
     }
 
@@ -196,7 +200,7 @@ public sealed partial class MainWindow
                     StepKind.Set when step.Source == PlateSource.Armoire => ("From the armoire", ChipKind.Plain),
                     StepKind.Set => ("Changes", ChipKind.Rose),
                     StepKind.Clear => ("Emptied", ChipKind.Plain),
-                    StepKind.Missing when step.Elsewhere is { } e => ($"In {Places.Word(e).ToLowerInvariant()}", ChipKind.Plain),
+                    StepKind.Missing when step.Elsewhere != null => (WhereChipOf(step.Want!.Value.Item).Text, ChipKind.Plain),
                     StepKind.Missing => ("Don't have", ChipKind.Rose),
                     _ => ("Kept", ChipKind.Plain),
                 };
@@ -286,13 +290,13 @@ public sealed partial class MainWindow
 
     private void PaneNoPlan(int plate)
     {
-        PaneNote($"No plan for plate {plate}. Fill it with one of the looks the dresser has everything for:");
-        Kit.Gap(8);
         if (!Linked)
         {
-            PaneNote("Link your account (Settings → Account) to fill plates with your looks.");
+            PaneNote($"No plan for plate {plate}. Link your account (Settings → Account) to fill plates with your looks.");
             return;
         }
+        PaneNote($"No plan for plate {plate}. Fill it with one of the looks the dresser has everything for:");
+        Kit.Gap(8);
         var ready = ReadyLooks(plate, null);
         if (ready.Count == 0) PaneNote("None is ready yet: their pieces aren't all in the dresser or armoire.");
         foreach (var look in ready.Take(5))
@@ -436,12 +440,12 @@ public sealed partial class MainWindow
             foreach (var p in l.Pieces.Values)
                 lookItems.TryAdd(LookJson.BaseId(p.Item), l.Name);
         var inArmoire = wardrobe.ArmoireNow.Keys.Where(lookItems.ContainsKey).ToList();
-        PaneHeading("Your looks' pieces in here", inArmoire.Count.ToString(En));
-        if (!Linked) PaneNote("Link your account to see which of your looks' pieces are here.");
+        PaneHeading("Your looks' pieces in here", Words.Count(inArmoire.Count, "piece"));
+        if (!Linked) PaneNote("Link your account (Settings → Account) to see which of your looks' pieces are here.");
         else if (inArmoire.Count == 0) PaneNote("None of your looks' pieces is in the armoire.");
         foreach (var item in (companionMore ? inArmoire : inArmoire.Take(4)))
             PieceRow($"##c-arm-{item}", item, null, null, lookItems[item], null, ChipKind.Plain);
-        if (!companionMore && inArmoire.Count > 4) MoreLink(inArmoire.Count - 4);
+        if (!companionMore && inArmoire.Count > 4) MoreLink("##c-more-arm", inArmoire.Count - 4);
         if (inArmoire.Count > 0) PaneNote("Plates take these straight from the armoire: no need to move them.");
         Kit.Gap(16);
 
@@ -452,10 +456,11 @@ public sealed partial class MainWindow
             .Where(x => x.Row is { } r && !wardrobe.ArmoireNow.ContainsKey(x.Item) && !Armoire.IsWorn(x.Item))
             .Select(x => (x.Item, Row: x.Row!.Value))
             .ToList();
-        PaneHeading("The armoire takes these", "from your bags");
-        if (bags.Count == 0) PaneNote("Nothing in your bags or armoury chest that the armoire takes.");
+        PaneHeading("The armoire takes these", Words.Count(bags.Count, "piece"));
+        PaneNote(bags.Count == 0 ? "Nothing in your bags or armoury chest that the armoire takes." : "From your bags and armoury chest.");
+        Kit.Gap(4);
         var now = DateTime.UtcNow;
-        foreach (var (item, row) in bags.Take(6))
+        foreach (var (item, row) in companionMore ? bags : bags.Take(6))
         {
             var asked = storing.TryGetValue(row, out var t) && now - t < TimeSpan.FromSeconds(5) || storeQueue.Any(q => q.Row == row);
             var name = data.ItemName(item);
@@ -467,7 +472,7 @@ public sealed partial class MainWindow
                     StoreNext();
                 });
         }
-        if (bags.Count > 6) PaneNote($"and {bags.Count - 6} more");
+        if (!companionMore && bags.Count > 6) MoreLink("##c-more-bags", bags.Count - 6);
         if (bags.Count > 1)
         {
             Kit.Gap(8);
@@ -565,7 +570,6 @@ public sealed partial class MainWindow
         foreach (var item in pieces)
         {
             var (chip, kind) = WhereChipOf(item);
-            if (kind == ChipKind.Plain && Where(item) == Place.Retainer) chip = "A retainer";
             PieceRow($"##c-setp-{item}", item, null, null, null, chip, kind);
         }
     }
@@ -666,7 +670,7 @@ public sealed partial class MainWindow
             var planned = PlannedPlateOf(look.Id);
             if (plate > 0)
             {
-                var label = $"Wear it · plate {plate}";
+                var label = $"Wear plate {plate}";
                 var blocked = Gearsets.Blocked(true);
                 if (Kit.Button("##c-try-wear", row, label, Btn.Primary, BtnSize.Sm, Icon.Shirt, 0, blocked != null, blocked ?? "Puts the plate on your current gearset, as /gearset change does"))
                     Later(() => Notify(PlateEditor.Wear(plate) ?? $"Plate {plate} on"));
@@ -783,7 +787,7 @@ public sealed partial class MainWindow
         var users = PaneLooks().Select(l => (Look: l, Piece: l.Pieces.Values.FirstOrDefault(p => LookJson.BaseId(p.Item) == item)))
             .Where(x => x.Piece.Item != 0).ToList();
         PaneHeading("Your looks dye it", Words.Count(users.Count, "look"));
-        if (!Linked) PaneNote("Link your account to see the colours your looks want.");
+        if (!Linked) PaneNote("Link your account (Settings → Account) to see the colours your looks want.");
         else if (users.Count == 0) PaneNote("None of your looks has this piece.");
         foreach (var (look, piece) in users.Take(5))
         {
@@ -881,12 +885,12 @@ public sealed partial class MainWindow
             return;
         }
         var forLooks = RetainerForLooks();
-        PaneHeading("Your looks use these", $"{forLooks.Count} here");
-        if (!Linked) PaneNote("Link your account to see which of your looks' pieces are here.");
+        PaneHeading("Your looks use these", Words.Count(forLooks.Count, "piece"));
+        if (!Linked) PaneNote("Link your account (Settings → Account) to see which of your looks' pieces are here.");
         else if (forLooks.Count == 0) PaneNote("None of your looks' pieces is on this retainer (or you have them in the dresser already).");
         foreach (var (item, look) in companionMore ? forLooks : forLooks.Take(6))
             PieceRow($"##c-ret-{item}", item, null, null, look, null, ChipKind.Plain);
-        if (!companionMore && forLooks.Count > 6) MoreLink(forLooks.Count - 6);
+        if (!companionMore && forLooks.Count > 6) MoreLink("##c-more-ret", forLooks.Count - 6);
         if (forLooks.Count > 0) PaneNote("Take them and put them in the dresser to plate those looks.");
         Kit.Gap(16);
 
@@ -895,7 +899,7 @@ public sealed partial class MainWindow
             .Where(i => !lookItems.ContainsKey(i) && data.CabinetOf(i) != null && !wardrobe.ArmoireNow.ContainsKey(i) && me.Get(Place.Armoire)?.Items.Contains(i) != true)
             .ToList();
         var glamour = read.Items.Select(LookJson.BaseId).Distinct().Count(i => !lookItems.ContainsKey(i));
-        PaneHeading("Glamour no look uses", $"{glamour} here");
+        PaneHeading("Glamour no look uses", Words.Count(glamour, "piece"));
         if (armoire.Count > 0)
         {
             Kit.BeginPanel("##c-ret-arm", 10, 12, 10, Palette.Card, Palette.Line, 12);
@@ -963,9 +967,9 @@ public sealed partial class MainWindow
         var open = GameWindows.MarketResultItem();
         foreach (var item in sold.Take(companionMore ? 40 : 8))
         {
-            var line = forLook.TryGetValue(item, out var look) ? look : null;
+            var line = forLook.TryGetValue(item, out var look) ? $"for {look}" : null;
             if (GameWindows.CheapestListed(item) is { } price) line = $"{(line != null ? line + " · " : string.Empty)}cheapest now {price.ToString("N0", En)} gil";
-            if (Where(item) is { } w) line = $"Yours now ({Places.Word(w)})";
+            if (Where(item) != null) line = $"Yours now ({WhereChipOf(item).Text})";
             var name = data.ItemName(item);
             if (PieceRow($"##c-mb-{item}", item, null, null, line, null, ChipKind.Plain, "Search", !GameWindows.IsShown("ItemSearch") && open == 0,
                     "Types it into the market board's search", open == item))
@@ -978,14 +982,14 @@ public sealed partial class MainWindow
                     }
                 });
         }
-        if (!companionMore && sold.Count > 8) MoreLink(sold.Count - 8);
+        if (!companionMore && sold.Count > 8) MoreLink("##c-more-mb", sold.Count - 8);
         Kit.Gap(6);
         PaneNote("Search types it into the market board. Buy one and it comes off the list by itself.");
         if (notSold.Count == 0) return;
         Kit.Gap(14);
-        PaneHeading("Not sold here", notSold.Count.ToString(En));
+        PaneHeading("Not on the market board", Words.Count(notSold.Count, "piece"));
         foreach (var item in notSold.Take(6))
-            PieceRow($"##c-ns-{item}", item, null, null, forLook.TryGetValue(item, out var look) ? $"{look} · not on the market board" : "Not on the market board", null, ChipKind.Plain);
+            PieceRow($"##c-ns-{item}", item, null, null, forLook.TryGetValue(item, out var look) ? $"for {look}" : null, "Untradable", ChipKind.Plain);
     }
 
     private (string Name, int Version, HashSet<uint> Found, DateTime At)? shopCache;

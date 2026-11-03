@@ -272,16 +272,11 @@ public sealed partial class MainWindow
         }
     }
 
-    /// <summary>The panel's header: the mark, Glamour Studio over what it's beside, open the plugin, fold it away.</summary>
+    /// <summary>The panel's header: Glamour Studio over what it's beside, open the plugin, fold it away.</summary>
     private void DrawCompanionHeader(Pane pane, string key, Vector2 win, float width, float headerH, bool right)
     {
         var dl = Kit.Dl;
         var pad = S(14);
-        var mark = S(28);
-        var c = new Vector2(win.X + pad + mark / 2, win.Y + headerH / 2);
-        dl.AddCircleFilled(c, mark / 2, Palette.U32(Palette.RoseTile), 40);
-        var gs = Txt.Measure("GS", Face.Display, 10);
-        Txt.Draw(dl, c - gs / 2, "GS", Face.Display, 10, Palette.RoseText);
 
         var btn = S(28);
         var bx = win.X + width - S(12) - btn;
@@ -296,7 +291,7 @@ public sealed partial class MainWindow
         if (Kit.IconButton("##c-open", new Vector2(bx, by), Icon.ExternalLink, "Open Glamour Studio", 28, Btn.Glass, false, 13))
             Later(() => OpenFromPane(pane));
 
-        var tx = win.X + pad + mark + S(10);
+        var tx = win.X + pad;
         var tw = bx - S(8) - tx;
         var ebH = Txt.Natural(Face.Mono, 10);
         var tH = Txt.Natural(Face.SansSemibold, 15);
@@ -305,12 +300,12 @@ public sealed partial class MainWindow
         Txt.Draw(dl, new Vector2(tx, ty + ebH), Txt.Fit(PaneTitle(pane), Face.SansSemibold, 15, tw), Face.SansSemibold, 15, Palette.Ink);
     }
 
-    /// <summary>The slim tab a folded panel leaves on its window's edge: the mark, an arrow, its one number.</summary>
+    /// <summary>The slim tab a folded panel leaves on its window's edge: an arrow, its one number.</summary>
     private void DrawCompanionTab(Pane pane, string key, WindowRect rect, bool right)
     {
         var w = S(34);
         var count = PaneCount(pane);
-        var h = S(10) + S(28) + S(10) + S(16) + (count != null ? S(10) + Txt.Natural(Face.Mono, 11) : 0) + S(10);
+        var h = S(12) + S(16) + (count != null ? S(8) + Txt.Natural(Face.Mono, 11) : 0) + S(12);
         var vp = ImGui.GetMainViewport();
         var x = right ? rect.Max.X : rect.Pos.X - w;
         // On the screen, whichever side was asked (it's the only way back to the panel).
@@ -335,17 +330,14 @@ public sealed partial class MainWindow
                     dl.AddRectFilled(win, win + new Vector2(w, h), Palette.U32(Palette.RowHover), S(14));
                     Kit.Tooltip($"Glamour Studio: {PaneTitle(pane)}");
                 }
-                var c = new Vector2(win.X + w / 2, win.Y + S(10) + S(14));
-                dl.AddCircleFilled(c, S(14), Palette.U32(Palette.RoseTile), 40);
-                var gs = Txt.Measure("GS", Face.Display, 9);
-                Txt.Draw(dl, c - gs / 2, "GS", Face.Display, 9, Palette.RoseText);
-                var iy = c.Y + S(14) + S(10);
-                Icons.Draw(dl, right ? Icon.ChevronRight : Icon.ChevronLeft, new Vector2(c.X - S(8), iy), S(16), Palette.Soft);
+                var cx = win.X + w / 2;
+                var iy = win.Y + S(12);
+                Icons.Draw(dl, right ? Icon.ChevronRight : Icon.ChevronLeft, new Vector2(cx - S(8), iy), S(16), Palette.Soft);
                 if (count != null)
                 {
                     var t = Txt.Fit(count, Face.Mono, 11, w - S(4));
                     var tw = Txt.Measure(t, Face.Mono, 11).X;
-                    Txt.Draw(dl, new Vector2(c.X - tw / 2, iy + S(16) + S(10)), t, Face.Mono, 11, Palette.RoseText);
+                    Txt.Draw(dl, new Vector2(cx - tw / 2, iy + S(16) + S(8)), t, Face.Mono, 11, Palette.RoseText);
                 }
                 if (clicked)
                     Later(() =>

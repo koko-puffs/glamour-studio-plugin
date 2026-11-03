@@ -164,10 +164,14 @@ read). It only shows: the storing and taking out are the dresser's own.
 A small Glamour Studio panel (300 wide, the plugin's own look) docked to the edge of the game window
 you have open, its top level with the window's, moving with it as you drag it; on the side with room
 (right by default; Settings can pin a side). As tall as what's in it, up to the window's height (360
-at least), then it scrolls. Its header: the GS mark, GLAMOUR STUDIO over what it's beside, the arrow
+at least), then it scrolls. Its header: GLAMOUR STUDIO in small rose capitals over what it's beside, the arrow
 that opens the plugin's window on the matching screen, and the fold button: folded, a slim tab stays
 on the window's edge with its one number (looks ready, the plate, your list's length), remembered
-for each window. It's gone with its window, while the HUD's hidden, in cutscenes and in group pose.
+for each window. The panels share their parts: a piece's row (its icon, name, a line under it, and
+a chip for where it is: Dresser or Armoire in green, Bags, Armoury, Saddlebag or Retainer outlined,
+Don't have in rose, On your list), a look's row (its four icons, name, a chip or a line, a small
+button), headings with a count in words, "and N more" to show a list whole, and "Link your account
+(Settings → Account)…" where linking's needed. It's gone with its window, while the HUD's hidden, in cutscenes and in group pose.
 One panel at a time: the game window that has the game's focus, else the likeliest (Glamour Plates,
 an outfit set, the dye window, the fitting room, the armoire, the dresser, Examine, a retainer, the
 market board, a shop, in that order). It never opens the main window by itself; with the Glamour
@@ -190,7 +194,7 @@ is off meanwhile). `UI/Companions/Companion.cs` is the panel, `Panes.cs` what ea
 | **Shops** (`Shop`, `ShopExchangeItem`, `ShopExchangeCurrency`, `ShopExchangeCoin`, `InclusionShop`, `GrandCompanyExchange`, `FreeShop`, `SkyIslandExchange`) | What on your shopping list the shop sells, as far as its window's values name the items (best effort: a price or an icon that happens to equal an item's number would count too). |
 
 **Under item tooltips:** while the game's item tooltip (`ItemDetail`) shows a piece of gear, a small
-box under it (above, with no room below): which of your looks have it, the plates it's on, on your
+box under it (above, with no room below), GLAMOUR STUDIO over its lines: which of your looks have it, the plates it's on, on your
 shopping list, and whether your dresser or armoire has it. Nothing when none of that's so.
 
 **Right-click menu:** on gear in your bags, the armoury chest, a retainer's, an item linked in chat
@@ -459,6 +463,12 @@ this one too, within a few minutes of a release.
 The workflows need Settings → Actions → General → Workflow permissions → Read and write.
 
 ## Release notes
+
+### 0.4.2
+
+- The panels beside the game's windows and the box under item tooltips lose the GS mark (the small
+  GLAMOUR STUDIO label stays), and say things the same way in each: where a piece is, the counts
+  in their headings, "and N more" (each list's own), linking.
 
 ### 0.4.1
 

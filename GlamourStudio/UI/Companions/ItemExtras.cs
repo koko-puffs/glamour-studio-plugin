@@ -69,7 +69,8 @@ public sealed partial class MainWindow
             var width = MathF.Max(rect.Size.X, S(220));
             var pad = S(10);
             var lineH = Txt.Natural(Face.Sans, 12) + S(2);
-            var height = pad * 2 + lineH * lines.Count;
+            var ebH = Txt.Natural(Face.Mono, 10) + S(4);
+            var height = pad * 2 + ebH + lineH * lines.Count;
             var vp = ImGui.GetMainViewport();
             var y = rect.Max.Y + S(4);
             if (y + height > vp.Pos.Y + vp.Size.Y) y = rect.Pos.Y - S(4) - height;
@@ -84,15 +85,11 @@ public sealed partial class MainWindow
                 var dl = ImGui.GetWindowDrawList();
                 var win = ImGui.GetWindowPos();
                 var at = win + new Vector2(pad);
-                var mark = S(16);
-                var c = at + new Vector2(mark / 2, lineH / 2 - S(1));
-                dl.AddCircleFilled(c, mark / 2, Palette.U32(Palette.RoseTile), 24);
-                var gs = Txt.Measure("GS", Face.Display, 6);
-                Txt.Draw(dl, c - gs / 2, "GS", Face.Display, 6, Palette.RoseText);
-                var tx = at.X + mark + S(8);
-                var tw = width - pad * 2 - mark - S(8);
+                var tw = width - pad * 2;
+                // As the panels' header: whose lines these are, in small rose capitals.
+                Txt.Spaced(dl, at, "GLAMOUR STUDIO", Face.Mono, 10, Palette.Rose, 0.16f);
                 for (var i = 0; i < lines.Count; i++)
-                    Txt.Draw(dl, new Vector2(tx, at.Y + lineH * i), Txt.Fit(lines[i], Face.Sans, 12, tw), Face.Sans, 12, i == 0 ? Palette.RoseSoft : Palette.Soft);
+                    Txt.Draw(dl, new Vector2(at.X, at.Y + ebH + lineH * i), Txt.Fit(lines[i], Face.Sans, 12, tw), Face.Sans, 12, i == 0 ? Palette.Ink : Palette.Soft);
             }
             finally
             {
