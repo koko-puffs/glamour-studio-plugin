@@ -86,18 +86,11 @@ public sealed partial class MainWindow
         {
             var fromArmoire = look.Pieces.Values.Count(p => Where(p.Item) == Place.Armoire);
             var chip = fromArmoire == 0 ? $"All {look.Count} here" : $"{fromArmoire} from the armoire";
-            if (LookPaneRow($"##c-plate-{look.Id}", look, null, chip, fromArmoire == 0 ? ChipKind.Ok : ChipKind.Plain, "Plate it", false,
-                    "Opens Glamour Plates: pick a plate, and this look is there to fill it", ReferenceEquals(companionPick, look)))
-            {
-                var l = look;
-                Later(() =>
-                {
-                    companionPick = l;
-                    companionPickPlate = 0;
-                    Notify(GameWindows.OpenPlatesFromDresser() ? $"Pick a plate: {l.Name} is ready to fill it" : "Open Glamour Plates and pick a plate");
-                });
-            }
+            if (LookPaneRow($"##c-plate-{look.Id}", look, null, chip, fromArmoire == 0 ? ChipKind.Ok : ChipKind.Plain, "Plate it", plateIt != null,
+                    "Pick a plate: the plugin opens Glamour Plates, picks that plate and fills it. You press Save in the game's window.", ReferenceEquals(companionPick, look)))
+                OpenPlateItMenu("##c-plate-it", look);
         }
+        DrawPlateItMenu("##c-plate-it");
         if (!companionMore && ready.Count > 4) MoreLink("##c-more-ready", ready.Count - 4);
         Kit.Gap(16);
 

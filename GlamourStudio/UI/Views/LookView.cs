@@ -319,6 +319,23 @@ public sealed partial class MainWindow
             Kit.EndPanel();
             return;
         }
+        if (PlateItHere)
+        {
+            // The dresser's open: straight onto a plate (the plugin opens Glamour Plates and picks it).
+            Kit.BeginPanel("##put", compact ? 14 : 18, compact ? 14 : 18, compact ? 14 : 18, Palette.RoseWash, Palette.RoseEdge);
+            var pat = Kit.At;
+            var pw = Kit.Width;
+            var psize = compact ? BtnSize.Md : BtnSize.Lg;
+            if (Kit.Button("##put-on-a", pat, "Put on a plate…", Btn.Primary, psize, Icon.Layers, pw, plateIt != null,
+                    "Pick a plate: the plugin opens Glamour Plates, picks it and fills it. Nothing's saved until you press Save there."))
+                OpenPlateItMenu("##lv-plate-it", look);
+            Kit.Reserve(pat, pw, Kit.ButtonHeight(psize));
+            DrawPlateItMenu("##lv-plate-it");
+            Kit.Gap(12);
+            Txt.Para(PlanWords(PlanCached(look), compact), 19.5f);
+            Kit.EndPanel();
+            return;
+        }
         Kit.BeginPanel("##how", 14, 16, 14, Palette.Card, Palette.Line, 14);
         var a = Kit.At;
         var iw2 = Kit.Width;
@@ -327,7 +344,7 @@ public sealed partial class MainWindow
         var h = Txt.Flow(new Vector2(tx, a.Y), iw2 - (tx - a.X), new[]
         {
             new Run("To put it on a plate, ", Face.SansSemibold, 13, Palette.Ink),
-            new Run("open Glamour Plates at a glamour dresser and pick a plate. The button shows here.", Face.Sans, 13, Palette.Soft),
+            new Run("open your glamour dresser: the plugin opens Glamour Plates and fills the plate you pick.", Face.Sans, 13, Palette.Soft),
         }, 19.5f, out _);
         Kit.Reserve(a, iw2, h);
         Kit.EndPanel();

@@ -387,9 +387,10 @@ public sealed partial class MainWindow
         if (readyLooks is { } c && c.Sync == sync.Version && c.Wardrobe == wardrobe.Version && c.Plate == plate && ReferenceEquals(c.Planned, planned)) return c.Looks;
         var list = new List<Look>();
         if (planned != null) list.Add(planned);
-        foreach (var l in sync.Library.Mine.Concat(sync.Library.Loved))
+        // Yours, the ones you love, and the ones sent to you from the site.
+        foreach (var l in sync.Library.Mine.Concat(sync.Library.Loved).Concat(sync.Inbox.Select(s => s.Look)))
         {
-            if (list.Count >= 6) break;
+            if (list.Count >= 20) break;
             if (list.All(x => x.Id != l.Id) && ReadinessOf(l).PlateReady) list.Add(l);
         }
         readyLooks = (sync.Version, wardrobe.Version, plate, planned, list);

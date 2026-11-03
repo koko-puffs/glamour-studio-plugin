@@ -322,6 +322,19 @@ public static unsafe class PlateEditor
         }
     }
 
+    /// <summary>
+    /// Picks a plate in the plate editor at the dresser (mode 0), as clicking it does:
+    /// <c>[i:17, u:plate−1]</c> (recordings: plate 1 to 14, and 1 to 3). False when the editor isn't
+    /// open. The game shows it picked a moment later (<see cref="SelectedPlate"/>).
+    /// </summary>
+    public static bool PickPlate(int plate)
+    {
+        if (plate is < 1 or > Plates.Count || !IsOpen) return false;
+        var ok = Fire(17, (uint)(plate - 1));
+        Recorder.Log($"PICK plate {plate} in the plate editor: {(ok ? "fired [i:17, u:" + (plate - 1) + "]" : "the window isn't shown")}");
+        return ok;
+    }
+
     /// <summary>The plate window's callback <c>[i:<paramref name="op"/>, u:<paramref name="arg"/>]</c>; false when it isn't shown.</summary>
     private static bool Fire(int op, uint arg)
     {

@@ -150,6 +150,7 @@ public sealed partial class MainWindow
         try
         {
             StoreNext();
+            TickPlateIt();
         }
         catch (Exception ex)
         {
