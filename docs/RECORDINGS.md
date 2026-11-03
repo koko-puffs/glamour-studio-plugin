@@ -233,6 +233,7 @@ pieces).
 | K1 | Open the dresser, and the plugin's Make room. MARK what **Make room for me** says (sets, places, prisms, bag places). | yes |
 | K2 | Press **Store … for me**, read the question, press **Store them**. Don't touch anything until it says it's done (or stops). MARK what it said, and check the dresser: are the sets there, the loose pieces gone, your prisms spent? | yes, when it's done |
 | K3 | If it stopped, MARK the message and what's in your bags. | yes |
+| K4 | With duplicates in the dresser (Make room → Duplicates says how many): press **Take out …**, then **Take them out**. MARK what it said, and check your bags and the dresser. | yes, when it's done |
 
 
 Send the saved files (one per section). Screenshots of anything odd help, and so does a note of

@@ -1,0 +1,161 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using FFXIVClientStructs.FFXIV.Client.Game;
+using GlamourStudio.Core;
+
+namespace GlamourStudio.Game;
+
+/// <summary>
+/// Taking pieces out of the glamour dresser to your bags for you (its duplicates): each restored with
+/// <c>MirageManager.RestorePrismBoxItem</c>, as the dresser's "Restore item to its original form"
+/// does, one at a time, each waited for (the dresser one copy fewer, a new bag place holding it).
+/// Its place is found again first (the same item with the same dyes), a Unique piece you hold is
+/// left, and it stops when your bags are full or a piece doesn't come. Nothing's thrown away: what
+/// comes out is yours to sell or discard. With the glamour dresser open. Framework thread. Not yet
+/// watched in the game.
+/// </summary>
+public static unsafe class DresserTaker
+{
+    private enum Phase { Idle, Taking, Waiting }
+
+    private static Phase phase;
+    private static readonly Queue<DresserPiece> queue = new();
+    private static DresserPiece current;
+    private static GameData? data;
+    private static DateTime deadline;
+    private static HashSet<(InventoryType Type, int Slot)> before = new();
+    private static int dresserBefore;
+    private static readonly List<string> skipped = new();
+    private static Action<string, bool>? report;
+    private static bool stopAsked;
+
+    public static bool Busy => phase != Phase.Idle;
+
+    /// <summary>Pieces taken out so far (this run), and left to take.</summary>
+    public static int Done { get; private set; }
+
+    public static int Left => queue.Count + (phase == Phase.Waiting ? 1 : 0);
+
+    /// <summary>Starts taking <paramref name="todo"/> out; false when this or the outfit storer is at work.</summary>
+    public static bool Start(IEnumerable<DresserPiece> todo, GameData gameData, Action<string, bool> onEnd)
+    {
+        if (Busy || OutfitStorer.Busy) return false;
+        data = gameData;
+        report = onEnd;
+        queue.Clear();
+        foreach (var p in todo) queue.Enqueue(p);
+        Done = 0;
+        skipped.Clear();
+        stopAsked = false;
+        phase = Phase.Taking;
+        deadline = DateTime.MinValue;
+        Recorder.Log($"TAKE OUT start: {queue.Count} pieces");
+        return true;
+    }
+
+    /// <summary>Stops once no piece is on its way (at once, when <paramref name="now"/>).</summary>
+    public static void Stop(string why = "Stopped", bool now = false)
+    {
+        if (!Busy) return;
+        if (now || phase == Phase.Taking) Finish(why, false);
+        else stopAsked = true;
+    }
+
+    public static void Tick()
+    {
+        if (phase == Phase.Idle) return;
+        if (phase == Phase.Taking && !GameWindows.IsShown("MiragePrismPrismBox"))
+        {
+            Finish("The glamour dresser closed", false);
+            return;
+        }
+        var mgr = MirageManager.Instance();
+        var inv = InventoryManager.Instance();
+        if (mgr == null || inv == null || !mgr->PrismBoxLoaded) return;
+        var now = DateTime.UtcNow;
+        switch (phase)
+        {
+            case Phase.Taking:
+            {
+                if (now < deadline) break;
+                if (stopAsked)
+                {
+                    Finish("Stopped", false);
+                    break;
+                }
+                if (queue.Count == 0)
+                {
+                    Finish($"{Words.Count(Done, "duplicate")} taken out to your bags", true);
+                    break;
+                }
+                if (inv->GetEmptySlotsInBag() == 0)
+                {
+                    Finish("Your bags are full", false);
+                    break;
+                }
+                current = queue.Dequeue();
+                var id = LookJson.BaseId(current.Item);
+                var at = DresserPlaces.Find(mgr, id, current.Dye1, current.Dye2, current.Index);
+                if (at < 0 || DresserPlaces.Count(mgr, id) < 2 && !current.InSet && !InASet(mgr, id))
+                {
+                    // Gone, or the last copy now (taking it would leave none): left.
+                    skipped.Add(data!.ItemName(current.Item));
+                    Recorder.Log($"  {current.Item} at {current.Index}: left ({(at < 0 ? "gone" : "the last copy")})");
+                    break;
+                }
+                if (data!.Item(current.Item)?.Unique == true && DresserPlaces.Holding(id))
+                {
+                    skipped.Add(data.ItemName(current.Item));
+                    Recorder.Log($"  {current.Item}: left (Unique, you hold one)");
+                    break;
+                }
+                before = DresserPlaces.InBags(id);
+                dresserBefore = DresserPlaces.Count(mgr, id);
+                var ok = mgr->RestorePrismBoxItem((uint)at);
+                Recorder.Log($"  RestorePrismBoxItem {at} (read at {current.Index}, {current.Item} {current.Dye1}/{current.Dye2}) → {ok}");
+                if (!ok)
+                {
+                    Finish($"The game wouldn't take out {data.ItemName(current.Item)}", false);
+                    break;
+                }
+                phase = Phase.Waiting;
+                deadline = now + TimeSpan.FromSeconds(6);
+                break;
+            }
+            case Phase.Waiting:
+            {
+                var id = LookJson.BaseId(current.Item);
+                if (DresserPlaces.InBags(id).Except(before).Any() && DresserPlaces.Count(mgr, id) < dresserBefore)
+                {
+                    Done++;
+                    phase = Phase.Taking;
+                    deadline = now + TimeSpan.FromMilliseconds(400);
+                    break;
+                }
+                if (now > deadline) Finish($"{data!.ItemName(current.Item)} didn't come to your bags (it may come yet: check them)", false);
+                break;
+            }
+        }
+    }
+
+    /// <summary>Whether a stored set in the dresser holds the item (then a loose copy isn't the last).</summary>
+    private static bool InASet(MirageManager* mgr, uint id)
+    {
+        var sets = data!.SetOf(id);
+        return sets != 0 && DresserPlaces.Count(mgr, sets) > 0;
+    }
+
+    private static void Finish(string words, bool allWent)
+    {
+        if (skipped.Count > 0) words += $". Left in the dresser: {Words.List(skipped.Distinct().Take(6))}{(skipped.Count > 6 ? " and more" : string.Empty)}";
+        if (!allWent && Done > 0) words += $". Taken out before that: {Done}";
+        Recorder.Log($"TAKE OUT end: {words}");
+        phase = Phase.Idle;
+        queue.Clear();
+        stopAsked = false;
+        var r = report;
+        report = null;
+        r?.Invoke(words, allWent);
+    }
+}

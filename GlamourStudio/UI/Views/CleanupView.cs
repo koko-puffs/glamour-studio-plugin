@@ -55,7 +55,8 @@ public sealed partial class MainWindow
 
     private void DrawCleanup(Vector2 min, Vector2 size)
     {
-        Kit.BeginPane("##room", min, size, SideCss, 20, 20, scroll: false);
+        // (It scrolls: Make room for me above the lists can push them past the window's foot.)
+        Kit.BeginPane("##room", min, size, SideCss, 20, 20);
         var at = Kit.At;
         var w = Kit.Width;
         var y = at.Y;
@@ -75,7 +76,7 @@ public sealed partial class MainWindow
         Kit.Gap(12);
         DrawAutoRoom(me);
         Kit.Gap(16);
-        var room = MathF.Max(S(200), Kit.PaneRoom());
+        var room = MathF.Max(S(240), Kit.PaneRoom());
         var lat = Kit.At;
         var gap = S(16);
         var cw = (w - gap) / 2;

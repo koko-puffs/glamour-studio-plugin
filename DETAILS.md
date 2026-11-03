@@ -172,13 +172,25 @@ your bags (`MirageManager.RestorePrismBoxItem`, the dresser's "Restore item to i
 its place found again first, should the dresser close up), and once they're all there they go in
 as the set (`StoreNewOutfit`, or `StoreExistingOutfit` into the set stored already; each piece at
 its `MirageStoreSetItem` column, the rest `Invalid`), a glamour prism a piece, as storing by hand
-spends. Each step is waited for (the piece in your bags, the set taking them); the first that
-doesn't come stops it, and says which pieces are left in your bags. It says first what it'll do:
+spends. Before a set's first piece leaves the dresser, every piece is found again, your bags are
+checked for room and a Unique piece you hold is left; each restore is waited for until the dresser
+has one copy fewer and a new bag place holds it, the store until those places are empty, and a
+stored set's place is found again before pieces go into it. A piece that doesn't come still lets
+the ones that did go in as the set (when enough for one), then it stops and says which pieces are
+left in your bags. It says first what it'll do:
 the sets, the places freed, the prisms (and how many you have), the free bag places it needs at a
 time; it's asked (Store them / Not now) and needs the dresser open. Dyed loose pieces stay loose (a
 set may not keep a piece's dyes), as do a piece two sets share (the first set takes it) and a new
-set of one piece (it frees nothing). Stop stops after the step at work. Recordings write each step
-(`OUTFITS …`). New: not yet watched in the game.
+set of one piece (it frees nothing); a dyed loose piece is swapped for an undyed copy when there
+is one. Stop waits for the step the game is answering. It's worked out again from the dresser as it
+is when you say yes. Recordings write each step (`OUTFITS …`). New: not yet watched in the game.
+
+**Duplicates** (the same card, and the dresser's panel): a second loose copy of an item with the
+same dyes, and an undyed loose copy of a piece a stored set already holds (`DresserCleanup.Duplicates`;
+copies dyed otherwise aren't duplicates). **Take out** restores them to your bags one at a time
+(`Game/DresserTaker.cs`), each found again by item and dyes and waited for, never the last copy,
+never a Unique piece you hold; it stops when your bags are full. Nothing's thrown away: they're
+yours to sell or discard. Recordings write each step (`TAKE OUT …`). New: not yet watched.
 
 ## Beside the game's windows
 
@@ -529,6 +541,20 @@ this one too, within a few minutes of a release.
 The workflows need Settings → Actions → General → Workflow permissions → Read and write.
 
 ## Release notes
+
+### 0.6.1
+
+- **Take out duplicates:** on Make room and in the dresser's panel, the dresser's duplicates (a
+  second copy with the same dyes, or an undyed copy of a piece a stored set holds) come out to your
+  bags, to sell or discard. Asked first; never the last copy.
+- Make room for me, made safer before it's first used: a piece landing in your bags' very first
+  place was never seen arrive; every piece, your bag room and Unique pieces are checked before a
+  set's first piece leaves; a piece that doesn't come still lets the others go in as the set; a
+  stored set's place is found again before storing into it; bag places are checked again before
+  storing; glamour prisms are found on every client language; Stop waits for the step under way;
+  it's worked out again when you say yes, and can't start twice.
+- Make room scrolls when Make room for me pushes its lists down; its buttons go under their words
+  in a narrow window.
 
 ### 0.6.0
 

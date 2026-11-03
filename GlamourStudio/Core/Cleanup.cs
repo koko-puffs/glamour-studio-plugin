@@ -62,6 +62,26 @@ public static class DresserCleanup
         return total;
     }
 
+    /// <summary>
+    /// The dresser's duplicates: a second (third…) loose copy of an item with the same dyes as one
+    /// kept, and an undyed loose copy of a piece a stored outfit set already holds. Copies dyed
+    /// otherwise aren't duplicates (a plate takes the copy whose dyes are closest), nor are a set's own
+    /// pieces. In the dresser's order; the first copy of each is the one kept.
+    /// </summary>
+    public static List<DresserPiece> Duplicates(IReadOnlyList<DresserPiece> dresser)
+    {
+        var inSets = dresser.Where(d => d.InSet).Select(d => LookJson.BaseId(d.Item)).ToHashSet();
+        var kept = new HashSet<(uint, byte, byte)>();
+        var extra = new List<DresserPiece>();
+        foreach (var d in dresser.Where(d => !d.InSet).GroupBy(d => d.Index).Select(g => g.First()).OrderBy(d => d.Index))
+        {
+            var id = LookJson.BaseId(d.Item);
+            if (d.Dye1 == 0 && d.Dye2 == 0 && inSets.Contains(id)) extra.Add(d);
+            else if (!kept.Add((id, d.Dye1, d.Dye2))) extra.Add(d);
+        }
+        return extra;
+    }
+
     /// <summary>The dresser's loose pieces that none of <paramref name="outfits"/> (your looks and plates) has, in the dresser's order.</summary>
     public static List<DresserPiece> Unused(IReadOnlyList<DresserPiece> dresser, IEnumerable<IReadOnlyDictionary<Slot, Piece>> outfits)
     {

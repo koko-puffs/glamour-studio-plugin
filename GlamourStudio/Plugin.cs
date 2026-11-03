@@ -157,6 +157,7 @@ public sealed class Plugin : IDalamudPlugin
         Step(recorder.Tick, "the recording");
         Step(FittingRoom.Tick, "the fitting room");
         Step(OutfitStorer.Tick, "storing outfits");
+        Step(DresserTaker.Tick, "taking out duplicates");
         Step(() =>
         {
             var editor = PlateEditor.IsOpen;
@@ -211,7 +212,8 @@ public sealed class Plugin : IDalamudPlugin
         Safely(windows.RemoveAllWindows);
         Safely(() => Core.SiteLink.Trace = null);
         Safely(FittingRoom.Stop);
-        Safely(() => OutfitStorer.Stop("The plugin closed"));
+        Safely(() => OutfitStorer.Stop("The plugin closed", now: true));
+        Safely(() => DresserTaker.Stop("The plugin closed", now: true));
         Safely(() => recorder?.Dispose());
         Safely(() => shots?.Dispose());
         Safely(() => sync?.Dispose());

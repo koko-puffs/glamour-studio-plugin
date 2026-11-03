@@ -9,27 +9,30 @@ using static GlamourStudio.UI.Theme;
 namespace GlamourStudio.UI;
 
 /// <summary>
-/// Make room for me: the plugin gathers outfit sets' loose pieces in the dresser into their sets
-/// (<see cref="OutfitStorer"/>), on Make room and in the dresser's panel. What it'll do is said
-/// first (the sets, the places freed, the glamour prisms it spends, the bag places it needs), and
-/// it's asked before it starts. Pieces with dyes are left loose: a set may not keep a piece's dyes.
+/// Make room for me, on Make room and in the dresser's panel: the plugin gathers outfit sets' loose
+/// pieces into their sets (<see cref="OutfitStorer"/>), and takes the dresser's duplicates out to your
+/// bags (<see cref="DresserTaker"/>). What each will do is said first, it's asked before it starts
+/// (on Make room a question, in the panel a second press), and it's worked out again from the dresser
+/// as it is the moment you say yes. Dyed loose pieces stay out of sets: a set may not keep their dyes.
 /// </summary>
 public sealed partial class MainWindow
 {
-    /// <summary>What making room for you would do now.</summary>
+    /// <summary>What gathering sets would do now.</summary>
     private sealed record AutoRoomPlan(List<OutfitJob> Jobs, int Frees, int Pieces, int MostAtOnce, int SkippedDyed);
 
-    private (int Wardrobe, string Key, AutoRoomPlan Plan)? autoRoomCache;
+    private (int Wardrobe, string Key, AutoRoomPlan Plan, List<DresserPiece> Dupes)? autoRoomCache;
 
     /// <summary>How it ended last time, for the screen (and whether all went).</summary>
     private (string Words, bool Ok)? autoRoomLast;
 
-    /// <summary>The panel's Store them for me pressed once: pressed again before then, it starts.</summary>
-    private DateTime autoRoomArmedUntil;
+    /// <summary>The panel's buttons pressed once: pressed again before then, they start.</summary>
+    private DateTime autoRoomArmedUntil, dupesArmedUntil;
 
-    private AutoRoomPlan AutoRoomNow(CharacterWardrobe me)
+    private bool AutoBusy => OutfitStorer.Busy || DresserTaker.Busy;
+
+    private (AutoRoomPlan Plan, List<DresserPiece> Dupes) AutoRoomNow(CharacterWardrobe me)
     {
-        if (autoRoomCache is { } c && c.Wardrobe == wardrobe.Version && c.Key == me.Key) return c.Plan;
+        if (autoRoomCache is { } c && c.Wardrobe == wardrobe.Version && c.Key == me.Key) return (c.Plan, c.Dupes);
         var jobs = new List<OutfitJob>();
         var taken = new HashSet<int>();
         var skipped = 0;
@@ -38,13 +41,20 @@ public sealed partial class MainWindow
             var pieces = new List<DresserPiece>();
             foreach (var p in chance.Pieces)
             {
-                if (taken.Contains(p.Index)) continue;
+                var use = p;
                 if (p.Dye1 != 0 || p.Dye2 != 0)
                 {
-                    skipped++;
-                    continue;
+                    // An undyed loose copy of it, if there's one.
+                    var plain = me.Dresser.FirstOrDefault(d => !d.InSet && LookJson.BaseId(d.Item) == LookJson.BaseId(p.Item) && d.Dye1 == 0 && d.Dye2 == 0 && !taken.Contains(d.Index));
+                    if (plain.Item == 0)
+                    {
+                        skipped++;
+                        continue;
+                    }
+                    use = plain;
                 }
-                pieces.Add(p);
+                if (taken.Contains(use.Index)) continue;
+                pieces.Add(use);
             }
             var storedAt = chance.Stored
                 ? me.Dresser.Where(d => d.InSet && LookJson.BaseId(d.SetItem) == LookJson.BaseId(chance.SetItem)).Select(d => d.Index).DefaultIfEmpty(-1).First()
@@ -60,17 +70,29 @@ public sealed partial class MainWindow
             jobs.Sum(j => j.Pieces.Count),
             jobs.Count == 0 ? 0 : jobs.Max(j => j.Pieces.Count),
             skipped);
-        autoRoomCache = (wardrobe.Version, me.Key, plan);
-        return plan;
+        var dupes = DresserCleanup.Duplicates(me.Dresser);
+        autoRoomCache = (wardrobe.Version, me.Key, plan, dupes);
+        return (plan, dupes);
     }
 
-    /// <summary>Why making room for you can't start now, or null.</summary>
+    /// <summary>Why gathering sets can't start now, or null.</summary>
     private string? AutoRoomBlocked(AutoRoomPlan plan, (int Prisms, int FreeBag) have)
     {
+        if (AutoBusy) return "Already at work";
         if (plan.Jobs.Count == 0) return "No set has loose pieces to gather";
         if (!GameWindows.IsShown("MiragePrismPrismBox") || !wardrobe.DresserLive) return "Open your glamour dresser first";
         if (have.Prisms < plan.Pieces) return $"It needs {Words.Count(plan.Pieces, "glamour prism")}: you have {have.Prisms}";
         if (have.FreeBag < plan.MostAtOnce) return $"It needs {Words.Count(plan.MostAtOnce, "free bag place")} at once: you have {have.FreeBag}";
+        return null;
+    }
+
+    /// <summary>Why taking out duplicates can't start now, or null.</summary>
+    private string? DupesBlocked(List<DresserPiece> dupes, (int Prisms, int FreeBag) have)
+    {
+        if (AutoBusy) return "Already at work";
+        if (dupes.Count == 0) return "No duplicates in your dresser";
+        if (!GameWindows.IsShown("MiragePrismPrismBox") || !wardrobe.DresserLive) return "Open your glamour dresser first";
+        if (have.FreeBag == 0) return "Your bags are full";
         return null;
     }
 
@@ -80,110 +102,186 @@ public sealed partial class MainWindow
         + $"it needs {plan.MostAtOnce} free bag places at a time (you have {have.FreeBag})."
         + (plan.SkippedDyed > 0 ? $" {Words.Count(plan.SkippedDyed, "dyed piece")} stay loose (a set may not keep its dyes)." : string.Empty);
 
-    private void StartAutoRoom(AutoRoomPlan plan)
+    private string DupesWords(List<DresserPiece> dupes, (int Prisms, int FreeBag) have)
     {
+        var names = Words.List(dupes.Select(d => data.ItemName(d.Item)).Distinct().Take(4)) + (dupes.Count > 4 ? " and more" : string.Empty);
+        return $"{Words.Count(dupes.Count, "duplicate")} ({names}): a second copy with the same dyes, or an undyed copy of a piece a stored set holds. "
+               + $"They come out to your bags (free {Words.Count(dupes.Count, "place")} here; you have {have.FreeBag} free bag places, it stops when they're full). "
+               + "Nothing's thrown away: sell or discard them yourself.";
+    }
+
+    /// <summary>Gathers the sets: worked out again from the dresser as it is now, and checked, then started.</summary>
+    private void StartAutoRoom()
+    {
+        if (AutoBusy || wardrobe.Current is not { } me) return;
         wardrobe.Tick(now: true);
+        autoRoomCache = null;
+        var (plan, _) = AutoRoomNow(me);
+        if (AutoRoomBlocked(plan, OutfitStorer.Supplies(data)) is { } why)
+        {
+            Notify(why);
+            return;
+        }
         recorder.Note($"MAKE ROOM for me: {plan.Jobs.Count} sets, {plan.Pieces} pieces, frees {plan.Frees}");
-        autoRoomLast = null;
-        OutfitStorer.Start(plan.Jobs, data, (words, ok) =>
+        var started = OutfitStorer.Start(plan.Jobs, data, (words, ok) =>
         {
             autoRoomLast = (words, ok);
             autoRoomCache = null;
             wardrobe.Tick(now: true);
             Notify(ok ? $"Made room: {words}" : words);
         });
+        if (!started) return;
+        autoRoomLast = null;
         Notify($"Storing {Words.Count(plan.Jobs.Count, "set")}…");
     }
 
-    /// <summary>On Make room: what it would do, Store them for me (asked first), or how it's going.</summary>
+    /// <summary>Takes out the duplicates: worked out again, checked, then started.</summary>
+    private void StartDupes()
+    {
+        if (AutoBusy || wardrobe.Current is not { } me) return;
+        wardrobe.Tick(now: true);
+        autoRoomCache = null;
+        var (_, dupes) = AutoRoomNow(me);
+        if (DupesBlocked(dupes, OutfitStorer.Supplies(data)) is { } why)
+        {
+            Notify(why);
+            return;
+        }
+        recorder.Note($"TAKE OUT duplicates: {dupes.Count}");
+        var started = DresserTaker.Start(dupes, data, (words, ok) =>
+        {
+            autoRoomLast = (words, ok);
+            autoRoomCache = null;
+            wardrobe.Tick(now: true);
+            Notify(words);
+        });
+        if (!started) return;
+        autoRoomLast = null;
+        Notify($"Taking out {Words.Count(dupes.Count, "duplicate")}…");
+    }
+
+    /// <summary>On Make room: what each would do, its button (asked first), or how it's going.</summary>
     private void DrawAutoRoom(CharacterWardrobe me)
     {
         Kit.BeginPanel("##auto-room", 14, 16, 14, Palette.RoseWash, Palette.RoseEdge, 14);
-        var at = Kit.At;
         var w = Kit.Width;
-        if (OutfitStorer.Busy)
+        if (AutoBusy)
         {
-            Txt.Para(new[]
-            {
-                new Run("Storing sets for you… ", Face.SansSemibold, 13, Palette.Ink),
-                new Run($"{OutfitStorer.SetsDone} done, {Words.Count(OutfitStorer.PlacesFreed, "place")} freed, {OutfitStorer.SetsLeft} to go. Keep the dresser open.", Face.Sans, 13, Palette.Soft),
-            }, 19.5f);
+            var doing = OutfitStorer.Busy
+                ? $"Storing sets for you… {OutfitStorer.SetsDone} done, {Words.Count(OutfitStorer.PlacesFreed, "place")} freed, {OutfitStorer.SetsLeft} to go."
+                : $"Taking out duplicates… {DresserTaker.Done} out, {DresserTaker.Left} to go.";
+            Txt.Para(new[] { new Run(doing + " Keep the dresser open.", Face.Sans, 13, Palette.Soft) }, 19.5f);
             Kit.Gap(10);
             var row = Kit.At;
-            if (Kit.Button("##auto-stop", row, "Stop", Btn.Danger, BtnSize.Sm, Icon.Square, 0, false, "Stops after the step at work"))
-                Later(() => OutfitStorer.Stop());
+            if (Kit.Button("##auto-stop", row, "Stop", Btn.Danger, BtnSize.Sm, Icon.Square, 0, false, "Stops once the step the game is answering is done"))
+                Later(() =>
+                {
+                    OutfitStorer.Stop();
+                    DresserTaker.Stop();
+                });
             Kit.Reserve(row, w, Kit.ButtonHeight(BtnSize.Sm));
             Kit.EndPanel();
             return;
         }
-        var plan = AutoRoomNow(me);
+        var (plan, dupes) = AutoRoomNow(me);
         var have = OutfitStorer.Supplies(data);
-        var blocked = AutoRoomBlocked(plan, have);
-        var label = plan.Jobs.Count > 0 ? $"Store {Words.Count(plan.Jobs.Count, "set")} for me" : "Store the sets for me";
-        var bw = Kit.ButtonWidth(label, BtnSize.Md, Icon.Package, Btn.Primary);
-        var textW = w - bw - S(16);
-        var head = plan.Jobs.Count > 0 ? $"Make room for me: frees {Words.Count(plan.Frees, "place")}" : "Make room for me";
-        Txt.Draw(Kit.Dl, at, Txt.Fit(head, Face.SansSemibold, 14, textW), Face.SansSemibold, 14, Palette.Ink);
-        var line = blocked ?? AutoRoomWords(plan, have);
-        var lh = Txt.Flow(new Vector2(at.X, at.Y + Txt.Natural(Face.SansSemibold, 14) + S(4)), textW, new[] { new Run(line, Face.Sans, 12, blocked != null ? Palette.RoseText : Palette.Soft) }, 18, out _);
-        var blockH = Txt.Natural(Face.SansSemibold, 14) + S(4) + lh;
-        if (Kit.Button("##auto-room-go", new Vector2(at.X + w - bw, at.Y + MathF.Max(0, (blockH - Kit.ButtonHeight(BtnSize.Md)) / 2)), label, Btn.Primary, BtnSize.Md, Icon.Package, 0,
-                blocked != null, blocked ?? "Asks first. New: not yet watched in the game"))
-        {
-            var words = AutoRoomWords(plan, have);
-            Ask("Store the sets for you?", words + " Keep the dresser open while it works; it stops at the first thing that doesn't go.", "Store them", "Not now",
-                () => StartAutoRoom(plan));
-        }
-        Kit.Reserve(at, w, MathF.Max(blockH, Kit.ButtonHeight(BtnSize.Md)));
+
+        var setsBlocked = AutoRoomBlocked(plan, have);
+        AutoRow("##auto-room-go", plan.Jobs.Count > 0 ? $"Gather the sets: frees {Words.Count(plan.Frees, "place")}" : "Gather the sets",
+            setsBlocked ?? AutoRoomWords(plan, have), setsBlocked != null,
+            plan.Jobs.Count > 0 ? $"Store {Words.Count(plan.Jobs.Count, "set")} for me" : "Store the sets for me", Icon.Package,
+            () => Ask("Store the sets for you?", AutoRoomWords(plan, have) + " Keep the dresser open while it works; it stops at the first thing that doesn't go.",
+                "Store them", "Not now", StartAutoRoom));
+        Kit.Gap(12);
+        Kit.Divider(Kit.Left, Kit.Left + w, Kit.At.Y);
+        Kit.Gap(12);
+        var dupesBlocked = DupesBlocked(dupes, have);
+        AutoRow("##auto-dupes-go", dupes.Count > 0 ? $"Duplicates: {Words.Count(dupes.Count, "place")} to free" : "Duplicates",
+            dupesBlocked ?? DupesWords(dupes, have), dupesBlocked != null,
+            dupes.Count > 0 ? $"Take out {Words.Count(dupes.Count, "duplicate")}" : "Take out duplicates", Icon.Trash,
+            () => Ask("Take out the duplicates?", DupesWords(dupes, have) + " Keep the dresser open while it works.", "Take them out", "Not now", StartDupes));
         if (autoRoomLast is { } last)
         {
-            Kit.Gap(8);
+            Kit.Gap(10);
             Txt.Para(new[] { new Run(last.Words, Face.Sans, 12, last.Ok ? Palette.Success : Palette.RoseText) }, 18);
         }
         Kit.EndPanel();
     }
 
-    /// <summary>In the dresser's panel: the same, smaller; pressed once it asks to be pressed again.</summary>
+    /// <summary>One of Make room for me's rows: a heading and its words, its button beside them (under them in a narrow window).</summary>
+    private void AutoRow(string id, string head, string line, bool blocked, string label, Icon icon, Action ask)
+    {
+        var at = Kit.At;
+        var w = Kit.Width;
+        var bw = Kit.ButtonWidth(label, BtnSize.Md, icon, Btn.Primary);
+        var stacked = w - bw - S(16) < S(260);
+        var textW = stacked ? w : w - bw - S(16);
+        Txt.Draw(Kit.Dl, at, Txt.Fit(head, Face.SansSemibold, 14, textW), Face.SansSemibold, 14, Palette.Ink);
+        var lh = Txt.Flow(new Vector2(at.X, at.Y + Txt.Natural(Face.SansSemibold, 14) + S(4)), textW, new[] { new Run(line, Face.Sans, 12, blocked ? Palette.RoseText : Palette.Soft) }, 18, out _);
+        var blockH = Txt.Natural(Face.SansSemibold, 14) + S(4) + lh;
+        var bh = Kit.ButtonHeight(BtnSize.Md);
+        var bpos = stacked ? new Vector2(at.X, at.Y + blockH + S(10)) : new Vector2(at.X + w - bw, at.Y + MathF.Max(0, (blockH - bh) / 2));
+        if (Kit.Button(id, bpos, label, Btn.Primary, BtnSize.Md, icon, 0, blocked, blocked ? line : "Asks first. New: not yet watched in the game"))
+            Later(ask);
+        Kit.Reserve(at, w, stacked ? blockH + S(10) + bh : MathF.Max(blockH, bh));
+    }
+
+    /// <summary>In the dresser's panel: the same, smaller; each button pressed once asks to be pressed again.</summary>
     private void PaneAutoRoom(CharacterWardrobe me)
     {
-        if (OutfitStorer.Busy)
+        if (AutoBusy)
         {
-            PaneNote($"Storing sets for you: {OutfitStorer.SetsDone} done, {OutfitStorer.SetsLeft} to go. Keep the dresser open.", Palette.RoseText);
+            PaneNote(OutfitStorer.Busy
+                ? $"Storing sets for you: {OutfitStorer.SetsDone} done, {OutfitStorer.SetsLeft} to go. Keep the dresser open."
+                : $"Taking out duplicates: {DresserTaker.Done} out, {DresserTaker.Left} to go. Keep the dresser open.", Palette.RoseText);
             Kit.Gap(6);
             var srow = Kit.At;
-            if (Kit.Button("##c-auto-stop", srow, "Stop", Btn.Danger, BtnSize.Sm, Icon.Square)) Later(() => OutfitStorer.Stop());
+            if (Kit.Button("##c-auto-stop", srow, "Stop", Btn.Danger, BtnSize.Sm, Icon.Square))
+                Later(() =>
+                {
+                    OutfitStorer.Stop();
+                    DresserTaker.Stop();
+                });
             Kit.Reserve(srow, Kit.Width, Kit.ButtonHeight(BtnSize.Sm));
             return;
         }
-        var plan = AutoRoomNow(me);
-        if (plan.Jobs.Count == 0)
-        {
-            if (autoRoomLast is { } done) PaneNote(done.Words, done.Ok ? Palette.Success : Palette.RoseText);
-            return;
-        }
+        var (plan, dupes) = AutoRoomNow(me);
         var have = OutfitStorer.Supplies(data);
-        var blocked = AutoRoomBlocked(plan, have);
-        var armed = DateTime.UtcNow < autoRoomArmedUntil;
-        PaneNote(blocked ?? $"{Words.Count(plan.Jobs.Count, "set")} could gather {Words.Count(plan.Pieces, "loose piece")}: frees {Words.Count(plan.Frees, "place")}, for {Words.Count(plan.Pieces, "glamour prism")} (you have {have.Prisms}).",
-            blocked != null ? Palette.RoseText : null);
-        Kit.Gap(6);
-        var row = Kit.At;
-        var label = armed ? "Press again to store them" : $"Store {Words.Count(plan.Jobs.Count, "set")} for me";
-        if (Kit.Button("##c-auto-room", row, label, armed ? Btn.Primary : Btn.Glass, BtnSize.Sm, Icon.Package, 0, blocked != null, blocked ?? AutoRoomWords(plan, have)))
-            Later(() =>
-            {
-                if (DateTime.UtcNow < autoRoomArmedUntil)
-                {
-                    autoRoomArmedUntil = DateTime.MinValue;
-                    StartAutoRoom(plan);
-                }
-                else autoRoomArmedUntil = DateTime.UtcNow + TimeSpan.FromSeconds(5);
-            });
-        Kit.Reserve(row, Kit.Width, Kit.ButtonHeight(BtnSize.Sm));
-        if (autoRoomLast is { } last)
+        if (plan.Jobs.Count > 0)
         {
+            var blocked = AutoRoomBlocked(plan, have);
+            PaneNote(blocked ?? $"{Words.Count(plan.Jobs.Count, "set")} could gather {Words.Count(plan.Pieces, "loose piece")}: frees {Words.Count(plan.Frees, "place")}, for {Words.Count(plan.Pieces, "glamour prism")} (you have {have.Prisms}).",
+                blocked != null ? Palette.RoseText : null);
             Kit.Gap(6);
-            PaneNote(last.Words, last.Ok ? Palette.Success : Palette.RoseText);
+            PaneArmedButton("##c-auto-room", $"Store {Words.Count(plan.Jobs.Count, "set")} for me", "Press again to store them", Icon.Package, blocked, AutoRoomWords(plan, have),
+                ref autoRoomArmedUntil, StartAutoRoom);
+            Kit.Gap(10);
         }
+        if (dupes.Count > 0)
+        {
+            var blocked = DupesBlocked(dupes, have);
+            PaneNote(blocked ?? $"{Words.Count(dupes.Count, "duplicate")} could come out to your bags: frees {Words.Count(dupes.Count, "place")}.", blocked != null ? Palette.RoseText : null);
+            Kit.Gap(6);
+            PaneArmedButton("##c-dupes", $"Take out {Words.Count(dupes.Count, "duplicate")}", "Press again to take them out", Icon.Trash, blocked, DupesWords(dupes, have),
+                ref dupesArmedUntil, StartDupes);
+            Kit.Gap(10);
+        }
+        if (autoRoomLast is { } last) PaneNote(last.Words, last.Ok ? Palette.Success : Palette.RoseText);
+    }
+
+    /// <summary>A panel button pressed twice: the first press arms it for five seconds, the second starts.</summary>
+    private void PaneArmedButton(string id, string label, string armedLabel, Icon icon, string? blocked, string tip, ref DateTime armedUntil, Action start)
+    {
+        var row = Kit.At;
+        var armed = DateTime.UtcNow < armedUntil;
+        var pressed = Kit.Button(id, row, armed ? armedLabel : label, armed ? Btn.Primary : Btn.Glass, BtnSize.Sm, icon, 0, blocked != null, blocked ?? tip);
+        Kit.Reserve(row, Kit.Width, Kit.ButtonHeight(BtnSize.Sm));
+        if (!pressed) return;
+        if (armed)
+        {
+            armedUntil = DateTime.MinValue;
+            Later(start);
+        }
+        else armedUntil = DateTime.UtcNow + TimeSpan.FromSeconds(5);
     }
 }

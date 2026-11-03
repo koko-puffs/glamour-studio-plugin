@@ -436,6 +436,22 @@ public class FeatureTests
     }
 
     [Fact]
+    public void FindsDuplicates()
+    {
+        var dresser = new List<DresserPiece>
+        {
+            new(0, 10, 0, 0), new(1, 1_000_010, 0, 0), // 10 twice (NQ and HQ, undyed): the second's a duplicate
+            new(2, 10, 5, 0), // 10 dyed otherwise: kept
+            new(3, 10, 5, 0), // and again dyed the same: a duplicate
+            new(4, 31, 0, 0, 30), new(4, 32, 0, 0, 30), // a stored set with 31 and 32
+            new(5, 31, 0, 0), // a loose undyed 31: the set has it
+            new(6, 32, 7, 0), // a loose dyed 32: kept
+            new(7, 40, 0, 0), // one copy only
+        };
+        Assert.Equal(new[] { 1, 3, 5 }, DresserCleanup.Duplicates(dresser).Select(d => d.Index));
+    }
+
+    [Fact]
     public void FitsShotsToTheLongEdge()
     {
         Assert.Equal((2560, 1440), SiteLink.FitShot(3840, 2160, 2560));

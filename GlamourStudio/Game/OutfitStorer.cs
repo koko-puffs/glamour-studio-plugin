@@ -14,27 +14,43 @@ public sealed record OutfitJob(uint SetItem, IReadOnlyList<DresserPiece> Pieces,
 /// doing it by hand does. The game stores an outfit only from your bags or armoury chest (the outfit
 /// window lists nothing from the dresser), so for each set: each loose piece is restored to your bags
 /// (<c>MirageManager.RestorePrismBoxItem</c>, the dresser's "Restore item to its original form"), and
-/// once they're all there they go back in as the set (<c>StoreNewOutfit</c>, or <c>StoreExistingOutfit</c>
+/// once they're there they go back in as the set (<c>StoreNewOutfit</c>, or <c>StoreExistingOutfit</c>
 /// into the set stored already: each piece at its set column, the rest <c>Invalid</c>), spending a
-/// glamour prism each, as the game's own storing does. One step at a time, each waited for (the piece
-/// in your bags, the set in the dresser); the first that doesn't come stops it all, and says what's
-/// left in your bags. With the glamour dresser open. Framework thread. Not yet watched in the game.
+/// glamour prism each, as the game's own storing does.
+/// <para>
+/// Before a set's first piece leaves the dresser, every piece is found (its place now), the bags are
+/// checked for room, and a Unique piece you already hold is left. Each step is waited for: a restore
+/// until the dresser has one copy fewer and a new bag place holds it; a store until those places are
+/// empty. When a piece doesn't come, the ones that did still go in as the set (when enough for one),
+/// and it stops, saying what's left in your bags. Stop waits for a step the game is answering. With
+/// the glamour dresser open. Framework thread. Not yet watched in the game.
+/// </para>
 /// </summary>
 public static unsafe class OutfitStorer
 {
     private enum Phase { Idle, Restoring, WaitRestored, Storing, WaitStored, Between }
 
-    private static readonly InventoryType[] Bags = { InventoryType.Inventory1, InventoryType.Inventory2, InventoryType.Inventory3, InventoryType.Inventory4 };
-
     private static Phase phase;
     private static readonly Queue<OutfitJob> jobs = new();
     private static OutfitJob? job;
+    private static List<DresserPiece> pieces = new();
     private static GameData? data;
     private static int pieceAt;
     private static DateTime deadline;
-    private static HashSet<(InventoryType, int)> before = new();
+    private static HashSet<(InventoryType Type, int Slot)> before = new();
+    private static int dresserBefore;
+
+    /// <summary>The pieces of the set at work that are in your bags now (and where).</summary>
     private static readonly List<(DresserPiece Piece, InventoryType Type, int Slot)> restored = new();
+
+    /// <summary>The pieces handed to the game to store (what the wait watches).</summary>
+    private static readonly List<(DresserPiece Piece, InventoryType Type, int Slot)> storing = new();
+
     private static Action<string, bool>? report;
+    private static bool stopAsked;
+
+    /// <summary>Why it stops once the set at work is stored (a piece that didn't come), or null.</summary>
+    private static string? stopAfterStore;
 
     /// <summary>Whether it's at work.</summary>
     public static bool Busy => phase != Phase.Idle;
@@ -47,24 +63,32 @@ public static unsafe class OutfitStorer
     /// <summary>Sets left to do (the one at work included).</summary>
     public static int SetsLeft => jobs.Count + (job != null ? 1 : 0);
 
-    /// <summary>Starts gathering <paramref name="todo"/>; <paramref name="onEnd"/> hears how it ended (the words, and whether all went).</summary>
-    public static void Start(IEnumerable<OutfitJob> todo, GameData gameData, Action<string, bool> onEnd)
+    /// <summary>Starts gathering <paramref name="todo"/>; <paramref name="onEnd"/> hears how it ended. False when it's busy already.</summary>
+    public static bool Start(IEnumerable<OutfitJob> todo, GameData gameData, Action<string, bool> onEnd)
     {
-        if (Busy) return;
+        if (Busy || DresserTaker.Busy) return false;
         data = gameData;
         report = onEnd;
         jobs.Clear();
         foreach (var j in todo) jobs.Enqueue(j);
         SetsDone = PlacesFreed = 0;
+        stopAsked = false;
+        stopAfterStore = null;
         Recorder.Log($"OUTFITS start: {jobs.Count} sets, {jobs.Sum(j => j.Pieces.Count)} pieces");
         Next();
+        return true;
     }
 
-    /// <summary>Stops after the step at work (pieces restored stay in your bags).</summary>
-    public static void Stop(string why = "Stopped")
+    /// <summary>Stops once no step is waiting on the game (at once, when <paramref name="now"/>: the plugin's closing).</summary>
+    public static void Stop(string why = "Stopped", bool now = false)
     {
         if (!Busy) return;
-        Finish(why, false);
+        if (now || phase is Phase.Restoring or Phase.Between) Finish(why, false);
+        else
+        {
+            stopAsked = true;
+            Recorder.Log($"OUTFITS stop asked: {why}");
+        }
     }
 
     /// <summary>How many glamour prisms you have (in your bags), and how many free bag places.</summary>
@@ -86,12 +110,13 @@ public static unsafe class OutfitStorer
     public static void Tick()
     {
         if (phase == Phase.Idle) return;
-        if (!GameWindows.IsShown("MiragePrismPrismBox"))
+        var waiting = phase is Phase.WaitRestored or Phase.WaitStored;
+        if (!GameWindows.IsShown("MiragePrismPrismBox") && !waiting)
         {
             Finish("The glamour dresser closed", false);
             return;
         }
-        if (Services.Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.InCombat])
+        if (Services.Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.InCombat] && !waiting)
         {
             Finish("You're in combat", false);
             return;
@@ -103,22 +128,29 @@ public static unsafe class OutfitStorer
         {
             case Phase.Restoring:
             {
-                var piece = job!.Pieces[pieceAt];
-                // Where it is now: the place read before, else wherever a loose undyed copy is (should
-                // the dresser close up its places as pieces leave it).
-                var at = PlaceOf(mgr, piece);
+                if (now < deadline) break;
+                if (stopAsked)
+                {
+                    StoreWhatCameOrFinish("Stopped");
+                    break;
+                }
+                var piece = pieces[pieceAt];
+                var id = LookJson.BaseId(piece.Item);
+                // Where it is now: the place read before, else wherever a loose undyed copy is.
+                var at = DresserPlaces.Find(mgr, id, 0, 0, piece.Index);
                 if (at < 0)
                 {
-                    Finish($"{data!.ItemName(piece.Item)} isn't in the dresser any more", false);
-                    return;
+                    StoreWhatCameOrFinish($"{data!.ItemName(piece.Item)} isn't in the dresser any more");
+                    break;
                 }
-                before = Occupied(LookJson.BaseId(piece.Item));
+                before = DresserPlaces.InBags(id);
+                dresserBefore = DresserPlaces.Count(mgr, id);
                 var ok = mgr->RestorePrismBoxItem((uint)at);
-                Recorder.Log($"  RestorePrismBoxItem {at} (read at {piece.Index}, {piece.Item}) → {ok}");
+                Recorder.Log($"  RestorePrismBoxItem {at} (read at {piece.Index}, {piece.Item}) → {ok}, dresser had {dresserBefore}");
                 if (!ok)
                 {
-                    Finish($"The game wouldn't restore {data!.ItemName(piece.Item)} (a unique item you have, or no room in your bags)", false);
-                    return;
+                    StoreWhatCameOrFinish($"The game wouldn't restore {data!.ItemName(piece.Item)} (no room in your bags?)");
+                    break;
                 }
                 phase = Phase.WaitRestored;
                 deadline = now + TimeSpan.FromSeconds(6);
@@ -126,101 +158,213 @@ public static unsafe class OutfitStorer
             }
             case Phase.WaitRestored:
             {
-                var piece = job!.Pieces[pieceAt];
+                var piece = pieces[pieceAt];
                 var id = LookJson.BaseId(piece.Item);
-                var fresh = Occupied(id).Except(before).FirstOrDefault();
-                if (fresh != default)
+                var fresh = DresserPlaces.InBags(id).Except(before).ToList();
+                // Arrived: the dresser has one copy fewer and a bag place holds it that didn't before
+                // (a place set apart by a list, never compared with default: bag 1's first place is that).
+                if (fresh.Count >= 1 && DresserPlaces.Count(mgr, id) < dresserBefore)
                 {
-                    restored.Add((piece, fresh.Item1, fresh.Item2));
-                    Recorder.Log($"  restored {id} to {fresh.Item1}:{fresh.Item2}");
+                    restored.Add((piece, fresh[0].Type, fresh[0].Slot));
+                    Recorder.Log($"  restored {id} to {fresh[0].Type}:{fresh[0].Slot}{(fresh.Count > 1 ? $" ({fresh.Count} new places held it: the first taken)" : string.Empty)}");
                     pieceAt++;
-                    phase = pieceAt < job.Pieces.Count ? Phase.Restoring : Phase.Storing;
+                    phase = pieceAt < pieces.Count ? Phase.Restoring : Phase.Storing;
                     deadline = now + TimeSpan.FromMilliseconds(400);
                     break;
                 }
-                if (now > deadline) Finish($"{data!.ItemName(piece.Item)} didn't come to your bags", false);
+                if (now > deadline) StoreWhatCameOrFinish($"{data!.ItemName(piece.Item)} didn't come to your bags (it may come yet: check them)");
                 break;
             }
             case Phase.Storing:
             {
                 if (now < deadline) break;
-                var containers = stackalloc InventoryType[11];
-                var slots = stackalloc ushort[11];
-                for (var i = 0; i < 11; i++)
-                {
-                    containers[i] = InventoryType.Invalid;
-                    slots[i] = 0;
-                }
-                var columns = data!.SetPieces(job!.SetItem);
-                var placed = 0;
-                foreach (var (piece, type, slot) in restored)
-                {
-                    var col = columns.FirstOrDefault(c => LookJson.BaseId(c.Item) == LookJson.BaseId(piece.Item));
-                    if (col.Item == 0 || col.Column is < 0 or > 10) continue;
-                    containers[col.Column] = type;
-                    slots[col.Column] = (ushort)slot;
-                    placed++;
-                }
-                if (placed == 0)
-                {
-                    Finish("None of the set's pieces could be matched to its columns", false);
-                    return;
-                }
-                var ok = job.StoredAt >= 0
-                    ? mgr->StoreExistingOutfit((uint)job.StoredAt, containers, slots)
-                    : mgr->StoreNewOutfit(job.SetItem, containers, slots);
-                Recorder.Log($"  {(job.StoredAt >= 0 ? $"StoreExistingOutfit {job.StoredAt}" : $"StoreNewOutfit {job.SetItem}")}: "
-                             + string.Join(" ", Enumerable.Range(0, 11).Where(i => containers[i] != InventoryType.Invalid).Select(i => $"col{i}={containers[i]}:{slots[i]}")) + $" → {ok}");
-                if (!ok)
-                {
-                    Finish($"The game wouldn't store {data.ItemName(job.SetItem)} (glamour prisms?)", false);
-                    return;
-                }
-                phase = Phase.WaitStored;
-                deadline = now + TimeSpan.FromSeconds(8);
+                Store(mgr, now);
                 break;
             }
             case Phase.WaitStored:
             {
-                var gone = restored.All(r => SlotItem(r.Type, r.Slot) != LookJson.BaseId(r.Piece.Item));
-                if (gone)
+                if (storing.All(r => DresserPlaces.SlotItem(r.Type, r.Slot) != LookJson.BaseId(r.Piece.Item)))
                 {
-                    var freed = job!.StoredAt >= 0 ? restored.Count : Math.Max(0, restored.Count - 1);
+                    var freed = job!.StoredAt >= 0 ? storing.Count : Math.Max(0, storing.Count - 1);
                     SetsDone++;
                     PlacesFreed += freed;
-                    Recorder.Log($"  stored {job.SetItem}: {restored.Count} pieces, {freed} places freed");
-                    restored.Clear();
+                    Recorder.Log($"  stored {job.SetItem}: {storing.Count} pieces, {freed} places freed");
+                    restored.RemoveAll(r => storing.Any(s => s.Piece.Index == r.Piece.Index && s.Type == r.Type && s.Slot == r.Slot));
+                    storing.Clear();
+                    if (stopAfterStore is { } why)
+                    {
+                        Finish(why, false);
+                        break;
+                    }
+                    if (restored.Count > 0)
+                    {
+                        Finish("Some pieces couldn't be placed in their set", false);
+                        break;
+                    }
+                    if (stopAsked)
+                    {
+                        Finish("Stopped", false);
+                        break;
+                    }
                     job = null;
                     phase = Phase.Between;
                     deadline = now + TimeSpan.FromSeconds(1);
                     break;
                 }
-                if (now > deadline) Finish($"{data!.ItemName(job!.SetItem)} wasn't stored (the game didn't take its pieces)", false);
+                if (now > deadline)
+                {
+                    // The ask went: whether the game took it isn't known here.
+                    var names = Words.List(storing.Select(r => data!.ItemName(r.Piece.Item)));
+                    storing.Clear();
+                    restored.Clear();
+                    Finish($"{data!.ItemName(job!.SetItem)}: the game hasn't answered. {names} may have gone into the set: check the dresser and your bags", false);
+                }
                 break;
             }
             case Phase.Between:
+                if (stopAsked)
+                {
+                    Finish("Stopped", false);
+                    break;
+                }
                 if (now >= deadline) Next();
                 break;
         }
     }
 
+    /// <summary>The set's pieces that came go in as the set when there are enough for one, then it stops; else it stops now.</summary>
+    private static void StoreWhatCameOrFinish(string why)
+    {
+        var enough = job != null && restored.Count >= (job.StoredAt >= 0 ? 1 : 2);
+        if (!enough)
+        {
+            Finish(why, false);
+            return;
+        }
+        Recorder.Log($"  {why}: storing the {restored.Count} that came, then stopping");
+        stopAfterStore = why;
+        phase = Phase.Storing;
+        deadline = DateTime.MinValue;
+    }
+
+    private static void Store(MirageManager* mgr, DateTime now)
+    {
+        var containers = stackalloc InventoryType[11];
+        var slots = stackalloc ushort[11];
+        for (var i = 0; i < 11; i++)
+        {
+            containers[i] = InventoryType.Invalid;
+            slots[i] = 0;
+        }
+        var columns = data!.SetPieces(job!.SetItem);
+        storing.Clear();
+        for (var k = 0; k < restored.Count; k++)
+        {
+            var (piece, type, slot) = restored[k];
+            var id = LookJson.BaseId(piece.Item);
+            // Still where it came (you may have moved it meanwhile): else wherever it is in your bags now.
+            if (DresserPlaces.SlotItem(type, slot) != id)
+            {
+                var others = DresserPlaces.InBags(id).Where(p => storing.All(s => s.Type != p.Type || s.Slot != p.Slot)).ToList();
+                if (others.Count == 0) continue;
+                (type, slot) = others[0];
+                restored[k] = (piece, type, slot);
+            }
+            var col = columns.FirstOrDefault(c => LookJson.BaseId(c.Item) == id);
+            if (col.Item == 0 || col.Column is < 0 or > 10 || containers[col.Column] != InventoryType.Invalid) continue;
+            containers[col.Column] = type;
+            slots[col.Column] = (ushort)slot;
+            storing.Add((piece, type, slot));
+        }
+        if (storing.Count < (job.StoredAt >= 0 ? 1 : 2))
+        {
+            Finish(stopAfterStore ?? "The set's pieces in your bags couldn't be found again", false);
+            return;
+        }
+        var storedAt = -1;
+        if (job.StoredAt >= 0)
+        {
+            // The set's place now (should the dresser have closed up as pieces left it).
+            storedAt = DresserPlaces.FindSet(mgr, job.SetItem, job.StoredAt);
+            if (storedAt < 0)
+            {
+                storing.Clear();
+                Finish($"{data.ItemName(job.SetItem)} isn't in the dresser any more", false);
+                return;
+            }
+        }
+        var ok = storedAt >= 0
+            ? mgr->StoreExistingOutfit((uint)storedAt, containers, slots)
+            : mgr->StoreNewOutfit(job.SetItem, containers, slots);
+        Recorder.Log($"  {(storedAt >= 0 ? $"StoreExistingOutfit {storedAt} (read at {job.StoredAt})" : $"StoreNewOutfit {job.SetItem}")}: "
+                     + string.Join(" ", Enumerable.Range(0, 11).Where(i => containers[i] != InventoryType.Invalid).Select(i => $"col{i}={containers[i]}:{slots[i]}")) + $" → {ok}");
+        if (!ok)
+        {
+            storing.Clear();
+            Finish($"The game wouldn't store {data.ItemName(job.SetItem)} (glamour prisms?)", false);
+            return;
+        }
+        phase = Phase.WaitStored;
+        deadline = now + TimeSpan.FromSeconds(8);
+    }
+
+    /// <summary>The next set: its pieces found and checked before any leaves the dresser.</summary>
     private static void Next()
     {
         restored.Clear();
-        if (jobs.Count == 0)
+        storing.Clear();
+        stopAfterStore = null;
+        while (jobs.Count > 0)
         {
-            Finish($"{Words.Count(SetsDone, "set")} stored, {Words.Count(PlacesFreed, "place")} freed", true);
+            job = jobs.Dequeue();
+            var mgr = MirageManager.Instance();
+            var inv = InventoryManager.Instance();
+            if (mgr == null || inv == null) break;
+            var ready = new List<DresserPiece>();
+            var notes = new List<string>();
+            foreach (var p in job.Pieces)
+            {
+                var id = LookJson.BaseId(p.Item);
+                if (DresserPlaces.Find(mgr, id, 0, 0, p.Index) < 0)
+                {
+                    notes.Add($"{p.Item} gone");
+                    continue;
+                }
+                // A Unique piece you hold already wouldn't come out of the dresser.
+                if (data!.Item(p.Item)?.Unique == true && DresserPlaces.Holding(id))
+                {
+                    notes.Add($"{p.Item} unique, held");
+                    continue;
+                }
+                ready.Add(p);
+            }
+            var min = job.StoredAt >= 0 ? 1 : 2;
+            var free = (int)inv->GetEmptySlotsInBag();
+            if (ready.Count < min || ready.Count > free)
+            {
+                Recorder.Log($"OUTFITS set {job.SetItem} left: {ready.Count} pieces ready (needs {min}), {free} free bag places{(notes.Count > 0 ? "; " + string.Join(", ", notes) : string.Empty)}");
+                if (ready.Count > free)
+                {
+                    Finish($"Not enough room in your bags for {data!.ItemName(job.SetItem)} ({ready.Count} needed, {free} free)", false);
+                    return;
+                }
+                continue;
+            }
+            pieces = ready;
+            pieceAt = 0;
+            phase = Phase.Restoring;
+            deadline = DateTime.MinValue;
+            Recorder.Log($"OUTFITS set {job.SetItem}{(job.StoredAt >= 0 ? $" (stored at {job.StoredAt})" : string.Empty)}: pieces {string.Join(" ", pieces.Select(p => $"{p.Index}:{p.Item}"))}{(notes.Count > 0 ? "; left " + string.Join(", ", notes) : string.Empty)}");
             return;
         }
-        job = jobs.Dequeue();
-        pieceAt = 0;
-        phase = job.Pieces.Count > 0 ? Phase.Restoring : Phase.Between;
-        Recorder.Log($"OUTFITS set {job.SetItem}{(job.StoredAt >= 0 ? $" (stored at {job.StoredAt})" : string.Empty)}: pieces {string.Join(" ", job.Pieces.Select(p => $"{p.Index}:{p.Item}"))}");
+        job = null;
+        Finish(SetsDone == 0 ? "No set could be gathered (its pieces gone, or Unique ones you hold)" : $"{Words.Count(SetsDone, "set")} stored, {Words.Count(PlacesFreed, "place")} freed", SetsDone > 0);
     }
 
     private static void Finish(string words, bool allWent)
     {
         var left = restored.Select(r => data?.ItemName(r.Piece.Item) ?? r.Piece.Item.ToString()).ToList();
+        if (phase == Phase.WaitRestored && pieceAt < pieces.Count) left.Add($"{data?.ItemName(pieces[pieceAt].Item) ?? "a piece"} (maybe: it was on its way)");
         if (!allWent && left.Count > 0) words += $". In your bags now: {Words.List(left)} (store them in the dresser yourself)";
         if (!allWent && SetsDone > 0) words += $". Done before that: {Words.Count(SetsDone, "set")}, {Words.Count(PlacesFreed, "place")} freed";
         Recorder.Log($"OUTFITS end: {words}");
@@ -228,33 +372,81 @@ public static unsafe class OutfitStorer
         jobs.Clear();
         job = null;
         restored.Clear();
+        storing.Clear();
+        stopAsked = false;
+        stopAfterStore = null;
         var r = report;
         report = null;
         r?.Invoke(words, allWent);
     }
+}
 
-    /// <summary>The dresser place of a loose undyed copy of the piece: the one read if it's still there, else the first; -1 when none.</summary>
-    private static int PlaceOf(MirageManager* mgr, DresserPiece piece)
+/// <summary>Finding things in the dresser and your bags, for <see cref="OutfitStorer"/> and <see cref="DresserTaker"/>.</summary>
+public static unsafe class DresserPlaces
+{
+    private static readonly InventoryType[] Bags = { InventoryType.Inventory1, InventoryType.Inventory2, InventoryType.Inventory3, InventoryType.Inventory4 };
+
+    /// <summary>
+    /// A loose copy's dresser place, with these dyes: the one read if it still holds it, else the first
+    /// that does (should the dresser close up its places as pieces leave); -1 when none does.
+    /// </summary>
+    public static int Find(MirageManager* mgr, uint id, byte dye1, byte dye2, int readAt)
     {
-        var id = LookJson.BaseId(piece.Item);
         var n = mgr->PrismBoxItemIds.Length;
-        if (piece.Index >= 0 && piece.Index < n && Fits(mgr, piece.Index, id)) return piece.Index;
+        if (readAt >= 0 && readAt < n && Fits(mgr, readAt, id, dye1, dye2)) return readAt;
         for (var i = 0; i < n; i++)
-            if (Fits(mgr, i, id))
+            if (Fits(mgr, i, id, dye1, dye2))
                 return i;
         return -1;
     }
 
-    private static bool Fits(MirageManager* mgr, int i, uint id) =>
-        LookJson.BaseId(mgr->PrismBoxItemIds[i]) == id && mgr->PrismBoxStain0Ids[i] == 0 && mgr->PrismBoxStain1Ids[i] == 0;
+    private static bool Fits(MirageManager* mgr, int i, uint id, byte dye1, byte dye2) =>
+        LookJson.BaseId(mgr->PrismBoxItemIds[i]) == id && mgr->PrismBoxStain0Ids[i] == dye1 && mgr->PrismBoxStain1Ids[i] == dye2;
+
+    /// <summary>How many places of the dresser hold the item (loose copies; a set is its own item).</summary>
+    public static int Count(MirageManager* mgr, uint id)
+    {
+        var c = 0;
+        var n = mgr->PrismBoxItemIds.Length;
+        for (var i = 0; i < n; i++)
+            if (LookJson.BaseId(mgr->PrismBoxItemIds[i]) == id)
+                c++;
+        return c;
+    }
+
+    /// <summary>The stored set's place: the one read if it still holds the set, else wherever it is; -1 when it's gone.</summary>
+    public static int FindSet(MirageManager* mgr, uint setItem, int readAt)
+    {
+        var id = LookJson.BaseId(setItem);
+        var n = mgr->PrismBoxItemIds.Length;
+        if (readAt >= 0 && readAt < n && LookJson.BaseId(mgr->PrismBoxItemIds[readAt]) == id) return readAt;
+        for (var i = 0; i < n; i++)
+            if (LookJson.BaseId(mgr->PrismBoxItemIds[i]) == id)
+                return i;
+        return -1;
+    }
+
+    /// <summary>Whether you hold a copy in your bags, armoury chest or on you.</summary>
+    public static bool Holding(uint item)
+    {
+        var where = new List<InventoryType>(Bags)
+        {
+            InventoryType.EquippedItems, InventoryType.ArmoryMainHand, InventoryType.ArmoryOffHand, InventoryType.ArmoryHead, InventoryType.ArmoryBody,
+            InventoryType.ArmoryHands, InventoryType.ArmoryLegs, InventoryType.ArmoryFeets, InventoryType.ArmoryEar, InventoryType.ArmoryNeck,
+            InventoryType.ArmoryWrist, InventoryType.ArmoryRings,
+        };
+        return Occupied(item, where).Count > 0;
+    }
 
     /// <summary>The bag places holding an item now.</summary>
-    private static HashSet<(InventoryType, int)> Occupied(uint item)
+    public static HashSet<(InventoryType Type, int Slot)> InBags(uint item) => Occupied(item, Bags);
+
+    private static HashSet<(InventoryType Type, int Slot)> Occupied(uint item, IEnumerable<InventoryType> containers)
     {
         var set = new HashSet<(InventoryType, int)>();
         var mgr = InventoryManager.Instance();
         if (mgr == null) return set;
-        foreach (var bag in Bags)
+        foreach (var bag in containers)
         {
             var c = mgr->GetInventoryContainer(bag);
             if (c == null || !c->IsLoaded) continue;
@@ -267,10 +459,11 @@ public static unsafe class OutfitStorer
         return set;
     }
 
-    private static uint SlotItem(InventoryType type, int slot)
+    /// <summary>The item in a bag place (normal quality), or 0.</summary>
+    public static uint SlotItem(InventoryType type, int slot)
     {
         var mgr = InventoryManager.Instance();
-        if (mgr == null) return 0;
+        if (mgr == null || type == InventoryType.Invalid) return 0;
         var c = mgr->GetInventoryContainer(type);
         if (c == null) return 0;
         var it = c->GetInventorySlot(slot);
