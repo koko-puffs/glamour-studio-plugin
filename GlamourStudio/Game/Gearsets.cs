@@ -77,6 +77,7 @@ public static unsafe class Gearsets
             var c = Services.Condition;
             if (c[ConditionFlag.InCombat]) return "Not in combat: the game won't change gearset then";
             if (PlateEditor.Mode == 0 || GameWindows.IsShown("MiragePrismPrismBox")) return "Close Glamour Plates and the dresser first";
+            if (PlateEditor.Mode == 1) return "Close the Glamour Plate window first (or apply it there)";
             if (c[ConditionFlag.BetweenAreas] || c[ConditionFlag.BetweenAreas51]) return "Wait until you've arrived";
             if (c[ConditionFlag.OccupiedInEvent] || c[ConditionFlag.OccupiedInQuestEvent] || c[ConditionFlag.Occupied] || c[ConditionFlag.OccupiedSummoningBell] || c[ConditionFlag.Casting])
                 return "Not while you're busy (talking to someone, a bell, casting)";

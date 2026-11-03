@@ -268,6 +268,37 @@ public static unsafe class PlateEditor
     }
 
     /// <summary>
+    /// Applies a plate in the plate window opened from the Character window (mode 1), as its own
+    /// apply does: <c>[i:15, u:plate−1]</c> (seen in the first recording, "Glamours projected from
+    /// plate N"). <c>/gearset change</c> is refused while that window's open ("…while occupied", a
+    /// recording saw). Null when asked of the game, else why not.
+    /// </summary>
+    public static string? ApplyInWindow(int plate)
+    {
+        if (plate is < 1 or > Plates.Count) return "There's no such plate";
+        if (Mode != 1) return "Open Glamour Plate from the Character window first";
+        if (Services.Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.InCombat]) return "Not in combat";
+        try
+        {
+            var a = (AtkUnitBase*)Services.GameGui.GetAddonByName(Window).Address;
+            if (a == null || !a->IsVisible) return "The Glamour Plate window closed";
+            var values = stackalloc AtkValue[2];
+            values[0].Type = AtkValueType.Int;
+            values[0].Int = 15;
+            values[1].Type = AtkValueType.UInt;
+            values[1].UInt = (uint)(plate - 1);
+            a->FireCallback(2, values, true);
+            Recorder.Log($"APPLY plate {plate} in the plate window: fired [i:15, u:{plate - 1}]");
+            return null;
+        }
+        catch (Exception ex)
+        {
+            Services.Log.Warning(ex, "Glamour Studio couldn't apply a plate");
+            return "The game wouldn't apply it";
+        }
+    }
+
+    /// <summary>
     /// Wears a glamour plate now, with the gearset you're on, as <c>/gearset change &lt;set&gt; &lt;plate&gt;</c>
     /// does (the game has no command for a plate alone: <c>/glamourplate</c> isn't one). In a
     /// sanctuary, on a job whose gear the plate fits; not in combat, nor at a dresser

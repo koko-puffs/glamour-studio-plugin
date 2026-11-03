@@ -68,6 +68,9 @@ public sealed class Shots : IDisposable
     private bool hidHud;
     private Task<IDalamudTextureWrap>? grab;
     private (string LookId, string LookName, int Generation)? grabFor;
+
+    /// <summary>The HUD was showing when the frame was grabbed.</summary>
+    private bool hudInShot;
     private int generation;
     private Task? making;
 
@@ -141,6 +144,8 @@ public sealed class Shots : IDisposable
         }
         grabFor = (lookId, lookName, ++generation);
         grabAt = DateTime.UtcNow;
+        // The HUD back before the frame (Scroll Lock pressed meanwhile, as a recording saw): the shot says so.
+        hudInShot = !Services.GameGui.GameUiHidden && !Services.ClientState.IsGPosing;
         Game.Recorder.Log($"SHOT grabbing the frame (hud hidden {Services.GameGui.GameUiHidden})");
         return true;
     }
@@ -207,7 +212,11 @@ public sealed class Shots : IDisposable
             Failed(m.Why ?? "Couldn't make the picture.");
             return;
         }
-        Taken = new Shot { LookId = lookId, LookName = lookName, Jpeg = m.Jpeg, Width = m.Width, Height = m.Height, Thumb = m.Thumb };
+        Taken = new Shot
+        {
+            LookId = lookId, LookName = lookName, Jpeg = m.Jpeg, Width = m.Width, Height = m.Height, Thumb = m.Thumb,
+            Note = hudInShot ? ("The HUD came back before the picture was taken: it's in the shot. Take another for a clean one.", true) : null,
+        };
         Game.Recorder.Log($"SHOT made: {m.Width}×{m.Height}, {m.Jpeg.Length:N0} bytes, hud hidden now {Services.GameGui.GameUiHidden}");
         // With the HUD hidden (or in Group Pose) Dalamud hides the plugin's windows too.
         if (Services.GameGui.GameUiHidden || Services.ClientState.IsGPosing)

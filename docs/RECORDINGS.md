@@ -129,6 +129,8 @@ one in your armoury chest, and one you're **wearing** that it takes (if you can)
 
 ## E · Examine
 
+**Done (0.5.1):** E1 to E6.
+
 **You need:** a busy city; people nearby with glamours (some dyed); a friend or party member who is
 far away (another zone, or out of range) if you can.
 
@@ -143,6 +145,8 @@ far away (another zone, or out of range) if you can.
 
 ## F · The fitting room
 
+**Done (0.5.1):** F1 to F3.
+
 | Id | Do this | DUMP |
 | --- | --- | --- |
 | F1 | In the plugin, open a look and press **Try it on**. Wait for the toast ("In the fitting room…"), then MARK what the fitting room shows: every piece, or which are missing. | yes, with the fitting room open |
@@ -151,6 +155,8 @@ far away (another zone, or out of range) if you can.
 | F3 | Close it. | |
 
 ## G · Shots
+
+**Done (0.5.1):** G1 to G6 (2560×1440 with DLSS).
 
 **You need:** linked to the site; one of your **public** looks worn; a quiet spot.
 
@@ -164,6 +170,8 @@ far away (another zone, or out of range) if you can.
 | G6 | If dynamic resolution or upscaling (DLSS/FSR) is on in your graphics settings, take one with it on, then one with it off, and note it. | |
 
 ## H · Reading your wardrobe
+
+**Done:** checked on the site.
 
 **You need:** a summoning bell and your retainers; saddlebags (any place you can open them); an
 alt on the same account if you have one.
@@ -179,13 +187,15 @@ alt on the same account if you have one.
 
 ## I · The site, both ways
 
+**Done (0.5.1):** I4, I5. **Again with 0.5.2:** I1 (at a glamour dresser this time), I2 (reworded), I3 (the sent look now shows).
+
 **You need:** linked to the site (Settings → Account).
 
 | Id | Do this | DUMP |
 | --- | --- | --- |
-| I1 | On the site, Closet → Plates: plan a look for plate 4. In the game, open Glamour Plates on plate 4 and use **Fill plate 4** in the plugin. Then **Save**. | yes, before saving |
-| I2 | On the site, put a piece you **already have** on your shopping list. Then `/gstudio send` in the game. Note whether chat says it came off the list, and check the site. | |
-| I3 | On the site, open a look → Send to game for plate 5. In the game, open Glamour Plates on plate 5, open the sent look in the plugin and press **Put on plate 5**, then **Save**. Check it's gone from Sent from the site. | yes, before saving |
+| I1 | On the site, Closet → Plates: plan a look for plate 4. In the game, **at a glamour dresser** (not the Character window's Glamour Plate, which only applies plates), open Glamour Plates on plate 4 and press **Fill plate 4** in the panel beside it. Then **Save**. | yes, before saving |
+| I2 | The site won't list a piece you already have, so: on the site, put a cheap piece you **don't** have on your shopping list (one sold on the market board). In the game, buy it, then `/gstudio send`. Note whether chat says it came off the list, and check the site. | |
+| I3 | On the site, open a look → Send to game for plate 5. In the game, open the plugin (any way): it should be first under **Sent from the site**. At a glamour dresser, open Glamour Plates on plate 5, open the sent look in the plugin and press **Put on plate 5**, then **Save**. Check it's gone from Sent from the site. | yes, before saving |
 | I4 | In the plugin's Plates, pick a plate that isn't one of your looks → **Keep it as a look**. Then **Keep it as a look** under What you're wearing. Check both on the site. | |
 | I5 | Press **Send now** in the plugin's Closet. | |
 

@@ -84,7 +84,8 @@ question is a card over the window.
 - **Ready for plate 3** (or for a plate): up to six cards, the planned look first, then yours and
   the ones you love whose every piece is in the dresser or armoire. All your looks goes to Looks.
 - **On the right:** **Sent from the site** (looks you sent from the site, newest first, with the
-  plate they were meant for; one goes off the list once it's on a plate) and, while the game's
+  plate they were meant for; one goes off the list once it's on a plate, or with "Done with these:
+clear the list" under it) and, while the game's
   Examine window shows someone, **Examining**: their outfit as shown (glamour and dyes; someone new
   is shown once two reads half a second apart agree), Try it on and Keep it as a look (a private
   look named "Their name's outfit", their body for the mannequin). With neither, a few looks **you
@@ -128,15 +129,17 @@ On the right:
   makes the picture 2560 at most on its long side (1920 if no quality fits) as a JPEG under 3 MB,
   with a preview. Under it a caption, **Send it to the look**, Take another, Discard. Sent, it goes
   to the edge function `gs-plugin-shot` and shows on the look's page under Worn in game (three of
-  yours a look, three a minute, twenty a day). A frame that never comes is given up on after five
+  yours a look, three a minute, twenty a day). A shot grabbed after the HUD came back (Scroll Lock
+  pressed meanwhile) says so under its preview. Watched (2560×1440, with DLSS on): the HUD hides and
+  comes back, the picture goes up. A frame that never comes is given up on after five
   seconds and the HUD shown again.
 
 ### Plates
 
 All twenty plates at once, five across: each its number, its pieces' icons, the look it is (or how
 many pieces), a rose dot when one's planned for it on the site, and the jobs of the gearsets linked
-to it; an empty one dashed. Under them when the game last had them, and **What you're wearing**
-(Try it on, Keep it as a look). The plate picked, in the pane beside: what's on it, its plan (a
+to it; an empty one dashed. Above them **What you're wearing** (Try it on, Keep it as a look:
+under the twenty plates it took scrolling to find), under them when the game last had them. The plate picked, in the pane beside: what's on it, its plan (a
 link to the look, On it or Not on it yet), **Wear it** (`/gearset change <your gearset> N`), Try it on, Keep it as a
 look (a new private look named "Plate 3", then Open it on the site), **Gearsets** (each linked one
 with its job, number and name, Change to it (`EquipGearset`: the plate comes with it) and × to
@@ -186,7 +189,7 @@ is off meanwhile). `UI/Companions/Companion.cs` is the panel, `Panes.cs` what ea
 | --- | --- |
 | **Glamour Dresser** | Places used of 800 as a bar, free, how many pieces could leave without breaking a look (and Make room); the looks the dresser and armoire have everything for, each with **Plate it** (presses the dresser's own Glamour Plates button, `[u:5]` as the first recording saw, and offers the look on whichever plate you pick, until it fills one); your looks' pieces still in your bags, armoury chest, saddlebags or on retainers. |
 | **Glamour Plates** (at a dresser) | Follows the plate picked in the game: its planned look (or one picked here: **Another look** lists the ready ones, then the rest of yours; a pick made here is for its plate), green when it's on the plate, its name opening it in the plugin; slot by slot, each marked On it, Changes, From the armoire, In your bags…, Don't have or Emptied; the dyes from your bags, the pieces to dye, and the missing bottles to put on your list; **Fill plate N**; then "Press Save in the game", and once saved Wear plate N. No plan: the ready looks, each with Fill with it. |
-| **Glamour Plates** (from the Character window) | Every plate with something on it, by its look's name (or how many pieces), its linked gearsets' jobs, On for the one you wear, **Wear** for the rest; the plate picked in the game highlighted. |
+| **Glamour Plates** (from the Character window) | Every plate with something on it, by its look's name (or how many pieces), its linked gearsets' jobs, On for the one you wear, **Wear** for the rest (it presses the window's own apply, `[i:15, u:plate−1]`: `/gearset change` is refused while this window's open, "…while occupied", a recording saw); the plate picked in the game highlighted. It fills no plate: that's the dresser's Glamour Plates. |
 | **Armoire** | Your looks' pieces stored in it (plates take them from there); what in your bags and armoury chest it takes, each with **Store**, and **Store all** (one by one, 0.6 s apart); how many pieces in your dresser it would take (and which), each a place freed once moved. |
 | **Storing an outfit set** | The set's name; dresser places freed by storing it (its loose pieces, less the one place the set takes); your looks that use it and which of its pieces; each piece and where it is. |
 | **Fitting Room** | Your looks (all, or just the ready ones) to step through with the arrows, each put on in the fitting room (the panel stays while it reopens); where each piece is; the ones you don't have onto your shopping list; Wear it · plate N when the look's on a plate. What you tried on by hand: Keep it as a look. |
@@ -382,9 +385,11 @@ whose gear the plate fits. Watched: it changes to the gearset and projects the p
 in a city ("Unable to fully apply…" is the game's for pieces your job or character can't wear).
 Out in a field the game changes gearset but says "Unable to apply glamour plates here"; in combat
 it refuses ("Unable to execute command during combat"); at a glamour dresser, or with Glamour
-Plates opened there, "Unable to execute command while occupied". So Wear and a gearset's Change
+Plates opened there, and with Glamour Plate opened from the Character window, "Unable to execute
+command while occupied". So Wear and a gearset's Change
 to it (`Gearsets.Blocked`) are greyed out, the reason their tooltip, in combat, at the dresser or
-in its plate window, while loading or busy (an event, a bell, casting), and Wear outside a
+in either plate window (from the Character window the panel's Wear uses that window's apply
+instead), while loading or busy (an event, a bell, casting), and Wear outside a
 sanctuary (Change to it there says the plate waits for one). The game also sets the gearset's
 instant portrait, as changing gearset always does (and says so when the portrait doesn't fit).
 
@@ -428,7 +433,7 @@ runs them off the framework thread and takes the answers back to it.
 | `gs_plugin_character` | you answer the question, or flip a character's switch in Settings → Account; an answer the site hasn't heard yet (a minute after a failed try) | your answer for a character: yes with its name and world; no with its key alone, and the site lets go of what it had of it |
 | `gs_plugin_sync` | your wardrobe changed and settled for 10 s, at most every 3 min (and only when what's sent changed); Send it now; saying yes; linking. **Only for a character the site takes (`yes`)** | the character you're on (key, name, world), its pieces each where they are, the places read in full, its plates and what it wears |
 | `gs_plugin_looks` | the window opens, every 10 min while it's open, Refresh | your looks (300), the public ones you love (200), your shopping list's items |
-| `gs_plugin_inbox_list` | every minute while the window's open, every 5 otherwise | the looks sent to the game, each whole, with the plate meant |
+| `gs_plugin_inbox_list` | as the window opens (any way: the plugin list, `/gstudio`, a panel's arrow), every minute while it's open, every 15 otherwise | the looks sent to the game, each whole, with the plate meant |
 | `gs_plugin_inbox_remove` | a sent look went on a plate | it's off the list |
 | `gs_plugin_save_look` | Keep it as a look (a plate, your outfit, someone examined) | a new private look of yours |
 | `gs_plugin_plans` | the window opens and with the looks, and when you change character (30 s at most); only for a character the site takes | that character's plate plans, each look whole |
@@ -509,6 +514,19 @@ this one too, within a few minutes of a release.
 The workflows need Settings → Actions → General → Workflow permissions → Read and write.
 
 ## Release notes
+
+### 0.5.2
+
+From the recordings of sections E, F, G and I:
+
+- **Sent from the site** shows what you've just sent: the plugin reads it as its window opens,
+  however it's opened (opened by `/gstudio` or a panel's arrow, it waited up to 15 minutes and showed
+  the last look sent instead). "Done with these" clears looks sent and never put on a plate.
+- **Wear** in the panel beside Glamour Plate (opened from the Character window) works: it presses
+  that window's own apply (the game refuses `/gearset change` while it's open). Elsewhere, Wear and
+  Change to it are greyed out while that window's open.
+- A shot taken while the HUD came back (Scroll Lock pressed meanwhile) says it's in the shot.
+- **What you're wearing** sits above the twenty plates on Plates, not under them.
 
 ### 0.5.1
 

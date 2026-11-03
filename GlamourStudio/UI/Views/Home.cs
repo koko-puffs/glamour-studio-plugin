@@ -477,6 +477,19 @@ public sealed partial class MainWindow
                 if (SmallLookRow($"##sent{i}", s.Look, note)) Later(() => OpenLook(s.Look, s, Screen.Home));
             }
             Kit.EndPanel();
+            // A look sent and never put on a plate stays: cleared here (they come off as they go on a plate too).
+            Kit.Gap(8);
+            var clearAt = Kit.At;
+            if (Kit.Link("##sent-clear", clearAt, sent.Count == 1 ? "Done with it: take it off the list" : "Done with these: clear the list", 12))
+            {
+                var ids = sent.Select(x => x.Id).ToList();
+                Later(() =>
+                {
+                    foreach (var id in ids) sync.DoneWith(id);
+                    Notify(ids.Count == 1 ? "Taken off the list" : "List cleared");
+                });
+            }
+            Kit.Reserve(clearAt, Kit.Width, Txt.Natural(Face.Sans, 12));
             Kit.Gap(16);
         }
 

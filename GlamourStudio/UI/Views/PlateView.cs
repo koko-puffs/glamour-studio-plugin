@@ -80,6 +80,13 @@ public sealed partial class MainWindow
             Kit.EndPane();
             return;
         }
+
+        // What you're wearing, first (under the twenty plates it took scrolling to find: a recording's note).
+        if (me.Outfit.Count > 0)
+        {
+            DrawWornRow(me);
+            Kit.Gap(16);
+        }
         var read = me.PlatesReadAt != null;
 
         // The grid: five across.
@@ -101,12 +108,6 @@ public sealed partial class MainWindow
             : "Your plates show here once you've opened Glamour Plates at a glamour dresser (the game only has them then).";
         Txt.Para(new[] { new Run(foot, Face.Sans, 12, read ? Palette.Muted : Palette.RoseText) }, 18);
 
-        // What you're wearing.
-        if (me.Outfit.Count > 0)
-        {
-            Kit.Gap(16);
-            DrawWornRow(me);
-        }
         Kit.EndPane();
 
         Kit.BeginPane("##plates-aside", asideMin + new Vector2(1, 0), new Vector2(asideW - 1, size.Y), 22, 20, 20);

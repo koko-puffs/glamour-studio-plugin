@@ -335,9 +335,11 @@ public sealed partial class MainWindow
         }
         var picked = PlateEditor.PickedPlate;
         var sets = GearsetsNow();
-        var wearBlocked = Gearsets.Blocked(true);
+        // (This window applies plates itself: Wear presses its own apply, which /gearset change can't
+        // while it's open.)
+        var wearBlocked = Services.Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.InCombat] ? "Not in combat" : null;
         var empty = 0;
-        PaneNote("Wear puts a plate on the gearset you're on, as /gearset change does.");
+        PaneNote("Wear puts a plate on you, as the window's own apply does. To fill a plate, open Glamour Plates at a glamour dresser.");
         Kit.Gap(8);
         for (var p = 1; p <= Plates.Count; p++)
         {
@@ -364,10 +366,10 @@ public sealed partial class MainWindow
             {
                 var plate = p;
                 if (Kit.Button($"##c-wear-{p}", new Vector2(rx - bw, at.Y + (h - Kit.ButtonHeight(BtnSize.Tiny)) / 2), "Wear", Btn.Glass, BtnSize.Tiny, null, 0, wearBlocked != null,
-                        wearBlocked ?? "Puts the plate on the gearset you're on"))
+                        wearBlocked ?? "Puts the plate on you, as the window's apply does"))
                     Later(() =>
                     {
-                        var why = PlateEditor.Wear(plate);
+                        var why = PlateEditor.ApplyInWindow(plate);
                         recorder.Note($"WEAR plate {plate} from the panel: {why ?? "asked the game"}");
                         Notify(why ?? $"Plate {plate} on");
                     });

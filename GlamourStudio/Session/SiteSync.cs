@@ -49,6 +49,9 @@ public sealed class SiteSync : IDisposable
     private string lastSent = string.Empty;
     private DateTime nextLibrary;
     private DateTime nextInbox;
+
+    /// <summary>Whether the plugin's window was open at the last tick.</summary>
+    private bool windowWasOpen;
     private DateTime nextPlans;
 
     /// <summary>What the site does with each character's data (null: not read yet since linking).</summary>
@@ -302,6 +305,11 @@ public sealed class SiteSync : IDisposable
             nextPlans = now + TimeSpan.FromSeconds(30);
             RefreshPlans();
         }
+        // The window just opened (by any way: /gstudio, a panel's arrow, the plugin list): what's
+        // been sent is read at once, not at the next quarter hour (a recording saw a look sent from
+        // the site never turn up, the last one shown instead).
+        if (windowOpen && !windowWasOpen) nextInbox = DateTime.MinValue;
+        windowWasOpen = windowOpen;
         if (now >= nextInbox)
         {
             nextInbox = now + (windowOpen ? InboxOpen : InboxClosed);
