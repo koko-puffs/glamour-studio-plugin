@@ -187,10 +187,14 @@ stored set's place is found again before pieces go into it. A piece that doesn't
 the ones that did go in as the set (when enough for one), then it stops and says which pieces are
 left in your bags. It says first what it'll do:
 the sets, the places freed, the prisms (and how many you have), the free bag places it needs at a
-time; it's asked (Store them / Not now) and needs the dresser open. Dyed loose pieces stay loose (a
-set may not keep a piece's dyes), as do a piece two sets share (the first set takes it) and a new
-set of one piece (it frees nothing); a dyed loose piece is swapped for an undyed copy when there
-is one. Stop waits for the step the game is answering. It's worked out again from the dresser as it
+time; it's asked (Store them / Not now) and needs the dresser open. A new set is made only whole:
+every one of its pieces loose in the dresser or in your bags (a recording saw every set with a piece
+missing sent and never answered, and every whole one go in at once); pieces can join a set stored
+already one at a time. Only normal-quality undyed copies go into sets: the game refused a set of
+high-quality pieces every time, and a set may not keep a piece's dyes (a set waiting only on a dyed
+or high-quality copy is counted and said). A piece two sets share goes to the first (the second, a
+new set, then can't be made), and a new set with one piece from the dresser is left (it frees
+nothing). Stop waits for the step the game is answering. It's worked out again from the dresser as it
 is when you say yes. Recordings write each step (`OUTFITS …`). New: not yet watched in the game.
 
 **Duplicates** (the same card, and the dresser's panel): a second loose copy of an item with the
@@ -549,6 +553,18 @@ this one too, within a few minutes of a release.
 The workflows need Settings → Actions → General → Workflow permissions → Read and write.
 
 ## Release notes
+
+### 0.6.5
+
+From the 0.6.4 run:
+
+- A new outfit set is made only whole. Every set that hung ("the game hasn't answered", Gleaner's
+  Attire, #55 Armor) was missing a piece: the game takes the ask and never answers. Every whole set
+  went in at once. Sets missing a piece aren't planned any more (Make room's list too).
+- High-quality pieces stay out of sets: the game refused Bouncer's Attire's (high quality) every
+  time. A set that waits only on a dyed or high-quality copy is counted and said.
+- A set's pieces already in your bags count towards it (normal quality only), and their prisms are
+  counted too.
 
 ### 0.6.4
 

@@ -17,8 +17,8 @@ namespace GlamourStudio.UI;
 /// </summary>
 public sealed partial class MainWindow
 {
-    /// <summary>What gathering sets would do now.</summary>
-    private sealed record AutoRoomPlan(List<OutfitJob> Jobs, int Frees, int Pieces, int MostAtOnce, int SkippedDyed);
+    /// <summary>What gathering sets would do now (<c>Pieces</c>: from the dresser; <c>Prisms</c>: every piece stored, those in your bags too).</summary>
+    private sealed record AutoRoomPlan(List<OutfitJob> Jobs, int Frees, int Pieces, int Prisms, int MostAtOnce, int HeldBack);
 
     private (int Wardrobe, string Key, AutoRoomPlan Plan, List<DresserPiece> Dupes)? autoRoomCache;
 
@@ -35,41 +35,28 @@ public sealed partial class MainWindow
         if (autoRoomCache is { } c && c.Wardrobe == wardrobe.Version && c.Key == me.Key) return (c.Plan, c.Dupes);
         var jobs = new List<OutfitJob>();
         var taken = new HashSet<int>();
-        var skipped = 0;
-        foreach (var chance in DresserCleanup.Outfits(me.Dresser, data.AllSets))
+        var (chances, heldBack) = DresserCleanup.Gather(me.Dresser, data.AllSets, DresserPlaces.NormalInBags());
+        var fromBags = 0;
+        foreach (var chance in chances)
         {
-            var pieces = new List<DresserPiece>();
-            foreach (var p in chance.Pieces)
-            {
-                var use = p;
-                if (p.Dye1 != 0 || p.Dye2 != 0)
-                {
-                    // An undyed loose copy of it, if there's one.
-                    var plain = me.Dresser.FirstOrDefault(d => !d.InSet && LookJson.BaseId(d.Item) == LookJson.BaseId(p.Item) && d.Dye1 == 0 && d.Dye2 == 0 && !taken.Contains(d.Index));
-                    if (plain.Item == 0)
-                    {
-                        skipped++;
-                        continue;
-                    }
-                    use = plain;
-                }
-                if (taken.Contains(use.Index)) continue;
-                pieces.Add(use);
-            }
+            // A piece two sets share goes to the first: a new set without it can't be made.
+            if (!chance.Stored && chance.Pieces.Any(p => taken.Contains(p.Index))) continue;
+            var pieces = chance.Pieces.Where(p => !taken.Contains(p.Index)).ToList();
             var storedAt = chance.Stored
                 ? me.Dresser.Where(d => d.InSet && LookJson.BaseId(d.SetItem) == LookJson.BaseId(chance.SetItem)).Select(d => d.Index).DefaultIfEmpty(-1).First()
                 : -1;
             if (chance.Stored && storedAt < 0) continue;
-            // A new set of one piece frees nothing.
             if (pieces.Count < (storedAt >= 0 ? 1 : 2)) continue;
             foreach (var p in pieces) taken.Add(p.Index);
+            fromBags += chance.FromBags;
             jobs.Add(new OutfitJob(chance.SetItem, pieces, storedAt));
         }
         var plan = new AutoRoomPlan(jobs,
             jobs.Sum(j => j.StoredAt >= 0 ? j.Pieces.Count : j.Pieces.Count - 1),
             jobs.Sum(j => j.Pieces.Count),
+            jobs.Sum(j => j.Pieces.Count) + fromBags,
             jobs.Count == 0 ? 0 : jobs.Max(j => j.Pieces.Count),
-            skipped);
+            heldBack);
         var dupes = DresserCleanup.Duplicates(me.Dresser);
         autoRoomCache = (wardrobe.Version, me.Key, plan, dupes);
         return (plan, dupes);
@@ -81,7 +68,7 @@ public sealed partial class MainWindow
         if (AutoBusy) return "Already at work";
         if (plan.Jobs.Count == 0) return "No set has loose pieces to gather";
         if (!GameWindows.IsShown("MiragePrismPrismBox") || !wardrobe.DresserLive) return "Open your glamour dresser first";
-        if (have.Prisms < plan.Pieces) return $"It needs {Words.Count(plan.Pieces, "glamour prism")}: you have {have.Prisms}";
+        if (have.Prisms < plan.Prisms) return $"It needs {Words.Count(plan.Prisms, "glamour prism")}: you have {have.Prisms}";
         if (have.FreeBag < plan.MostAtOnce) return $"It needs {Words.Count(plan.MostAtOnce, "free bag place")} at once: you have {have.FreeBag}";
         return null;
     }
@@ -98,9 +85,14 @@ public sealed partial class MainWindow
 
     private string AutoRoomWords(AutoRoomPlan plan, (int Prisms, int FreeBag) have) =>
         $"{Words.Count(plan.Jobs.Count, "set")} from {Words.Count(plan.Pieces, "loose piece")}: frees {Words.Count(plan.Frees, "place")}. "
-        + $"Each piece goes to your bags and back in as its set, spending a glamour prism ({plan.Pieces} of your {have.Prisms}); "
-        + $"it needs {plan.MostAtOnce} free bag places at a time (you have {have.FreeBag})."
-        + (plan.SkippedDyed > 0 ? $" {Words.Count(plan.SkippedDyed, "dyed piece")} stay loose (a set may not keep its dyes)." : string.Empty);
+        + $"Each piece goes to your bags and back in as its set, spending a glamour prism ({plan.Prisms} of your {have.Prisms}); "
+        + $"it needs {plan.MostAtOnce} free bag places at a time (you have {have.FreeBag}). "
+        + "A new set needs every one of its pieces: one with a piece missing stays loose."
+        + HeldBackWords(plan);
+
+    /// <summary>The sets left out because their only copy of a piece is dyed or high quality.</summary>
+    private static string HeldBackWords(AutoRoomPlan plan) =>
+        plan.HeldBack > 0 ? $" {Words.Count(plan.HeldBack, "set")} wait on a dyed or high-quality copy of a piece (the game takes neither into a set)." : string.Empty;
 
     private string DupesWords(List<DresserPiece> dupes, (int Prisms, int FreeBag) have)
     {
@@ -261,7 +253,7 @@ public sealed partial class MainWindow
         if (plan.Jobs.Count > 0)
         {
             var blocked = AutoRoomBlocked(plan, have);
-            PaneNote(blocked ?? $"{Words.Count(plan.Jobs.Count, "set")} could gather {Words.Count(plan.Pieces, "loose piece")}: frees {Words.Count(plan.Frees, "place")}, for {Words.Count(plan.Pieces, "glamour prism")} (you have {have.Prisms}). Needs {Words.Count(plan.MostAtOnce, "free bag place")} at a time (you have {have.FreeBag}).",
+            PaneNote(blocked ?? $"{Words.Count(plan.Jobs.Count, "set")} could gather {Words.Count(plan.Pieces, "loose piece")}: frees {Words.Count(plan.Frees, "place")}, for {Words.Count(plan.Prisms, "glamour prism")} (you have {have.Prisms}). Needs {Words.Count(plan.MostAtOnce, "free bag place")} at a time (you have {have.FreeBag}).{HeldBackWords(plan)}",
                 blocked != null ? Palette.RoseText : null);
             Kit.Gap(6);
             PaneArmedButton("##c-auto-room", config.OutfitStoreWorked ? $"Store {Words.Count(plan.Jobs.Count, "set")} for me" : "Try it on one set",

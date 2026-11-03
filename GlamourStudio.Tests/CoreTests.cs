@@ -463,6 +463,39 @@ public class FeatureTests
 public class CleanupEdgeTests
 {
     [Fact]
+    public void ANewSetNeedsEveryPiece()
+    {
+        // Set 1 lacks 12 (the game never answers a new set with a piece missing); set 2 has 22 in the
+        // bags; set 3's only copy of 32 is high quality, set 4's only 42 is dyed: both held back.
+        var dresser = new List<DresserPiece>
+        {
+            new(0, 10, 0, 0), new(1, 11, 0, 0),
+            new(2, 20, 0, 0), new(3, 21, 0, 0),
+            new(4, 30, 0, 0), new(5, 31, 0, 0), new(6, 1_000_032, 0, 0),
+            new(7, 40, 0, 0), new(8, 41, 0, 0), new(9, 42, 3, 0),
+        };
+        var sets = new Dictionary<uint, uint[]>
+        {
+            [1] = new uint[] { 10, 11, 12 }, [2] = new uint[] { 20, 21, 22 }, [3] = new uint[] { 30, 31, 32 }, [4] = new uint[] { 40, 41, 42 },
+        };
+        var (chances, heldBack) = DresserCleanup.Gather(dresser, sets, new HashSet<uint> { 22 });
+        Assert.Equal(new uint[] { 2 }, chances.Select(c => c.SetItem));
+        Assert.Equal(1, chances[0].FromBags);
+        Assert.Equal(1, chances[0].Frees);
+        Assert.Equal(2, heldBack);
+        Assert.Empty(DresserCleanup.Outfits(dresser, sets));
+    }
+
+    [Fact]
+    public void AStoredSetTakesAnyOfItsPieces()
+    {
+        var dresser = new List<DresserPiece> { new(0, 31, 0, 0, 30), new(1, 32, 0, 0), new(2, 1_000_033, 0, 0) };
+        var chances = DresserCleanup.Outfits(dresser, new Dictionary<uint, uint[]> { [30] = new uint[] { 31, 32, 33, 34 } });
+        Assert.Single(chances);
+        Assert.Equal(new uint[] { 32 }, chances[0].Pieces.Select(p => p.Item));
+    }
+
+    [Fact]
     public void AStoredSetsOwnPiecesDontJoinItAgain()
     {
         var dresser = new List<DresserPiece> { new(0, 31, 0, 0, 30), new(1, 31, 0, 0) };

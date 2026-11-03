@@ -158,13 +158,13 @@ public static unsafe class OutfitStorer
                 var piece = pieces[pieceAt];
                 var id = LookJson.BaseId(piece.Item);
                 // Where it is now: the place read before, else wherever a loose undyed copy is.
-                var at = DresserPlaces.Find(mgr, id, 0, 0, piece.Index);
+                var at = DresserPlaces.Find(mgr, piece.Item, 0, 0, piece.Index);
                 if (at < 0)
                 {
                     StoreWhatCameOrFinish($"{data!.ItemName(piece.Item)} isn't in the dresser any more");
                     break;
                 }
-                before = DresserPlaces.InBags(id);
+                before = DresserPlaces.InBags(id, true);
                 dresserBefore = DresserPlaces.Count(mgr, id);
                 var ok = mgr->RestorePrismBoxItem((uint)at);
                 if (!ok)
@@ -196,7 +196,7 @@ public static unsafe class OutfitStorer
             {
                 var piece = pieces[pieceAt];
                 var id = LookJson.BaseId(piece.Item);
-                var fresh = DresserPlaces.InBags(id).Except(before).ToList();
+                var fresh = DresserPlaces.InBags(id, true).Except(before).ToList();
                 // Arrived: the dresser has one copy fewer and a bag place holds it that didn't before
                 // (a place set apart by a list, never compared with default: bag 1's first place is that).
                 if (fresh.Count >= 1 && DresserPlaces.Count(mgr, id) < dresserBefore)
@@ -327,7 +327,7 @@ public static unsafe class OutfitStorer
             // Still where it came (you may have moved it meanwhile): else wherever it is in your bags now.
             if (DresserPlaces.SlotItem(type, slot) != id)
             {
-                var others = DresserPlaces.InBags(id).Where(p => storing.All(s => s.Type != p.Type || s.Slot != p.Slot)).ToList();
+                var others = DresserPlaces.InBags(id, true).Where(p => storing.All(s => s.Type != p.Type || s.Slot != p.Slot)).ToList();
                 if (others.Count == 0) continue;
                 (type, slot) = others[0];
                 restored[k] = (piece, type, slot);
@@ -414,7 +414,7 @@ public static unsafe class OutfitStorer
             foreach (var p in job.Pieces)
             {
                 var id = LookJson.BaseId(p.Item);
-                if (DresserPlaces.Find(mgr, id, 0, 0, p.Index) < 0)
+                if (DresserPlaces.Find(mgr, p.Item, 0, 0, p.Index) < 0)
                 {
                     notes.Add($"{p.Item} gone");
                     continue;
@@ -434,15 +434,19 @@ public static unsafe class OutfitStorer
             {
                 var id = LookJson.BaseId(item);
                 if (ready.Any(p => LookJson.BaseId(p.Item) == id)) continue;
-                var place = DresserPlaces.InBags(id).OrderBy(p => p.Type).ThenBy(p => p.Slot).ToList();
+                var place = DresserPlaces.InBags(id, true).OrderBy(p => p.Type).ThenBy(p => p.Slot).ToList();
                 if (place.Count > 0) inBags.Add((new DresserPiece(-1, id, 0, 0), place[0].Type, place[0].Slot));
             }
             var min = job.StoredAt >= 0 ? 1 : 2;
             var free = (int)inv->GetEmptySlotsInBag();
-            if (ready.Count + inBags.Count < min || ready.Count > free)
+            // A new set goes in only whole (the game never answered one with a piece missing).
+            var whole = job.StoredAt >= 0 || data.SetPieces(job.SetItem).Select(c => LookJson.BaseId(c.Item)).Distinct()
+                .All(i => ready.Any(p => LookJson.BaseId(p.Item) == i) || inBags.Any(b => LookJson.BaseId(b.Piece.Item) == i));
+            if (!whole) notes.Add("a piece missing (a new set needs them all)");
+            if (!whole || ready.Count + inBags.Count < min || ready.Count > free)
             {
                 Recorder.Log($"OUTFITS set {job.SetItem} left: {ready.Count} pieces ready (needs {min}), {free} free bag places{(notes.Count > 0 ? "; " + string.Join(", ", notes) : string.Empty)}");
-                if (ready.Count > free)
+                if (whole && ready.Count > free)
                 {
                     Finish($"Not enough room in your bags for {data!.ItemName(job.SetItem)} ({ready.Count} needed, {free} free)", false);
                     return;
@@ -490,21 +494,26 @@ public static unsafe class DresserPlaces
     private static readonly InventoryType[] Bags = { InventoryType.Inventory1, InventoryType.Inventory2, InventoryType.Inventory3, InventoryType.Inventory4 };
 
     /// <summary>
-    /// A loose copy's dresser place, with these dyes: the one read if it still holds it, else the first
+    /// A loose copy's dresser place, with these dyes and quality (<paramref name="item"/> as read: a
+    /// high-quality copy's id is a million more): the one read if it still holds it, else the first
     /// that does (should the dresser close up its places as pieces leave); -1 when none does.
     /// </summary>
-    public static int Find(MirageManager* mgr, uint id, byte dye1, byte dye2, int readAt)
+    public static int Find(MirageManager* mgr, uint item, byte dye1, byte dye2, int readAt)
     {
         var n = mgr->PrismBoxItemIds.Length;
-        if (readAt >= 0 && readAt < n && Fits(mgr, readAt, id, dye1, dye2)) return readAt;
+        if (readAt >= 0 && readAt < n && Fits(mgr, readAt, item, dye1, dye2)) return readAt;
         for (var i = 0; i < n; i++)
-            if (Fits(mgr, i, id, dye1, dye2))
+            if (Fits(mgr, i, item, dye1, dye2))
                 return i;
         return -1;
     }
 
-    private static bool Fits(MirageManager* mgr, int i, uint id, byte dye1, byte dye2) =>
-        LookJson.BaseId(mgr->PrismBoxItemIds[i]) == id && mgr->PrismBoxStain0Ids[i] == dye1 && mgr->PrismBoxStain1Ids[i] == dye2;
+    private static bool Fits(MirageManager* mgr, int i, uint item, byte dye1, byte dye2)
+    {
+        var there = mgr->PrismBoxItemIds[i];
+        return LookJson.BaseId(there) == LookJson.BaseId(item) && there >= LookJson.HqOffset == item >= LookJson.HqOffset
+               && mgr->PrismBoxStain0Ids[i] == dye1 && mgr->PrismBoxStain1Ids[i] == dye2;
+    }
 
     /// <summary>How many places of the dresser hold the item (loose copies; a set is its own item).</summary>
     public static int Count(MirageManager* mgr, uint id)
@@ -541,10 +550,29 @@ public static unsafe class DresserPlaces
         return Occupied(item, where).Count > 0;
     }
 
-    /// <summary>The bag places holding an item now.</summary>
-    public static HashSet<(InventoryType Type, int Slot)> InBags(uint item) => Occupied(item, Bags);
+    /// <summary>The bag places holding an item now (<paramref name="normal"/>: normal-quality copies only, as a set takes).</summary>
+    public static HashSet<(InventoryType Type, int Slot)> InBags(uint item, bool normal = false) => Occupied(item, Bags, normal);
 
-    private static HashSet<(InventoryType Type, int Slot)> Occupied(uint item, IEnumerable<InventoryType> containers)
+    /// <summary>The items in your bags as normal-quality copies (a set's pieces there go in with it).</summary>
+    public static HashSet<uint> NormalInBags()
+    {
+        var set = new HashSet<uint>();
+        var mgr = InventoryManager.Instance();
+        if (mgr == null) return set;
+        foreach (var bag in Bags)
+        {
+            var c = mgr->GetInventoryContainer(bag);
+            if (c == null || !c->IsLoaded) continue;
+            for (var i = 0; i < c->Size; i++)
+            {
+                var it = c->GetInventorySlot(i);
+                if (it != null && !it->IsEmpty() && !it->Flags.HasFlag(InventoryItem.ItemFlags.HighQuality)) set.Add(LookJson.BaseId(it->GetBaseItemId()));
+            }
+        }
+        return set;
+    }
+
+    private static HashSet<(InventoryType Type, int Slot)> Occupied(uint item, IEnumerable<InventoryType> containers, bool normal = false)
     {
         var set = new HashSet<(InventoryType, int)>();
         var mgr = InventoryManager.Instance();
@@ -556,7 +584,7 @@ public static unsafe class DresserPlaces
             for (var i = 0; i < c->Size; i++)
             {
                 var it = c->GetInventorySlot(i);
-                if (it != null && !it->IsEmpty() && LookJson.BaseId(it->GetBaseItemId()) == item) set.Add((bag, i));
+                if (it != null && !it->IsEmpty() && LookJson.BaseId(it->GetBaseItemId()) == item && !(normal && it->Flags.HasFlag(InventoryItem.ItemFlags.HighQuality))) set.Add((bag, i));
             }
         }
         return set;

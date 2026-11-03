@@ -99,7 +99,7 @@ public static unsafe class DresserTaker
                 }
                 if (tries == 0) current = queue.Dequeue();
                 var id = LookJson.BaseId(current.Item);
-                var at = DresserPlaces.Find(mgr, id, current.Dye1, current.Dye2, current.Index);
+                var at = DresserPlaces.Find(mgr, current.Item, current.Dye1, current.Dye2, current.Index);
                 if (at < 0 || DresserPlaces.Count(mgr, id) < 2 && !current.InSet && !InASet(mgr, id))
                 {
                     // Gone, or the last copy now (taking it would leave none): left.

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using GlamourStudio.Core;
+using GlamourStudio.Game;
 using static GlamourStudio.UI.Theme;
 
 namespace GlamourStudio.UI;
@@ -25,7 +26,7 @@ public sealed partial class MainWindow
     private CleanupNowRead CleanupNow(CharacterWardrobe me)
     {
         if (cleanup is { } c && c.Wardrobe == wardrobe.Version && c.Sync == sync.Version && c.Key == me.Key) return c.Read;
-        var outfits = DresserCleanup.Outfits(me.Dresser, data.AllSets);
+        var outfits = DresserCleanup.Outfits(me.Dresser, data.AllSets, DresserPlaces.NormalInBags());
         var plans = Enumerable.Range(1, Plates.Count).Select(sync.PlanFor).OfType<Look>();
         var used = sync.Library.Mine.Concat(sync.Library.Loved).Concat(sync.Inbox.Select(s => s.Look)).Concat(plans)
             .Select(l => l.Pieces)
@@ -35,7 +36,9 @@ public sealed partial class MainWindow
         {
             var line = o.Stored
                 ? $"The set's in your dresser: {Words.Count(o.Pieces.Count, "loose piece")} could join it"
-                : $"{o.Pieces.Count} of {data.SetPieces(o.SetItem).Count} pieces loose in your dresser";
+                : o.FromBags > 0
+                    ? $"Every piece to hand: {o.Pieces.Count} loose in your dresser, {o.FromBags} in your bags"
+                    : $"All {o.Pieces.Count} pieces loose in your dresser";
             return new CleanupRow(o.SetItem, line, o.Frees > 0 ? $"Frees {o.Frees}" : "Tidier", o.Frees > 0);
         }).ToList();
         var unused = DresserCleanup.Unused(me.Dresser, used).Select(d =>
