@@ -169,16 +169,6 @@ public sealed partial class MainWindow
                     OnClicked = _ => PutOnLook(look, info, piece),
                 }).ToList()),
             });
-        if (looks.FirstOrDefault() is { } with)
-            items.Add(new MenuItem
-            {
-                Name = $"Try it on with {with.Name}",
-                OnClicked = _ =>
-                {
-                    triedId = with.Id;
-                    TryOn(with.Pieces, Chat);
-                },
-            });
         items.Add(new MenuItem
         {
             Name = "Which looks use it",
