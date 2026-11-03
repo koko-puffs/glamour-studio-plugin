@@ -88,6 +88,9 @@ public sealed partial class MainWindow
     private string? shopName;
 
     /// <summary>Whether the plates panel is on (then the main window doesn't open with the plate editor).</summary>
+    /// <summary>Whether a panel's shown beside a game window (the site's looks are kept fresh meanwhile, as with the window open).</summary>
+    internal bool CompanionShown => lastPane != null;
+
     internal bool PlatesCompanionOn => config.Companions && !config.CompanionsOff.Contains("plates");
 
     /// <summary>Whether the panels should be away: the HUD hidden, a cutscene, group pose, logged out.</summary>
@@ -293,6 +296,9 @@ public sealed partial class MainWindow
         bx -= btn + S(6);
         if (Kit.IconButton("##c-open", new Vector2(bx, by), Icon.ExternalLink, "Open Glamour Studio", 28, Btn.Glass, false, 13))
             Later(() => OpenFromPane(pane));
+        bx -= btn + S(6);
+        if (Kit.IconButton("##c-refresh", new Vector2(bx, by), Icon.Refresh, "Read it all again (your looks and list from the site, your wardrobe from the game)", 28, Btn.Glass, sync.LibraryBusy, 13))
+            Later(RefreshEverything);
 
         var tx = win.X + pad;
         var tw = bx - S(8) - tx;
@@ -609,6 +615,16 @@ public sealed partial class MainWindow
             (say ?? Notify)(!r.Ok ? r.Why ?? "The site said no"
                 : pieces.Count == 1 ? $"{data.ItemName(pieces[0].Item)}: on your shopping list"
                 : $"{Words.Count(pieces.Count, "piece")} on your shopping list");
+        });
+    }
+
+    /// <summary>Takes a piece off your shopping list (at once here; back on should the site say no).</summary>
+    private void Unwish(uint item, Action<string>? say = null)
+    {
+        sync.RemoveWishes(new[] { item }, r =>
+        {
+            recorder.Note($"WISH removed {item}: {(r.Ok ? $"{r.Value} off" : r.Why)}");
+            (say ?? Notify)(r.Ok ? $"{data.ItemName(item)}: off your shopping list" : r.Why ?? "The site said no");
         });
     }
 

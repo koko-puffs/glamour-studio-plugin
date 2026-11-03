@@ -458,6 +458,25 @@ public static class SiteLink
         return Unreadable<int>();
     }
 
+    /// <summary>Takes pieces off your shopping list (item ids). The value: how many came off.</summary>
+    public static async Task<SiteReply<int>> WishRemoveAsync(HttpClient http, string token, IReadOnlyList<uint> items, CancellationToken cancel = default)
+    {
+        if (!LooksRight(token)) return NoToken<int>();
+        var ids = items.Where(i => i != 0).Select(LookJson.BaseId).Distinct().Take(40).Select(i => (JsonNode)JsonValue.Create(i)).ToArray();
+        if (ids.Length == 0) return new SiteReply<int>(0, "There's nothing to take off the list.", "items");
+        var args = new JsonObject { ["p_token"] = token, ["p_items"] = new JsonArray(ids) };
+        var r = await CallAsync(http, "gs_plugin_wish_remove", args, CallTimeout, cancel).ConfigureAwait(false);
+        if (!r.Ok)
+        {
+            // An older site, without the call yet.
+            if (r.Hint == null && r.Why?.Contains("gs_plugin_wish_remove", StringComparison.Ordinal) == true)
+                return new SiteReply<int>(0, "The site can't take pieces off the shopping list from the plugin yet.");
+            return r.As<int>();
+        }
+        if (r.Value is JsonObject o && o["removed"] is JsonValue v && v.TryGetValue<int>(out var n)) return new SiteReply<int>(n);
+        return Unreadable<int>();
+    }
+
     /// <summary>Puts a piece on one of your own looks, in a slot (its piece there replaced). The value: the look's name.</summary>
     public static async Task<SiteReply<string>> LookPutAsync(HttpClient http, string token, string lookId, Slot slot, Piece piece, CancellationToken cancel = default)
     {

@@ -149,12 +149,20 @@ public sealed partial class MainWindow
             var by = p.Y + ch - S(14) - Kit.ButtonHeight(BtnSize.Sm);
             if (Linked)
             {
+                // Both buttons at their full width: "Send now" then "Send" if both don't fit, and
+                // Open left out (the closet's on the site's menu too) when even that doesn't.
                 var send = sync.Syncing ? "Sending…" : "Send now";
-                var sw = Kit.ButtonWidth(send, BtnSize.Sm, Icon.Upload) - S(4);
+                var ow = Kit.ButtonWidth("Open", BtnSize.Sm, null, Btn.Quiet);
+                var sw = Kit.ButtonWidth(send, BtnSize.Sm, Icon.Upload);
+                if (sw + S(6) + ow > inner && !sync.Syncing)
+                {
+                    send = "Send";
+                    sw = Kit.ButtonWidth(send, BtnSize.Sm, Icon.Upload);
+                }
+                sw = MathF.Min(sw, inner);
                 if (Kit.Button("##sync-now", new Vector2(q.X, by), send, Btn.Glass, BtnSize.Sm, Icon.Upload, sw, sync.Syncing, "Sends what the plugin has read to your closet on the site"))
                     sync.SyncNow();
-                var ow = Txt.Measure("Open", Face.SansMedium, 13).X + S(10) * 2;
-                if (q.X + sw + S(6) + ow <= p.X + cw - S(10)
+                if (sw + S(6) + ow <= inner
                     && Kit.Button("##open-closet", new Vector2(q.X + sw + S(6), by), "Open", Btn.Quiet, BtnSize.Sm, null, ow, false, "Your closet on Glamour Studio"))
                     Dalamud.Utility.Util.OpenLink(SiteLink.ClosetUrl);
             }
@@ -274,14 +282,18 @@ public sealed partial class MainWindow
                 _ => "Not yet",
             };
             var cw = Kit.ChipW(chip);
+            var xw = S(28);
             var x = r.X + S(32) + S(10);
-            var tw = r.X + rw - cw - S(10) - x;
+            var tw = r.X + rw - xw - S(8) - cw - S(10) - x;
             var nh = Txt.Natural(Face.Sans, 13);
             var lh = Txt.Natural(Face.Sans, 11);
             var y = r.Y + (h - nh - lh) / 2;
             Txt.Draw(dl, new Vector2(x, y), Txt.Fit(item?.Name ?? $"Item {id}", Face.Sans, 13, tw), Face.Sans, 13, Palette.Ink);
             Txt.Draw(dl, new Vector2(x, y + nh), Txt.Fit(forLook.TryGetValue(id, out var ln) ? $"For {ln}" : "On your list", Face.Sans, 11, tw), Face.Sans, 11, Palette.Dim);
-            Kit.Chip(new Vector2(r.X + rw - cw, r.Y + (h - S(24)) / 2), chip, where != null ? ChipKind.Ok : ChipKind.Plain);
+            Kit.Chip(new Vector2(r.X + rw - xw - S(8) - cw, r.Y + (h - S(24)) / 2), chip, where != null ? ChipKind.Ok : ChipKind.Plain);
+            var gone = id;
+            if (Kit.IconButton($"##unwish-{id}", new Vector2(r.X + rw - xw, r.Y + (h - xw) / 2), Icon.X, "Take it off the list", 28, Btn.Quiet, false, 14))
+                Later(() => Unwish(gone));
             Kit.Dl.AddLine(new Vector2(r.X, r.Y + h - 0.5f), new Vector2(r.X + rw, r.Y + h - 0.5f), Palette.U32(Palette.Raised), 1f);
             Kit.Reserve(r, rw, h);
             Kit.Gap(2);
@@ -289,6 +301,6 @@ public sealed partial class MainWindow
         Kit.EndPane();
         Kit.Reserve(at, w, listH);
         Kit.Gap(12);
-        Txt.Para(new[] { new Run("A piece the plugin sees in your wardrobe comes off the list by itself.", Face.Sans, 12, Palette.Muted) }, 18);
+        Txt.Para(new[] { new Run("A piece the plugin sees in your wardrobe comes off the list by itself; × takes one off.", Face.Sans, 12, Palette.Muted) }, 18);
     }
 }

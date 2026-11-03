@@ -988,8 +988,13 @@ public sealed partial class MainWindow
         if (notSold.Count == 0) return;
         Kit.Gap(14);
         PaneHeading("Not on the market board", Words.Count(notSold.Count, "piece"));
-        foreach (var item in notSold.Take(6))
-            PieceRow($"##c-ns-{item}", item, null, null, forLook.TryGetValue(item, out var look) ? $"for {look}" : null, "Untradable", ChipKind.Plain);
+        foreach (var item in notSold.Take(companionMore ? 40 : 6))
+        {
+            var id = item;
+            if (PieceRow($"##c-ns-{item}", item, null, null, forLook.TryGetValue(item, out var look) ? $"for {look}" : null, null, ChipKind.Plain, "Take off", false,
+                    "Takes it off your shopping list"))
+                Later(() => Unwish(id));
+        }
     }
 
     private (string Name, int Version, HashSet<uint> Found, DateTime At)? shopCache;

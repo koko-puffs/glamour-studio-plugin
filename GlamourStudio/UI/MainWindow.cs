@@ -286,9 +286,13 @@ public sealed partial class MainWindow : Window
                 break;
         }
 
-        // Settings at the top right, always (but on Settings).
+        // Settings at the top right, always (but on Settings), and Refresh beside it.
         SettingsButton(new Vector2(x1 - S(36), y));
-        var right = x1 - S(36) - S(14);
+        var right = x1 - S(36) - S(8);
+        if (Kit.IconButton("##refresh", new Vector2(right - S(36), y), Icon.Refresh,
+                sync.LibraryBusy ? "Reading…" : "Read it all again: your looks, list and plans from the site, your wardrobe from the game", 36, Btn.Glass, sync.LibraryBusy))
+            Later(RefreshEverything);
+        right -= S(36) + S(14);
 
         if (screen == Screen.Look && openLook != null)
         {
@@ -460,6 +464,22 @@ public sealed partial class MainWindow : Window
 
     /// <summary>Runs after this frame's drawing is finished.</summary>
     private void Later(Action action) => later.Add(action);
+
+    /// <summary>
+    /// Reads everything again now: your looks, shopping list, plans, sent looks and what you can wear
+    /// from the site, and your wardrobe from the game (the dresser and armoire only while they're
+    /// open: the game has them only then).
+    /// </summary>
+    internal void RefreshEverything() => RefreshEverything(null);
+
+    /// <param name="say">Where it says so (a toast when not given: the command says it in chat, no window may be open).</param>
+    internal void RefreshEverything(Action<string>? say)
+    {
+        wardrobe.Tick(now: true);
+        sync.RefreshAll();
+        recorder.Note("REFRESH everything");
+        (say ?? Notify)(Linked ? "Reading it all again" : "Your wardrobe's read again (link your account for your looks)");
+    }
 
     private static void Notify(string text) => Frame.Toast(text);
 

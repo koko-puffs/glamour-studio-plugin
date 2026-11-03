@@ -473,6 +473,17 @@ public sealed class SiteSync : IDisposable
         });
     }
 
+    /// <summary>Everything read from the site again now: your looks, list and plans, what you can wear, the looks sent to you, your characters.</summary>
+    public void RefreshAll()
+    {
+        if (!Linked) return;
+        RefreshLibrary();
+        RefreshWearable();
+        RefreshInbox();
+        RefreshCharacters(true);
+        Version++;
+    }
+
     public void RefreshInbox()
     {
         if (!Linked) return;
@@ -539,6 +550,41 @@ public sealed class SiteSync : IDisposable
             }
             done(r);
         }, () => done(new SiteReply<int>(0, "It didn't go through (the link changed, or the call failed). Try again.")));
+    }
+
+    /// <summary>
+    /// Takes pieces off your shopping list: off the plugin's copy at once (put back should the site
+    /// say no); <paramref name="done"/> hears how it went (framework thread).
+    /// </summary>
+    public void RemoveWishes(IReadOnlyList<uint> items, Action<SiteReply<int>> done)
+    {
+        if (!Linked)
+        {
+            done(new SiteReply<int>(0, "Link your account first (Settings → Account).", "token"));
+            return;
+        }
+        var was = Library.Wishes;
+        var gone = items.Select(LookJson.BaseId).ToHashSet();
+        Library = Library with { Wishes = was.Where(w => !gone.Contains(w)).ToHashSet() };
+        Version++;
+        void Undo()
+        {
+            var back = new HashSet<uint>(Library.Wishes);
+            back.UnionWith(was.Where(gone.Contains));
+            Library = Library with { Wishes = back };
+            Version++;
+        }
+        Run(SiteLink.WishRemoveAsync(http, config.SiteToken, items, stopping.Token), r =>
+        {
+            TokenRefused |= r.TokenRefused;
+            if (!r.Ok) Undo();
+            else nextLibrary = DateTime.MinValue;
+            done(r);
+        }, () =>
+        {
+            Undo();
+            done(new SiteReply<int>(0, "It didn't go through (the link changed, or the call failed). Try again."));
+        });
     }
 
     /// <summary>Puts a piece on one of your looks; <paramref name="done"/> hears the look's name (framework thread). Your looks are read again after.</summary>

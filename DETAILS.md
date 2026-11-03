@@ -50,7 +50,13 @@ dressed in any piece of gear, dyed, saved, shared. The plugin is its half in the
   Keep it as a look of yours.
 
 `/gstudio` opens the window, `/gstudio settings` opens Settings, `/gstudio send` sends your
-closet now.
+closet now, `/gstudio refresh` reads it all again (as the Refresh button does).
+
+**Refresh** (the round arrow left of Settings at the top of the window, and in each panel's header
+beside the game's windows): your looks, shopping list, plans, the looks sent to you and what you
+can wear are read from the site again, and your wardrobe from the game. The dresser and armoire are
+read only while they're open (the game has them only then), so they're as of when you last opened
+them. The site's looks are also read every ten minutes while the window or a panel is open.
 
 ## The window
 
@@ -151,9 +157,11 @@ and its twelve slots.
 The glamour dresser first (read when, places used of 800 with a bar, how many places gathering
 outfit sets would free, Make room), then the armoire, armoury chest, bags, saddlebags and retainers
 (how many pieces and when read, or dashed with what to open so it can be read), and **On the site**
-(what was sent and when, Send now, Open). Beside it **your shopping list**: the pieces that just
-came off it (seen in your wardrobe), and each piece with a look that uses it and where it is if you
-have it now.
+(what was sent and when, Send now, Open: both at their full width, "Send" when they don't fit
+side by side, Open left out when even that doesn't). Beside it **your shopping list**: the pieces
+that just came off it (seen in your wardrobe), and each piece with a look that uses it, where it is
+if you have it now, and × to take it off (`gs_plugin_wish_remove`: off here at once, back on should
+the site say no).
 
 ### Make room
 
@@ -213,7 +221,7 @@ yours to sell or discard. Recordings write each step (`TAKE OUT …`). New: not 
 A small Glamour Studio panel (300 wide, the plugin's own look) docked to the edge of the game window
 you have open, its top level with the window's, moving with it as you drag it; on the side with room
 (right by default; Settings can pin a side). As tall as what's in it, whatever the game window's
-height (it measures what it drew each frame), scrolling only when the screen runs out. Its header: GLAMOUR STUDIO in small rose capitals over what it's beside, the arrow
+height (it measures what it drew each frame), scrolling only when the screen runs out. Its header: GLAMOUR STUDIO in small rose capitals over what it's beside, Refresh, the arrow
 that opens the plugin's window on the matching screen, and the fold button: folded, a slim tab stays
 on the window's edge with its one number (looks ready, the plate, your list's length), remembered
 for each window. The panels share their parts: a piece's row (its icon, name, a line under it, and
@@ -249,7 +257,7 @@ shopping list, and whether your dresser or armoire has it. Nothing when none of 
 **Right-click menu:** on gear in your bags, the armoury chest, a retainer's, an item linked in chat
 (and the market board, recipes, shops), a **Glamour Studio** entry: Add it to a look… (your looks;
 the piece goes in its slot, a ring on the free hand, `gs_plugin_look_put`), Which looks use it (a line in chat), Put it on the shopping list (when it isn't
-yours), Store it in the armoire (from your bags, while the armoire's open).
+yours), Take it off the shopping list (when it's on it), Store it in the armoire (from your bags, while the armoire's open).
 
 Recordings write down which panel shows, where, folded or not, a look picked for a plate, and the
 piece the dye window has (`PLUGIN … panel …`); and the market board's and shops' windows opening and closing, never their words (sellers' and retainers' names), as Examine's.
@@ -556,6 +564,17 @@ this one too, within a few minutes of a release.
 The workflows need Settings → Actions → General → Workflow permissions → Read and write.
 
 ## Release notes
+
+### 0.6.11
+
+- Take pieces off your shopping list in the plugin: × on Closet's list, Take it off the shopping
+  list in the right-click menu, Take off on the market board panel's untradable pieces (the site's
+  new `gs_plugin_wish_remove`).
+- **Refresh**: the round arrow at the top of the window and in each panel's header, and
+  `/gstudio refresh`, read your looks, list and plans from the site and your wardrobe from the
+  game again. The site's looks are kept fresh while a panel's shown too, not only with the window
+  open.
+- Closet's On the site card: Send now and Open were cut off (drawn narrower than their words).
 
 ### 0.6.10
 

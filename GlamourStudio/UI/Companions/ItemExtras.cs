@@ -178,6 +178,8 @@ public sealed partial class MainWindow
         });
         if (Linked && Where(id) == null && !sync.Library.Wishes.Contains(id))
             items.Add(new MenuItem { Name = "Put it on the shopping list", OnClicked = _ => AddWishes(new[] { piece }, Chat) });
+        if (Linked && sync.Library.Wishes.Contains(id))
+            items.Add(new MenuItem { Name = "Take it off the shopping list", OnClicked = _ => Unwish(id, Chat) });
         if (inBags && Armoire.IsOpen && data.CabinetOf(id) is { } row && !wardrobe.ArmoireNow.ContainsKey(id))
             items.Add(new MenuItem
             {

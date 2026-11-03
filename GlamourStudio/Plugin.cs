@@ -61,7 +61,7 @@ public sealed class Plugin : IDalamudPlugin
 
             Services.Commands.AddHandler(Command, new CommandInfo(OnCommand)
             {
-                HelpMessage = "Open Glamour Studio. /gstudio settings opens Settings; /gstudio send sends your closet now; "
+                HelpMessage = "Open Glamour Studio. /gstudio settings opens Settings; /gstudio send sends your closet now; /gstudio refresh reads it all again; "
                               + "/gstudio record starts or stops a recording for a report; /gstudio mark <what you'll do> notes a step in it; /gstudio dump writes down the glamour windows' values; /gstudio save saves it as a file.",
             });
             Services.PluginInterface.UiBuilder.Draw += windows.Draw;
@@ -137,6 +137,10 @@ public sealed class Plugin : IDalamudPlugin
             case "config":
                 window.ShowSettings();
                 break;
+            case "refresh":
+            case "reload":
+                window.RefreshEverything(s => Services.Chat.Print($"Glamour Studio: {s}."));
+                break;
             case "send":
             case "sync":
                 if (sync.Linked) sync.SyncNow();
@@ -152,7 +156,7 @@ public sealed class Plugin : IDalamudPlugin
     {
         // Each on its own: one failing never stops the others (the shot's tick shows the HUD again).
         Step(() => wardrobe.Tick(), "reading");
-        Step(() => sync.Tick(window.IsOpen), "the site");
+        Step(() => sync.Tick(window.IsOpen || window.CompanionShown), "the site");
         Step(shots.Tick, "the shot");
         Step(recorder.Tick, "the recording");
         Step(FittingRoom.Tick, "the fitting room");
