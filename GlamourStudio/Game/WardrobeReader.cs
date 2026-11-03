@@ -396,7 +396,8 @@ public sealed unsafe class WardrobeReader
                     {
                         stored = true;
                     }
-                    if (stored) pieces.Add(new DresserPiece(i, piece, s0[i], s1[i], id));
+                    // (The set as the dresser has it: a high-quality set's id is a million more, a set of its own.)
+                    if (stored) pieces.Add(new DresserPiece(i, piece, s0[i], s1[i], raw >= LookJson.HqOffset ? id + LookJson.HqOffset : id));
                 }
                 continue;
             }

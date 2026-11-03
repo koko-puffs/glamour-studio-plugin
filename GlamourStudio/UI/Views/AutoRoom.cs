@@ -47,7 +47,7 @@ public sealed partial class MainWindow
             if (!chance.Stored && chance.Pieces.Any(p => taken.Contains(p.Index))) continue;
             var pieces = chance.Pieces.Where(p => !taken.Contains(p.Index)).ToList();
             var storedAt = chance.Stored
-                ? me.Dresser.Where(d => d.InSet && LookJson.BaseId(d.SetItem) == LookJson.BaseId(chance.SetItem)).Select(d => d.Index).DefaultIfEmpty(-1).First()
+                ? me.Dresser.Where(d => d.InSet && d.SetItem == chance.SetItem + (chance.Hq ? LookJson.HqOffset : 0)).Select(d => d.Index).DefaultIfEmpty(-1).First()
                 : -1;
             if (chance.Stored && storedAt < 0) continue;
             if (storedAt >= 0 ? pieces.Count < 1 : pieces.Count + chance.FromBags < 2) continue;
@@ -102,7 +102,9 @@ public sealed partial class MainWindow
     private string DupesWords(List<DresserPiece> dupes, (int Prisms, int FreeBag) have)
     {
         var names = Words.List(dupes.Select(d => data.ItemName(d.Item)).Distinct().Take(4)) + (dupes.Count > 4 ? " and more" : string.Empty);
-        return $"{Words.Count(dupes.Count, "duplicate")} ({names}): a second copy with the same dyes, or an undyed copy of a piece a stored set holds. "
+        var sets = dupes.Count(d => data.SetPieces(LookJson.BaseId(d.Item)).Count > 0);
+        return $"{Words.Count(dupes.Count, "duplicate")} ({names}): a second copy with the same dyes, an undyed copy of a piece a stored set holds"
+               + (sets > 0 ? $", or a stored set another copy of it has every piece of ({sets}: its pieces all come out)" : string.Empty) + ". "
                + $"They come out to your bags (free {Words.Count(dupes.Count, "place")} here; you have {have.FreeBag} free bag places, it stops when they're full). "
                + "Nothing's thrown away: sell or discard them yourself.";
     }

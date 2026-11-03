@@ -7,7 +7,11 @@ using GlamourStudio.Core;
 namespace GlamourStudio.Game;
 
 /// <summary>One set to gather: its item, its loose pieces in the dresser, and the set's own place when it's stored already (-1: a new set).</summary>
-public sealed record OutfitJob(uint SetItem, IReadOnlyList<DresserPiece> Pieces, int StoredAt, bool Hq = false);
+public sealed record OutfitJob(uint SetItem, IReadOnlyList<DresserPiece> Pieces, int StoredAt, bool Hq = false)
+{
+    /// <summary>The set as the game names it: a high-quality set's id is a million more (the outfit window sent 1045518 for Plain Pajamas of high-quality pieces).</summary>
+    public uint GameSetId => Hq ? LookJson.BaseId(SetItem) + LookJson.HqOffset : LookJson.BaseId(SetItem);
+}
 
 /// <summary>
 /// Making room for you: gathers outfit sets' loose pieces in the glamour dresser into their sets, as
@@ -351,7 +355,7 @@ public static unsafe class OutfitStorer
         if (job!.StoredAt >= 0)
         {
             // The set's place now (should the dresser have closed up as pieces left it).
-            storedAt = DresserPlaces.FindSet(mgr, job.SetItem, job.StoredAt);
+            storedAt = DresserPlaces.FindSet(mgr, job.GameSetId, job.StoredAt);
             if (storedAt < 0)
             {
                 SetFailed($"{data!.ItemName(job.SetItem)} isn't in the dresser any more");
@@ -406,8 +410,8 @@ public static unsafe class OutfitStorer
         setsBefore = DresserPlaces.Count(mgr, LookJson.BaseId(job.SetItem));
         var ok = storedAt >= 0
             ? mgr->StoreExistingOutfit((uint)storedAt, containers, slots)
-            : mgr->StoreNewOutfit(job.SetItem, containers, slots);
-        var what = $"{(storedAt >= 0 ? $"StoreExistingOutfit {storedAt} (read at {job.StoredAt})" : $"StoreNewOutfit {job.SetItem}")}: "
+            : mgr->StoreNewOutfit(job.GameSetId, containers, slots);
+        var what = $"{(storedAt >= 0 ? $"StoreExistingOutfit {storedAt} (read at {job.StoredAt})" : $"StoreNewOutfit {job.GameSetId}")}: "
                    + string.Join(" ", Enumerable.Range(0, 11).Where(i => containers[i] != InventoryType.Invalid).Select(i => $"[{i}]={containers[i]}:{slots[i]}"));
         if (!ok)
         {
@@ -474,7 +478,7 @@ public static unsafe class OutfitStorer
             // The set's pieces in your bags already (left by a run that stopped, or never stored) go in
             // with it, as they are: they're the set's too.
             var inBags = new List<(DresserPiece Piece, InventoryType Type, int Slot)>();
-            var setAt = job.StoredAt >= 0 ? DresserPlaces.FindSet(mgr, job.SetItem, job.StoredAt) : -1;
+            var setAt = job.StoredAt >= 0 ? DresserPlaces.FindSet(mgr, job.GameSetId, job.StoredAt) : -1;
             foreach (var (column, item) in data!.SetPieces(job.SetItem))
             {
                 var id = LookJson.BaseId(item);
@@ -577,14 +581,17 @@ public static unsafe class DresserPlaces
         return c;
     }
 
-    /// <summary>The stored set's place: the one read if it still holds the set, else wherever it is; -1 when it's gone.</summary>
+    /// <summary>
+    /// The stored set's place (<paramref name="setItem"/> as the dresser has it: a high-quality set's
+    /// a million more, a set of its own): the one read if it still holds it, else wherever it is; -1
+    /// when it's gone.
+    /// </summary>
     public static int FindSet(MirageManager* mgr, uint setItem, int readAt)
     {
-        var id = LookJson.BaseId(setItem);
         var n = mgr->PrismBoxItemIds.Length;
-        if (readAt >= 0 && readAt < n && LookJson.BaseId(mgr->PrismBoxItemIds[readAt]) == id) return readAt;
+        if (readAt >= 0 && readAt < n && mgr->PrismBoxItemIds[readAt] == setItem) return readAt;
         for (var i = 0; i < n; i++)
-            if (LookJson.BaseId(mgr->PrismBoxItemIds[i]) == id)
+            if (mgr->PrismBoxItemIds[i] == setItem)
                 return i;
         return -1;
     }

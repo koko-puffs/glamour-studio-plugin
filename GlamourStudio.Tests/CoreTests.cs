@@ -463,6 +463,44 @@ public class FeatureTests
 public class CleanupEdgeTests
 {
     [Fact]
+    public void ASetsTwoQualitiesAreTwoSets()
+    {
+        // Set 30 stored in high quality (1_000_030) with 31 and 32: a loose normal 33 doesn't join it,
+        // a loose high-quality 33 does; normal 31 and 33 loose make the normal set anew.
+        var dresser = new List<DresserPiece>
+        {
+            new(0, 31, 0, 0, 1_000_030), new(0, 32, 0, 0, 1_000_030),
+            new(1, 1_000_033, 0, 0),
+            new(2, 31, 0, 0), new(3, 33, 0, 0),
+        };
+        var chances = DresserCleanup.Outfits(dresser, new Dictionary<uint, uint[]> { [30] = new uint[] { 31, 32, 33 } });
+        var join = chances.Single(c => c.Stored);
+        Assert.True(join.Hq);
+        Assert.Equal(new uint[] { 1_000_033 }, join.Pieces.Select(p => p.Item));
+        var fresh = chances.Single(c => !c.Stored);
+        Assert.False(fresh.Hq);
+        Assert.Equal(new[] { 2, 3 }, fresh.Pieces.Select(p => p.Index));
+    }
+
+    [Fact]
+    public void ASetCopyAnotherCopyHasIsADuplicate()
+    {
+        // Set 30 three times: {31,32,33} at 0, {32} at 1 (all in the first: a duplicate), and the
+        // high-quality {34} at 2 (a piece the others lack: kept).
+        var dresser = new List<DresserPiece>
+        {
+            new(0, 31, 0, 0, 30), new(0, 32, 0, 0, 30), new(0, 33, 0, 0, 30),
+            new(1, 32, 0, 0, 30),
+            new(2, 34, 0, 0, 1_000_030),
+        };
+        var dupes = DresserCleanup.Duplicates(dresser);
+        Assert.Single(dupes);
+        Assert.Equal(1, dupes[0].Index);
+        Assert.Equal(30u, dupes[0].Item);
+        Assert.False(dupes[0].InSet);
+    }
+
+    [Fact]
     public void ASetsPiecesAreOneQuality()
     {
         // Set 1: two of three loose (a new set needn't be whole), 12 in the bags. Set 2: one loose,

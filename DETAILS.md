@@ -201,7 +201,11 @@ the sets, the places freed, the prisms (and how many you have), the free bag pla
 time; it's asked (Store them / Not now) and needs the dresser open. A new set needs two pieces or
 more, loose or in your bags (a set's pieces left in your bags by a run that stopped are put away as
 the set, freeing nothing but tidier than loose); pieces join a set stored already one or more at a
-time. A set's pieces are all one quality, as the game's outfit window says ("Only items of the
+time. A set's normal and high-quality copies are two sets: the high-quality one's id is the set's
+plus a million, in the dresser and when storing it (the outfit window sent `1045518` for Plain
+Pajamas of high-quality pieces; 0.6.6 to 0.6.11 sent the set's own id, and the game refused every
+high-quality set), and pieces join only the stored copy of their quality (a normal eye mask couldn't
+join high-quality Plain Pajamas). A set's pieces are all one quality, as the game's outfit window says ("Only items of the
 same quality may be selected"): the quality with more loose pieces (a set left only because its
 pieces are of both is counted and said). An undyed copy is used before a dyed one; a dyed one loses
 its dye (storing takes it off, as the game's confirmation says; plates keep their own dyes), and
@@ -211,9 +215,12 @@ is when you say yes. Recordings write each step (`OUTFITS …`). New: not yet wa
 
 **Duplicates** (the same card, and the dresser's panel): a second loose copy of an item with the
 same dyes, and an undyed loose copy of a piece a stored set already holds (`DresserCleanup.Duplicates`;
-copies dyed otherwise aren't duplicates). **Take out** restores them to your bags one at a time
+copies dyed otherwise aren't duplicates), and a stored set's copy whose pieces another copy of the
+set has (either quality: they look the same; the copy with the most pieces stays): the game lets a
+set be stored again, by hand, with a piece the stored one has. **Take out** restores them to your bags one at a time
 (`Game/DresserTaker.cs`), each found again by item and dyes and waited for, never the last copy,
-never a Unique piece you hold; it stops when your bags are full. Nothing's thrown away: they're
+never a Unique piece you hold; a set's copy is restored whole (its pieces all come to your bags, so
+it needs that many free places), never the last copy of the set; it stops when your bags are full. Nothing's thrown away: they're
 yours to sell or discard. Recordings write each step (`TAKE OUT …`). New: not yet watched.
 
 ## Beside the game's windows
@@ -564,6 +571,19 @@ this one too, within a few minutes of a release.
 The workflows need Settings → Actions → General → Workflow permissions → Read and write.
 
 ## Release notes
+
+### 0.6.12
+
+From a run storing high-quality sets:
+
+- High-quality sets are stored: the game names a set of high-quality pieces by the set's id plus a
+  million (as it does a high-quality item), and refused every one sent with the set's own id
+  (Bouncer's Attire, Dalmascan Attire, Plain Pajamas).
+- A set's normal and high-quality copies are two sets: pieces join the stored copy of their
+  quality, or make the other quality's set anew.
+- Take out duplicates takes out a stored set's copy that another copy of the set has every piece
+  of (the game lets you store a set again with one piece: Noir Attire, Quaintrelle's Attire,
+  Southern Seas Shirt & Trousers); restored whole, its pieces to your bags.
 
 ### 0.6.11
 

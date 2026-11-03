@@ -7,7 +7,8 @@ using GlamourStudio.Core;
 namespace GlamourStudio.Game;
 
 /// <summary>
-/// Taking pieces out of the glamour dresser to your bags for you (its duplicates): each restored with
+/// Taking pieces out of the glamour dresser to your bags for you (its duplicates, and a stored set's
+/// copy another copy of the set has, whose pieces all come out): each restored with
 /// <c>MirageManager.RestorePrismBoxItem</c>, as the dresser's "Restore item to its original form"
 /// does, one at a time, each waited for (the dresser one copy fewer, a new bag place holding it).
 /// Its place is found again first (the same item with the same dyes), a Unique piece you hold is
@@ -28,6 +29,9 @@ public static unsafe class DresserTaker
     private static int dresserBefore;
     private static int tries;
     private static DateTime refusedSince;
+
+    /// <summary>Whether the one at work is a whole stored set (a copy of a set another copy has).</summary>
+    private static bool isSet;
     private static readonly List<string> skipped = new();
     private static Action<string, bool>? report;
     private static bool stopAsked;
@@ -99,6 +103,47 @@ public static unsafe class DresserTaker
                 }
                 if (tries == 0) current = queue.Dequeue();
                 var id = LookJson.BaseId(current.Item);
+                isSet = data!.SetPieces(id).Count > 0;
+                if (isSet)
+                {
+                    // A copy of a stored set: restoring it puts its pieces in your bags, so room for
+                    // them all; and another copy of the set must still be there.
+                    var setAt = DresserPlaces.FindSet(mgr, current.Item, current.Index);
+                    var holds = setAt < 0 ? 0 : data.SetPieces(id).Count(c => mgr->IsSetSlotUnlocked((uint)setAt, c.Column));
+                    if (setAt < 0 || DresserPlaces.Count(mgr, id) < 2)
+                    {
+                        skipped.Add(data.ItemName(id));
+                        Recorder.Log($"  set {current.Item} at {current.Index}: left ({(setAt < 0 ? "gone" : "the last copy")})");
+                        break;
+                    }
+                    if (inv->GetEmptySlotsInBag() < holds)
+                    {
+                        Finish($"Your bags need {holds} free places for {data.ItemName(id)}", false);
+                        break;
+                    }
+                    dresserBefore = DresserPlaces.Count(mgr, id);
+                    if (!mgr->RestorePrismBoxItem((uint)setAt))
+                    {
+                        if (tries++ == 0)
+                        {
+                            refusedSince = now;
+                            Recorder.Log($"  RestorePrismBoxItem {setAt} (set {current.Item}) → refused, asking again");
+                        }
+                        if (now - refusedSince < OutfitStorer.GiveUp)
+                        {
+                            deadline = now + OutfitStorer.Retry;
+                            break;
+                        }
+                        tries = 0;
+                        Finish($"The game wouldn't take out {data.ItemName(id)}", false);
+                        break;
+                    }
+                    Recorder.Log($"  RestorePrismBoxItem {setAt} (set {current.Item}, {holds} pieces) → true{(tries > 0 ? $" (after {tries} refusals)" : string.Empty)}");
+                    tries = 0;
+                    phase = Phase.Waiting;
+                    deadline = now + TimeSpan.FromSeconds(6);
+                    break;
+                }
                 var at = DresserPlaces.Find(mgr, current.Item, current.Dye1, current.Dye2, current.Index);
                 if (at < 0 || DresserPlaces.Count(mgr, id) < 2 && !current.InSet && !InASet(mgr, id))
                 {
@@ -144,7 +189,8 @@ public static unsafe class DresserTaker
             case Phase.Waiting:
             {
                 var id = LookJson.BaseId(current.Item);
-                if (DresserPlaces.InBags(id).Except(before).Any() && DresserPlaces.Count(mgr, id) < dresserBefore)
+                // (A set: its copy gone from the dresser; its pieces come to your bags with it.)
+                if ((isSet || DresserPlaces.InBags(id).Except(before).Any()) && DresserPlaces.Count(mgr, id) < dresserBefore)
                 {
                     Done++;
                     phase = Phase.Taking;

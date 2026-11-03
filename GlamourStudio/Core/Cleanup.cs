@@ -49,8 +49,9 @@ public static class DresserCleanup
             .ToDictionary(g => g.Key, g => g.OrderBy(d => d.Dye1 != 0 || d.Dye2 != 0 ? 1 : 0).First());
         var copies = new[] { (Hq: false, Best: Best(false)), (Hq: true, Best: Best(true)) };
         var anyLoose = looseAll.Select(d => LookJson.BaseId(d.Item)).ToHashSet();
-        // What each stored set has in it already: a loose copy of one of those wouldn't join it.
-        var inSets = dresser.Where(d => d.InSet).GroupBy(d => LookJson.BaseId(d.SetItem))
+        // What each stored set has in it already (a set's high-quality copy is its own, its id a
+        // million more): a loose copy of one of those wouldn't join it.
+        var inSets = dresser.Where(d => d.InSet).GroupBy(d => d.SetItem)
             .ToDictionary(g => g.Key, g => g.Select(d => LookJson.BaseId(d.Item)).ToHashSet());
         bool InBags(uint id, bool hq) => inBags?.Contains(hq ? id + LookJson.HqOffset : id) ?? false;
         var chances = new List<OutfitChance>();
@@ -58,25 +59,33 @@ public static class DresserCleanup
         foreach (var (set, pieces) in sets)
         {
             var ids = pieces.Select(LookJson.BaseId).Distinct().ToList();
-            // One quality a set (the game: "Only items of the same quality may be selected"): the one
-            // with more loose pieces, normal quality when even.
-            if (inSets.TryGetValue(LookJson.BaseId(set), out var already))
+            var baseSet = LookJson.BaseId(set);
+            var any = false;
+            // Each quality on its own (the game: "Only items of the same quality may be selected"; a
+            // set's normal and high-quality copies are two sets): into that quality's stored set, or
+            // a new one.
+            foreach (var (hq, best) in copies)
             {
-                var join = copies.Select(c => (c.Hq, Pieces: ids.Where(i => c.Best.ContainsKey(i) && !already.Contains(i)).Select(i => c.Best[i]).ToList()))
-                    .OrderByDescending(c => c.Pieces.Count).First();
-                if (join.Pieces.Count >= 1) chances.Add(new OutfitChance(set, join.Pieces, true, 0, join.Hq));
-                continue;
-            }
-            var pick = copies.Select(c =>
+                if (inSets.TryGetValue(hq ? baseSet + LookJson.HqOffset : baseSet, out var already))
                 {
-                    var have = ids.Where(c.Best.ContainsKey).Select(i => c.Best[i]).ToList();
-                    return (c.Hq, Have: have, FromBags: ids.Count(i => !c.Best.ContainsKey(i) && InBags(i, c.Hq)));
-                })
-                .OrderByDescending(c => c.Have.Count).ThenByDescending(c => c.FromBags).First();
-            // (Pieces of it in your bags, from a run that stopped, are put away as the set too.)
-            if (pick.Have.Count >= 2 || pick.Have.Count + pick.FromBags >= 2 && pick.FromBags > 0)
-                chances.Add(new OutfitChance(set, pick.Have, false, pick.FromBags, pick.Hq));
-            else if (ids.Count(anyLoose.Contains) >= 2)
+                    var join = ids.Where(i => best.ContainsKey(i) && !already.Contains(i)).Select(i => best[i]).ToList();
+                    if (join.Count >= 1)
+                    {
+                        chances.Add(new OutfitChance(baseSet, join, true, 0, hq));
+                        any = true;
+                    }
+                    continue;
+                }
+                var have = ids.Where(best.ContainsKey).Select(i => best[i]).ToList();
+                var fromBags = ids.Count(i => !best.ContainsKey(i) && InBags(i, hq));
+                // (Pieces of it in your bags, from a run that stopped, are put away as the set too.)
+                if (have.Count >= 2 || have.Count + fromBags >= 2 && fromBags > 0)
+                {
+                    chances.Add(new OutfitChance(baseSet, have, false, fromBags, hq));
+                    any = true;
+                }
+            }
+            if (!any && ids.Count(anyLoose.Contains) >= 2 && !inSets.ContainsKey(baseSet) && !inSets.ContainsKey(baseSet + LookJson.HqOffset))
                 heldBack++;
         }
         return (chances.OrderByDescending(c => c.Frees).ThenBy(c => c.SetItem).ToList(), heldBack);
@@ -117,7 +126,21 @@ public static class DresserCleanup
             if (d.Dye1 == 0 && d.Dye2 == 0 && inSets.Contains(id)) extra.Add(d);
             else if (!kept.Add((id, d.Dye1, d.Dye2))) extra.Add(d);
         }
-        return extra;
+        // A stored set whose pieces another copy of the set has (either quality: they look the same),
+        // as one entry: its place and its own item (the set's id, a million more when high quality).
+        // The copy with the most pieces is kept, the first when even.
+        foreach (var same in dresser.Where(d => d.InSet).GroupBy(d => d.Index)
+                     .Select(g => (Index: g.Key, Set: g.First().SetItem, Pieces: g.Select(d => LookJson.BaseId(d.Item)).ToHashSet()))
+                     .GroupBy(s => LookJson.BaseId(s.Set)))
+        {
+            var have = new HashSet<uint>();
+            foreach (var copy in same.OrderByDescending(s => s.Pieces.Count).ThenBy(s => s.Index))
+            {
+                if (have.Count > 0 && copy.Pieces.IsSubsetOf(have)) extra.Add(new DresserPiece(copy.Index, copy.Set, 0, 0));
+                else have.UnionWith(copy.Pieces);
+            }
+        }
+        return extra.OrderBy(d => d.Index).ToList();
     }
 
     /// <summary>The dresser's loose pieces that none of <paramref name="outfits"/> (your looks and plates) has, in the dresser's order.</summary>
