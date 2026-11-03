@@ -80,6 +80,12 @@ public sealed class Shots : IDisposable
         this.token = token;
     }
 
+    /// <summary>
+    /// The key of the character wearing it, when the site takes that character's data (else null): said to
+    /// the site after the shot, which shows it on the shot only while you show that character on your shots.
+    /// </summary>
+    public Func<string?>? WhoWore { get; set; }
+
     /// <summary>The shot taken, until it's sent and closed, or discarded.</summary>
     public Shot? Taken { get; private set; }
 
@@ -294,10 +300,13 @@ public sealed class Shots : IDisposable
         s.Sending = true;
         s.Note = null;
         var t = token();
+        var who = WhoWore?.Invoke();
         var cancel = stop.Token;
         Task.Run(async () =>
         {
             var r = await SiteLink.ShotAsync(http, t, s.LookId, caption, jpeg, cancel).ConfigureAwait(false);
+            // Which character wore it (nothing's said if this one doesn't go through: the shot's there either way).
+            if (r.Ok && who != null) await SiteLink.ShotCharacterAsync(http, t, r.Value!.Id, who, cancel).ConfigureAwait(false);
             _ = Services.Framework.RunOnFrameworkThread(() =>
             {
                 s.Sending = false;

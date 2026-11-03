@@ -10,6 +10,7 @@ sends, how the code is laid out, releasing, and the release notes. The short ver
 - [Reading your wardrobe](#reading-your-wardrobe)
 - [Filling a plate](#filling-a-plate)
 - [The site](#the-site)
+- [Asking about each character](#asking-about-each-character)
 - [The code](#the-code)
 - [Releasing](#releasing)
 - [Release notes](#release-notes)
@@ -27,7 +28,9 @@ dressed in any piece of gear, dyed, saved, shared. The plugin is its half in the
 - **Your closet on the site.** Linked with a token, it sends what it has read of your wardrobe:
   each piece of gear you own and its handiest place (dresser, armoire, armoury chest, bags,
   saddlebags, a retainer), your glamour plates and what you're wearing. The site's closet, "6/8 in
-  your closet", Only looks I can wear today and the shopping list all read from it.
+  your closet", Only looks I can wear today and the shopping list all read from it, for the
+  character you view the site as. **It asks first**, on each character, whether to send it at all
+  (see [Asking about each character](#asking-about-each-character)).
 - **Both ways.** Looks you Send to game on the site wait in the plugin (Sent from the site); a
   plate or your outfit can be kept as a new private look on the site (Keep it as a look), and the
   dressing room's Copy my outfit from the game reads what it sent.
@@ -231,7 +234,11 @@ pick-one pill, each group a label over a card of rows.
 
 **Account:** linked or not in a line, the token (masked once linked, with Unlink; else a field and
 Link), Get a token (the site's Settings → Glamour Studio → In-game plugin) and Open Glamour Studio.
-The version and What's new at the foot.
+Then **Characters**: the one you're on first, then each you've answered for, by name, each a switch
+(Send to the site) with its world and where it stands (Sent to the site, Not sent, Not asked yet, Yes
+· telling the site, Checking with the site…, "you're on it"); greyed out while not linked. What's
+shown of each on the site is the site's Settings → Glamour Studio → Characters. The version and
+What's new at the foot.
 
 ## Making a report: the recorder
 
@@ -417,16 +424,19 @@ runs them off the framework thread and takes the answers back to it.
 
 | Call | When | What |
 | --- | --- | --- |
-| `gs_plugin_sync` | your wardrobe changed and settled for 10 s, at most every 3 min (and only when what's sent changed); Send it now; linking | the character you're on (key, name, world), its pieces each where they are, the places read in full, its plates and what it wears |
+| `gs_plugin_characters` | linking, changing character, every 10 min while the window's open (30 otherwise) | what the site does with each of your characters (key, `ask` / `yes` / `no`) |
+| `gs_plugin_character` | you answer the question, or flip a character's switch in Settings → Account; an answer the site hasn't heard yet (a minute after a failed try) | your answer for a character: yes with its name and world; no with its key alone, and the site lets go of what it had of it |
+| `gs_plugin_sync` | your wardrobe changed and settled for 10 s, at most every 3 min (and only when what's sent changed); Send it now; saying yes; linking. **Only for a character the site takes (`yes`)** | the character you're on (key, name, world), its pieces each where they are, the places read in full, its plates and what it wears |
 | `gs_plugin_looks` | the window opens, every 10 min while it's open, Refresh | your looks (300), the public ones you love (200), your shopping list's items |
 | `gs_plugin_inbox_list` | every minute while the window's open, every 5 otherwise | the looks sent to the game, each whole, with the plate meant |
 | `gs_plugin_inbox_remove` | a sent look went on a plate | it's off the list |
 | `gs_plugin_save_look` | Keep it as a look (a plate, your outfit, someone examined) | a new private look of yours |
-| `gs_plugin_plans` | the window opens and with the looks, and when you change character (30 s at most) | that character's plate plans, each look whole |
-| `gs_plugin_wearable` | the window opens, every 10 min while it's open, after a sync that changed the closet | public looks you own every piece of, the most loved first |
+| `gs_plugin_plans` | the window opens and with the looks, and when you change character (30 s at most); only for a character the site takes | that character's plate plans, each look whole |
+| `gs_plugin_wearable` | the window opens, every 10 min while it's open, after a sync that changed the closet, on another character | public looks you own every piece of, the most loved first: as the character you're on (`p_character`) when the site takes it, else with all your characters' pieces |
 | `gs_plugin_wish_add` | a panel's "Add … to the shopping list", the right-click menu's | up to 40 pieces (item and dyes) onto your shopping list; a piece on it already stays |
 | `gs_plugin_look_put` | the right-click menu's Add it to a look | the piece into one slot of one of your own looks |
 | `gs-plugin-shot` (edge function) | Send it to the look | multipart: token, look, caption, the JPEG; the site checks the token, the look (public), the limits, and stores the shot |
+| `gs_plugin_shot_character` | right after a shot's sent, for a character the site takes | which character wore it (the site shows it on the shot only while you show that character on your shots) |
 
 `gs_plugin_sync`'s answer has `wishes_got`: the items it took off your shopping list because this
 sync had them.
@@ -435,18 +445,54 @@ On the site, each character's reads are kept apart (`gs_closet_reads`), and the 
 your closet are made again from all of them, each in its handiest place. So another PC, or one
 character played alone, never takes another character's pieces off; pieces you ticked by hand stay
 yours until the plugin sees them somewhere. Plates and what
-you wear are kept per character (eight at most), and the site's Settings tab lists them, to forget.
+you wear are kept per character (eight at most). The site shows a closet per character too (its
+Viewing as switch), and its Settings → Glamour Studio → Characters lists them: whether it takes each
+one's data, what's public of each (nothing until you say), and Forget.
+
+## Asking about each character
+
+A character's wardrobe goes to the site only once you've said yes to it (`Core/Consent.cs`, tested;
+`Session/SiteSync.cs`). Your answer is kept per character in the plugin's settings (`Characters`, by
+its key, with its name and world to list it) and on the site (`gs_game_characters.send`), which turns
+away a character you said no to whatever plugin sends it. The site's word wins, since you can change
+it there too: what to do (`Consent.Decide`) is
+
+| Here | The site | So |
+| --- | --- | --- |
+| anything | yes | send |
+| anything | no | nothing sent (your answer here becomes no) |
+| yes | not said (`ask`, or it's never heard of it) | tell it yes, then send |
+| no | not said | tell it no (it lets go of anything an older plugin sent) |
+| not asked | not said | **ask you**, sending nothing |
+| no | not read yet | nothing sent |
+| yes or not asked | not read yet | wait (nothing sent) |
+
+**The question** (`UI/Views/Characters.cs`): while linked, on a character that needs asking, a card
+of its own at the top of the screen (440 wide, the question's card as the window has it: the rose
+edge, an eyebrow "A new character on Lich", "SEND KOKO NYAN'S WARDROBE TO GLAMOUR STUDIO?" in Syne,
+what goes, that it stays private, and that nothing is sent until you say yes), whether the window's
+open or not; gone in cutscenes and group pose and while the HUD's hidden, as the panels are. **Yes,
+send it** (rose): told to the site, then the closet goes at once, its plans and Wear now read as that
+character; **No**: told to the site, which lets go of what it had of it; **Not now**: not asked again
+about it until the plugin loads again (Send now in Closet asks again). A line in chat says what you
+chose. Not linked, nothing's asked (nothing could be sent); on linking it is. The header's pill and the
+rail's line say "This character isn't sent yet: say yes or no" or "isn't sent to the site".
+
+A sync the site refuses for a character you said no to there (hint `refused`) isn't shown as a
+problem: the character's answer here becomes no. Older plugins (0.4.x and before) never ask: the site
+keeps what they send of a character no one's answered for (private), and refuses one that's no, with
+words saying to update the plugin.
 
 ## The code
 
 | Folder | What |
 | --- | --- |
 | `Plugin.cs`, `Services.cs`, `Configuration.cs` | Loading, the command, the framework tick (reading, the site, opening with the plate editor), settings. |
-| `Core/` | Game-free, tested: slots and the game's orders (`Slots`), looks and their JSON (`Looks`), the wardrobe and what's sent (`Wardrobe`), the plan for a plate (`PlatePlan`), how ready a look is (`Readiness`), the site's calls (`SiteLink`), words (`Words`). |
+| `Core/` | Game-free, tested: slots and the game's orders (`Slots`), looks and their JSON (`Looks`), the wardrobe and what's sent (`Wardrobe`), asking about each character (`Consent`), the plan for a plate (`PlatePlan`), how ready a look is (`Readiness`), the site's calls (`SiteLink`), words (`Words`). |
 | `Game/` | The game: its sheets (`GameData`: items, dyes, armoire rows, outfit sets, jobs), reading your wardrobe (`WardrobeReader`), the plate editor, try-on and wearing a plate (`PlateEditor`), the armoire (`Armoire`), gearsets (`Gearsets`), the Examine window (`Examine`), the recorder (`Recorder`, `AtkText`). |
 | `Session/` | `SiteSync`: the site in the background. `Shots`: taking, making and sending a shot. |
 | `UI/Companions/` | The panels beside the game's windows (`Companion`: docking, folding, the header; `Panes`: what each shows; `ItemExtras`: the tooltip lines and the right-click menu). `Game/GameWindows` holds their game side. |
-| `UI/` | `MainWindow` (the header, the rail, the screens) and its screens (`Views/Home`, `LooksView`, `LookView`, `PlateView`, `ClosetView`, `CleanupView`, `Settings`, `Shared`); `Kit/` the controls, colours, fonts and icons (`Layout`: panes, the rail's items, tabs with counts, chips, the ring); `Model/` the kit's game-free parts (SVG paths). |
+| `UI/` | `MainWindow` (the header, the rail, the screens) and its screens (`Views/Home`, `LooksView`, `LookView`, `PlateView`, `ClosetView`, `CleanupView`, `Settings`, `Characters` (the question, and Settings' characters), `Shared`); `Kit/` the controls, colours, fonts and icons (`Layout`: panes, the rail's items, tabs with counts, chips, the ring); `Model/` the kit's game-free parts (SVG paths). |
 | `GlamourStudio.Tests/` | xUnit over `Core/` and `UI/Model/`: builds and runs without the game or Dalamud. |
 
 ## Releasing
@@ -463,6 +509,24 @@ this one too, within a few minutes of a release.
 The workflows need Settings → Actions → General → Workflow permissions → Read and write.
 
 ## Release notes
+
+### 0.5.1
+
+- **It asks before sending a character.** On a character it hasn't seen (linked), a small card at the
+  top of the screen asks whether to send its wardrobe to Glamour Studio; nothing of it is sent until
+  you say yes. No: the site lets go of what it had of it. Not now: asked again next time.
+- **Settings → Account → Characters**: each character you've answered for, with its switch.
+- The site keeps your answer too, and you can change it there (Settings → Glamour Studio →
+  Characters, where you also choose what's public of each: nothing until you say). What you change
+  on the site is followed here.
+- **Wear now** is what the character you're on can wear (when the site takes it), not every
+  character's pieces together.
+- A shot you send says which character wore it (shown on the site only if you show that character on
+  your shots).
+
+### 0.5.0
+
+- 0.4.2's changes, released as 0.5.0 (nothing else).
 
 ### 0.4.2
 

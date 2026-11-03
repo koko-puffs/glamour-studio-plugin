@@ -52,5 +52,11 @@ public sealed class Configuration : IPluginConfiguration
     /// <summary>A Glamour Studio entry in the right-click menu on gear.</summary>
     public bool ContextMenu { get; set; } = true;
 
+    /// <summary>
+    /// Your answer for each character (by its key, never the game's id) to "Send its wardrobe to Glamour
+    /// Studio?", with its name and world to list it in Settings. A character not here hasn't been asked.
+    /// </summary>
+    public Dictionary<string, Core.KnownCharacter> Characters { get; set; } = new();
+
     public void Save() => Services.PluginInterface.SavePluginConfig(this);
 }
