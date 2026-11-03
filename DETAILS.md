@@ -193,9 +193,11 @@ the sets, the places freed, the prisms (and how many you have), the free bag pla
 time; it's asked (Store them / Not now) and needs the dresser open. A new set needs two pieces or
 more, loose or in your bags (a set's pieces left in your bags by a run that stopped are put away as
 the set, freeing nothing but tidier than loose); pieces join a set stored already one or more at a
-time. Only normal-quality undyed copies go into sets: the game refused a set of high-quality pieces
-every time, and a set may not keep a piece's dyes (a set left only for want of such a copy is
-counted and said). A piece two sets share goes to the first. A set the game doesn't take is left,
+time. A set's pieces are all one quality, as the game's outfit window says ("Only items of the
+same quality may be selected"): the quality with more loose pieces (a set left only because its
+pieces are of both is counted and said). An undyed copy is used before a dyed one; a dyed one loses
+its dye (storing takes it off, as the game's confirmation says; plates keep their own dyes), and
+the ask says how many will. A piece two sets share goes to the first. A set the game doesn't take is left,
 its pieces in your bags (said at the end), and the run goes on; three in a row and it stops. Stop waits for the step the game is answering. It's worked out again from the dresser as it
 is when you say yes. Recordings write each step (`OUTFITS …`). New: not yet watched in the game.
 
@@ -555,6 +557,14 @@ this one too, within a few minutes of a release.
 The workflows need Settings → Actions → General → Workflow permissions → Read and write.
 
 ## Release notes
+
+### 0.6.8
+
+- High-quality pieces go into sets (0.6.5 kept them out after the game refused Bouncer's Attire;
+  the game takes them, all of one quality: "Only items of the same quality may be selected"). A set
+  is gathered in the quality with more loose pieces.
+- Dyed pieces go into sets too, an undyed copy first: storing takes a dye off (the game's own
+  confirmation says so), and the ask says how many dyed pieces will lose it.
 
 ### 0.6.7
 

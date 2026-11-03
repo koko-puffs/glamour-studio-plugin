@@ -13,12 +13,16 @@ namespace GlamourStudio.UI;
 /// pieces into their sets (<see cref="OutfitStorer"/>), and takes the dresser's duplicates out to your
 /// bags (<see cref="DresserTaker"/>). What each will do is said first, it's asked before it starts
 /// (on Make room a question, in the panel a second press), and it's worked out again from the dresser
-/// as it is the moment you say yes. Dyed loose pieces stay out of sets: a set may not keep their dyes.
+/// as it is the moment you say yes. A set's pieces are all one quality; a dyed piece loses its dye.
 /// </summary>
 public sealed partial class MainWindow
 {
     /// <summary>What gathering sets would do now (<c>Pieces</c>: from the dresser; <c>Prisms</c>: every piece stored, those in your bags too).</summary>
-    private sealed record AutoRoomPlan(List<OutfitJob> Jobs, int Frees, int Pieces, int Prisms, int MostAtOnce, int HeldBack);
+    private sealed record AutoRoomPlan(List<OutfitJob> Jobs, int Frees, int Pieces, int Prisms, int MostAtOnce, int HeldBack)
+    {
+        /// <summary>Dyed pieces among them (storing takes the dye off).</summary>
+        public int Dyed => Jobs.Sum(j => j.Pieces.Count(p => p.Dye1 != 0 || p.Dye2 != 0));
+    }
 
     private (int Wardrobe, string Key, AutoRoomPlan Plan, List<DresserPiece> Dupes)? autoRoomCache;
 
@@ -35,7 +39,7 @@ public sealed partial class MainWindow
         if (autoRoomCache is { } c && c.Wardrobe == wardrobe.Version && c.Key == me.Key) return (c.Plan, c.Dupes);
         var jobs = new List<OutfitJob>();
         var taken = new HashSet<int>();
-        var (chances, heldBack) = DresserCleanup.Gather(me.Dresser, data.AllSets, DresserPlaces.NormalInBags());
+        var (chances, heldBack) = DresserCleanup.Gather(me.Dresser, data.AllSets, DresserPlaces.ItemsInBags());
         var fromBags = 0;
         foreach (var chance in chances)
         {
@@ -49,7 +53,7 @@ public sealed partial class MainWindow
             if (storedAt >= 0 ? pieces.Count < 1 : pieces.Count + chance.FromBags < 2) continue;
             foreach (var p in pieces) taken.Add(p.Index);
             fromBags += chance.FromBags;
-            jobs.Add(new OutfitJob(chance.SetItem, pieces, storedAt));
+            jobs.Add(new OutfitJob(chance.SetItem, pieces, storedAt, chance.Hq));
         }
         var plan = new AutoRoomPlan(jobs,
             jobs.Sum(j => j.StoredAt >= 0 ? j.Pieces.Count : Math.Max(0, j.Pieces.Count - 1)),
@@ -90,9 +94,10 @@ public sealed partial class MainWindow
         + (plan.Prisms > plan.Pieces ? $" {Words.Count(plan.Prisms - plan.Pieces, "piece")} of these sets in your bags go in with them." : string.Empty)
         + HeldBackWords(plan);
 
-    /// <summary>The sets left out because their only copy of a piece is dyed or high quality.</summary>
+    /// <summary>The dyed pieces that lose their dye, and the sets left out for pieces of both qualities.</summary>
     private static string HeldBackWords(AutoRoomPlan plan) =>
-        plan.HeldBack > 0 ? $" {Words.Count(plan.HeldBack, "set")} wait on a dyed or high-quality copy of a piece (the game takes neither into a set)." : string.Empty;
+        (plan.Dyed > 0 ? $" {Words.Count(plan.Dyed, "dyed piece")} lose their dye (storing takes it off; your plates keep their own)." : string.Empty)
+        + (plan.HeldBack > 0 ? $" {Words.Count(plan.HeldBack, "set")} left: their pieces are of both qualities, and a set takes one." : string.Empty);
 
     private string DupesWords(List<DresserPiece> dupes, (int Prisms, int FreeBag) have)
     {

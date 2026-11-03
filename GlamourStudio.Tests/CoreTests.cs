@@ -463,27 +463,33 @@ public class FeatureTests
 public class CleanupEdgeTests
 {
     [Fact]
-    public void ANewSetTakesNormalUndyedPieces()
+    public void ASetsPiecesAreOneQuality()
     {
-        // Set 1: two of three loose (a new set needn't be whole). Set 2: one loose, one in the bags
-        // (put away together, freeing nothing). Set 3: two normal, the third's only copy high quality (left out). Set 4: one
-        // normal, one high quality, one dyed: held back.
+        // Set 1: two of three loose (a new set needn't be whole), 12 in the bags. Set 2: one loose,
+        // one in the bags (put away together, freeing nothing). Set 3: two high quality and one
+        // normal: the high-quality two. Set 4: one normal, one high quality: held back. Set 5: a dyed
+        // copy is used when there's no undyed one, the undyed one when there is.
         var dresser = new List<DresserPiece>
         {
             new(0, 10, 0, 0), new(1, 11, 0, 0),
             new(2, 20, 0, 0),
-            new(4, 30, 0, 0), new(5, 31, 0, 0), new(6, 1_000_032, 0, 0),
-            new(7, 40, 0, 0), new(8, 1_000_041, 0, 0), new(9, 42, 3, 0),
+            new(4, 1_000_030, 0, 0), new(5, 1_000_031, 0, 0), new(6, 32, 0, 0),
+            new(7, 40, 0, 0), new(8, 1_000_041, 0, 0),
+            new(9, 50, 3, 0), new(10, 51, 4, 0), new(11, 51, 0, 0),
         };
         var sets = new Dictionary<uint, uint[]>
         {
-            [1] = new uint[] { 10, 11, 12 }, [2] = new uint[] { 20, 21, 22 }, [3] = new uint[] { 30, 31, 32 }, [4] = new uint[] { 40, 41, 42 },
+            [1] = new uint[] { 10, 11, 12 }, [2] = new uint[] { 20, 21, 22 }, [3] = new uint[] { 30, 31, 32 }, [4] = new uint[] { 40, 41 },
+            [5] = new uint[] { 50, 51 },
         };
         var (chances, heldBack) = DresserCleanup.Gather(dresser, sets, new HashSet<uint> { 12, 22 });
-        Assert.Equal(new uint[] { 1, 2, 3 }, chances.Select(c => c.SetItem).OrderBy(i => i));
-        Assert.Equal(0, chances.Single(c => c.SetItem == 2).Frees);
+        Assert.Equal(new uint[] { 1, 2, 3, 5 }, chances.Select(c => c.SetItem).OrderBy(i => i));
         Assert.Equal(1, chances.Single(c => c.SetItem == 1).FromBags);
-        Assert.Equal(new uint[] { 30, 31 }, chances.Single(c => c.SetItem == 3).Pieces.Select(p => p.Item));
+        Assert.Equal(0, chances.Single(c => c.SetItem == 2).Frees);
+        var three = chances.Single(c => c.SetItem == 3);
+        Assert.True(three.Hq);
+        Assert.Equal(new uint[] { 1_000_030, 1_000_031 }, three.Pieces.Select(p => p.Item));
+        Assert.Equal(new[] { 9, 11 }, chances.Single(c => c.SetItem == 5).Pieces.Select(p => p.Index));
         Assert.Equal(1, heldBack);
     }
 

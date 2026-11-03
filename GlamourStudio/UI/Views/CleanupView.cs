@@ -26,7 +26,7 @@ public sealed partial class MainWindow
     private CleanupNowRead CleanupNow(CharacterWardrobe me)
     {
         if (cleanup is { } c && c.Wardrobe == wardrobe.Version && c.Sync == sync.Version && c.Key == me.Key) return c.Read;
-        var outfits = DresserCleanup.Outfits(me.Dresser, data.AllSets, DresserPlaces.NormalInBags());
+        var outfits = DresserCleanup.Outfits(me.Dresser, data.AllSets, DresserPlaces.ItemsInBags());
         var plans = Enumerable.Range(1, Plates.Count).Select(sync.PlanFor).OfType<Look>();
         var used = sync.Library.Mine.Concat(sync.Library.Loved).Concat(sync.Inbox.Select(s => s.Look)).Concat(plans)
             .Select(l => l.Pieces)
