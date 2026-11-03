@@ -171,8 +171,13 @@ an outfit only from your bags or armoury chest, so for each set each loose piece
 your bags (`MirageManager.RestorePrismBoxItem`, the dresser's "Restore item to its original form";
 its place found again first, should the dresser close up), and once they're all there they go in
 as the set (`StoreNewOutfit`, or `StoreExistingOutfit` into the set stored already; each piece at
-its `MirageStoreSetItem` column, the rest `Invalid`), a glamour prism a piece, as storing by hand
-spends. Before a set's first piece leaves the dresser, every piece is found again, your bags are
+its place in the set's list of pieces, in order with none left out, as the outfit window picks them
+by: Tradewinds' body to feet were 0 to 3 in a recording; 0.6.1 sent the sheet's column, 3 to 6,
+and the game took nothing), a glamour prism a piece, as storing by hand spends. The set's pieces
+already in your bags go in with it. A restore the game refuses is asked again three times, 1.5,
+3 and 4.5 s later (a recording saw the fifth piece refused half a second after the fourth, with
+room in the bags); pieces go 0.9 s apart. Until it has stored a set once here, a run does one set
+(Try it on one set), so you can check it before it does them all. Before a set's first piece leaves the dresser, every piece is found again, your bags are
 checked for room and a Unique piece you hold is left; each restore is waited for until the dresser
 has one copy fewer and a new bag place holds it, the store until those places are empty, and a
 stored set's place is found again before pieces go into it. A piece that doesn't come still lets
@@ -541,6 +546,18 @@ this one too, within a few minutes of a release.
 The workflows need Settings → Actions → General → Workflow permissions → Read and write.
 
 ## Release notes
+
+### 0.6.2
+
+From the first try of Make room for me:
+
+- Storing a set sent each piece at the wrong place (its slot's column, not its place in the set's
+  list), and the game took nothing: the pieces stayed in your bags. Now in the set's order.
+- A restore the game refuses is asked again (it refused the fifth piece, and once the second,
+  with room in the bags); pieces go a little slower.
+- A set's pieces already in your bags (left by a run that stopped) go in with it.
+- Until it has worked once, Make room for me does one set (Try it on one set).
+- Take out duplicates asks again too, and goes at the same pace.
 
 ### 0.6.1
 

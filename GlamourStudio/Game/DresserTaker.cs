@@ -26,6 +26,7 @@ public static unsafe class DresserTaker
     private static DateTime deadline;
     private static HashSet<(InventoryType Type, int Slot)> before = new();
     private static int dresserBefore;
+    private static int tries;
     private static readonly List<string> skipped = new();
     private static Action<string, bool>? report;
     private static bool stopAsked;
@@ -46,6 +47,7 @@ public static unsafe class DresserTaker
         queue.Clear();
         foreach (var p in todo) queue.Enqueue(p);
         Done = 0;
+        tries = 0;
         skipped.Clear();
         stopAsked = false;
         phase = Phase.Taking;
@@ -94,7 +96,7 @@ public static unsafe class DresserTaker
                     Finish("Your bags are full", false);
                     break;
                 }
-                current = queue.Dequeue();
+                if (tries == 0) current = queue.Dequeue();
                 var id = LookJson.BaseId(current.Item);
                 var at = DresserPlaces.Find(mgr, id, current.Dye1, current.Dye2, current.Index);
                 if (at < 0 || DresserPlaces.Count(mgr, id) < 2 && !current.InSet && !InASet(mgr, id))
@@ -113,12 +115,20 @@ public static unsafe class DresserTaker
                 before = DresserPlaces.InBags(id);
                 dresserBefore = DresserPlaces.Count(mgr, id);
                 var ok = mgr->RestorePrismBoxItem((uint)at);
-                Recorder.Log($"  RestorePrismBoxItem {at} (read at {current.Index}, {current.Item} {current.Dye1}/{current.Dye2}) → {ok}");
+                Recorder.Log($"  RestorePrismBoxItem {at} (read at {current.Index}, {current.Item} {current.Dye1}/{current.Dye2}) → {ok}{(tries > 0 ? $", try {tries + 1}" : string.Empty)}");
                 if (!ok)
                 {
+                    // Now and then the game says no with room to spare: asked again a little later.
+                    if (++tries < 4)
+                    {
+                        deadline = now + TimeSpan.FromSeconds(1.5 * tries);
+                        break;
+                    }
+                    tries = 0;
                     Finish($"The game wouldn't take out {data.ItemName(current.Item)}", false);
                     break;
                 }
+                tries = 0;
                 phase = Phase.Waiting;
                 deadline = now + TimeSpan.FromSeconds(6);
                 break;
@@ -130,7 +140,7 @@ public static unsafe class DresserTaker
                 {
                     Done++;
                     phase = Phase.Taking;
-                    deadline = now + TimeSpan.FromMilliseconds(400);
+                    deadline = now + TimeSpan.FromMilliseconds(900);
                     break;
                 }
                 if (now > deadline) Finish($"{data!.ItemName(current.Item)} didn't come to your bags (it may come yet: check them)", false);

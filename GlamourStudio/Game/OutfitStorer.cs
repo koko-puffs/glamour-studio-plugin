@@ -40,6 +40,9 @@ public static unsafe class OutfitStorer
     private static HashSet<(InventoryType Type, int Slot)> before = new();
     private static int dresserBefore;
 
+    /// <summary>How many times the piece at work was asked for and refused.</summary>
+    private static int tries;
+
     /// <summary>The pieces of the set at work that are in your bags now (and where).</summary>
     private static readonly List<(DresserPiece Piece, InventoryType Type, int Slot)> restored = new();
 
@@ -146,12 +149,20 @@ public static unsafe class OutfitStorer
                 before = DresserPlaces.InBags(id);
                 dresserBefore = DresserPlaces.Count(mgr, id);
                 var ok = mgr->RestorePrismBoxItem((uint)at);
-                Recorder.Log($"  RestorePrismBoxItem {at} (read at {piece.Index}, {piece.Item}) → {ok}, dresser had {dresserBefore}");
+                Recorder.Log($"  RestorePrismBoxItem {at} (read at {piece.Index}, {piece.Item}) → {ok}, dresser had {dresserBefore}{(tries > 0 ? $", try {tries + 1}" : string.Empty)}");
                 if (!ok)
                 {
-                    StoreWhatCameOrFinish($"The game wouldn't restore {data!.ItemName(piece.Item)} (no room in your bags?)");
+                    // The game says no now and then with room to spare (a recording: the fifth piece,
+                    // half a second after the fourth): asked again a little later, three times.
+                    if (++tries < 4)
+                    {
+                        deadline = now + TimeSpan.FromSeconds(1.5 * tries);
+                        break;
+                    }
+                    StoreWhatCameOrFinish($"The game wouldn't restore {data!.ItemName(piece.Item)}");
                     break;
                 }
+                tries = 0;
                 phase = Phase.WaitRestored;
                 deadline = now + TimeSpan.FromSeconds(6);
                 break;
@@ -169,7 +180,7 @@ public static unsafe class OutfitStorer
                     Recorder.Log($"  restored {id} to {fresh[0].Type}:{fresh[0].Slot}{(fresh.Count > 1 ? $" ({fresh.Count} new places held it: the first taken)" : string.Empty)}");
                     pieceAt++;
                     phase = pieceAt < pieces.Count ? Phase.Restoring : Phase.Storing;
-                    deadline = now + TimeSpan.FromMilliseconds(400);
+                    deadline = now + TimeSpan.FromMilliseconds(900);
                     break;
                 }
                 if (now > deadline) StoreWhatCameOrFinish($"{data!.ItemName(piece.Item)} didn't come to your bags (it may come yet: check them)");
@@ -270,10 +281,19 @@ public static unsafe class OutfitStorer
                 (type, slot) = others[0];
                 restored[k] = (piece, type, slot);
             }
-            var col = columns.FirstOrDefault(c => LookJson.BaseId(c.Item) == id);
-            if (col.Item == 0 || col.Column is < 0 or > 10 || containers[col.Column] != InventoryType.Invalid) continue;
-            containers[col.Column] = type;
-            slots[col.Column] = (ushort)slot;
+            // The piece's place in its set's list (the set's pieces in order, none left out): the
+            // outfit window picks a piece by that (Tradewinds' body to feet were 0 to 3 in a
+            // recording), and 0.6.1 sending the column (3 to 6) had the game take nothing.
+            var at = -1;
+            for (var c = 0; c < columns.Count; c++)
+                if (LookJson.BaseId(columns[c].Item) == id)
+                {
+                    at = c;
+                    break;
+                }
+            if (at is < 0 or > 10 || containers[at] != InventoryType.Invalid) continue;
+            containers[at] = type;
+            slots[at] = (ushort)slot;
             storing.Add((piece, type, slot));
         }
         if (storing.Count < (job.StoredAt >= 0 ? 1 : 2))
@@ -297,7 +317,7 @@ public static unsafe class OutfitStorer
             ? mgr->StoreExistingOutfit((uint)storedAt, containers, slots)
             : mgr->StoreNewOutfit(job.SetItem, containers, slots);
         Recorder.Log($"  {(storedAt >= 0 ? $"StoreExistingOutfit {storedAt} (read at {job.StoredAt})" : $"StoreNewOutfit {job.SetItem}")}: "
-                     + string.Join(" ", Enumerable.Range(0, 11).Where(i => containers[i] != InventoryType.Invalid).Select(i => $"col{i}={containers[i]}:{slots[i]}")) + $" → {ok}");
+                     + string.Join(" ", Enumerable.Range(0, 11).Where(i => containers[i] != InventoryType.Invalid).Select(i => $"[{i}]={containers[i]}:{slots[i]}")) + $" → {ok}");
         if (!ok)
         {
             storing.Clear();
@@ -338,9 +358,19 @@ public static unsafe class OutfitStorer
                 }
                 ready.Add(p);
             }
+            // The set's pieces in your bags already (left by a run that stopped, or never stored) go in
+            // with it, as they are: they're the set's too.
+            var inBags = new List<(DresserPiece Piece, InventoryType Type, int Slot)>();
+            foreach (var (_, item) in data!.SetPieces(job.SetItem))
+            {
+                var id = LookJson.BaseId(item);
+                if (ready.Any(p => LookJson.BaseId(p.Item) == id)) continue;
+                var place = DresserPlaces.InBags(id).OrderBy(p => p.Type).ThenBy(p => p.Slot).ToList();
+                if (place.Count > 0) inBags.Add((new DresserPiece(-1, id, 0, 0), place[0].Type, place[0].Slot));
+            }
             var min = job.StoredAt >= 0 ? 1 : 2;
             var free = (int)inv->GetEmptySlotsInBag();
-            if (ready.Count < min || ready.Count > free)
+            if (ready.Count + inBags.Count < min || ready.Count > free)
             {
                 Recorder.Log($"OUTFITS set {job.SetItem} left: {ready.Count} pieces ready (needs {min}), {free} free bag places{(notes.Count > 0 ? "; " + string.Join(", ", notes) : string.Empty)}");
                 if (ready.Count > free)
@@ -352,7 +382,10 @@ public static unsafe class OutfitStorer
             }
             pieces = ready;
             pieceAt = 0;
-            phase = Phase.Restoring;
+            tries = 0;
+            restored.AddRange(inBags);
+            if (inBags.Count > 0) Recorder.Log($"  in your bags already: {string.Join(" ", inBags.Select(b => $"{b.Piece.Item} at {b.Type}:{b.Slot}"))}");
+            phase = pieces.Count > 0 ? Phase.Restoring : Phase.Storing;
             deadline = DateTime.MinValue;
             Recorder.Log($"OUTFITS set {job.SetItem}{(job.StoredAt >= 0 ? $" (stored at {job.StoredAt})" : string.Empty)}: pieces {string.Join(" ", pieces.Select(p => $"{p.Index}:{p.Item}"))}{(notes.Count > 0 ? "; left " + string.Join(", ", notes) : string.Empty)}");
             return;

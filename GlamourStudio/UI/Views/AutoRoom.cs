@@ -122,17 +122,26 @@ public sealed partial class MainWindow
             Notify(why);
             return;
         }
-        recorder.Note($"MAKE ROOM for me: {plan.Jobs.Count} sets, {plan.Pieces} pieces, frees {plan.Frees}");
-        var started = OutfitStorer.Start(plan.Jobs, data, (words, ok) =>
+        // Until it has worked here once, one set: should the game not take it, little's moved.
+        var jobs = config.OutfitStoreWorked ? plan.Jobs : plan.Jobs.Take(1).ToList();
+        recorder.Note($"MAKE ROOM for me: {jobs.Count} of {plan.Jobs.Count} sets, frees {plan.Frees}{(config.OutfitStoreWorked ? string.Empty : " (trying one)")}");
+        var started = OutfitStorer.Start(jobs, data, (words, ok) =>
         {
             autoRoomLast = (words, ok);
             autoRoomCache = null;
             wardrobe.Tick(now: true);
+            if (ok && !config.OutfitStoreWorked)
+            {
+                config.OutfitStoreWorked = true;
+                config.Save();
+                words += ". It worked: next time it does them all";
+                autoRoomLast = (words, ok);
+            }
             Notify(ok ? $"Made room: {words}" : words);
         });
         if (!started) return;
         autoRoomLast = null;
-        Notify($"Storing {Words.Count(plan.Jobs.Count, "set")}…");
+        Notify(jobs.Count == 1 && !config.OutfitStoreWorked ? "Trying one set first…" : $"Storing {Words.Count(jobs.Count, "set")}…");
     }
 
     /// <summary>Takes out the duplicates: worked out again, checked, then started.</summary>
@@ -189,9 +198,11 @@ public sealed partial class MainWindow
         var setsBlocked = AutoRoomBlocked(plan, have);
         AutoRow("##auto-room-go", plan.Jobs.Count > 0 ? $"Gather the sets: frees {Words.Count(plan.Frees, "place")}" : "Gather the sets",
             setsBlocked ?? AutoRoomWords(plan, have), setsBlocked != null,
-            plan.Jobs.Count > 0 ? $"Store {Words.Count(plan.Jobs.Count, "set")} for me" : "Store the sets for me", Icon.Package,
-            () => Ask("Store the sets for you?", AutoRoomWords(plan, have) + " Keep the dresser open while it works; it stops at the first thing that doesn't go.",
-                "Store them", "Not now", StartAutoRoom));
+            plan.Jobs.Count == 0 ? "Store the sets for me" : config.OutfitStoreWorked ? $"Store {Words.Count(plan.Jobs.Count, "set")} for me" : "Try it on one set", Icon.Package,
+            () => Ask(config.OutfitStoreWorked ? "Store the sets for you?" : "Try it on one set?",
+                (config.OutfitStoreWorked ? AutoRoomWords(plan, have) : $"The first time, it stores one set ({data.ItemName(plan.Jobs[0].SetItem)}), so you can check it worked before it does the other {plan.Jobs.Count - 1}. Its pieces already in your bags go in with it.")
+                + " Keep the dresser open while it works; it stops at the first thing that doesn't go.",
+                config.OutfitStoreWorked ? "Store them" : "Try it", "Not now", StartAutoRoom));
         Kit.Gap(12);
         Kit.Divider(Kit.Left, Kit.Left + w, Kit.At.Y);
         Kit.Gap(12);
@@ -253,7 +264,8 @@ public sealed partial class MainWindow
             PaneNote(blocked ?? $"{Words.Count(plan.Jobs.Count, "set")} could gather {Words.Count(plan.Pieces, "loose piece")}: frees {Words.Count(plan.Frees, "place")}, for {Words.Count(plan.Pieces, "glamour prism")} (you have {have.Prisms}).",
                 blocked != null ? Palette.RoseText : null);
             Kit.Gap(6);
-            PaneArmedButton("##c-auto-room", $"Store {Words.Count(plan.Jobs.Count, "set")} for me", "Press again to store them", Icon.Package, blocked, AutoRoomWords(plan, have),
+            PaneArmedButton("##c-auto-room", config.OutfitStoreWorked ? $"Store {Words.Count(plan.Jobs.Count, "set")} for me" : "Try it on one set",
+                config.OutfitStoreWorked ? "Press again to store them" : "Press again to try it", Icon.Package, blocked, AutoRoomWords(plan, have),
                 ref autoRoomArmedUntil, StartAutoRoom);
             Kit.Gap(10);
         }

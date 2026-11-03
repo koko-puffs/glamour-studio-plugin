@@ -58,5 +58,8 @@ public sealed class Configuration : IPluginConfiguration
     /// </summary>
     public Dictionary<string, Core.KnownCharacter> Characters { get; set; } = new();
 
+    /// <summary>Make room for me has stored a set here once: until then it does one set at a time, to try it.</summary>
+    public bool OutfitStoreWorked { get; set; }
+
     public void Save() => Services.PluginInterface.SavePluginConfig(this);
 }
