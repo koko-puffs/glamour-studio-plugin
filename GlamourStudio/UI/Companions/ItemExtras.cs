@@ -169,6 +169,25 @@ public sealed partial class MainWindow
                     OnClicked = _ => PutOnLook(look, info, piece),
                 }).ToList()),
             });
+        // Try it on with a look that has it: the whole look in the fitting room (a submenu when more than one has it).
+        MenuItem TryWith(Look look, string name) => new()
+        {
+            Name = name,
+            OnClicked = _ =>
+            {
+                triedId = look.Id;
+                TryOn(look.Pieces, Chat);
+            },
+        };
+        if (looks.Count == 1)
+            items.Add(TryWith(looks[0], $"Try it on with {looks[0].Name}"));
+        else if (looks.Count > 1)
+            items.Add(new MenuItem
+            {
+                Name = "Try it on with…",
+                IsSubmenu = true,
+                OnClicked = a => a.OpenSubmenu(looks.Take(12).Select(l => TryWith(l, l.Name)).ToList()),
+            });
         items.Add(new MenuItem
         {
             Name = "Which looks use it",

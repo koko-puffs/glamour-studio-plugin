@@ -263,7 +263,8 @@ shopping list, and whether your dresser or armoire has it. Nothing when none of 
 
 **Right-click menu:** on gear in your bags, the armoury chest, a retainer's, an item linked in chat
 (and the market board, recipes, shops), a **Glamour Studio** entry: Add it to a look… (your looks;
-the piece goes in its slot, a ring on the free hand, `gs_plugin_look_put`), Which looks use it (a line in chat), Put it on the shopping list (when it isn't
+the piece goes in its slot, a ring on the free hand, `gs_plugin_look_put`), Try it on with a look of yours that has it (the
+whole look in the fitting room; a submenu of them, up to twelve, when more than one has it), Which looks use it (a line in chat), Put it on the shopping list (when it isn't
 yours), Take it off the shopping list (when it's on it), Store it in the armoire (from your bags, while the armoire's open).
 
 Recordings write down which panel shows, where, folded or not, a look picked for a plate, and the
@@ -571,6 +572,12 @@ this one too, within a few minutes of a release.
 The workflows need Settings → Actions → General → Workflow permissions → Read and write.
 
 ## Release notes
+
+### 0.6.13
+
+- The right-click menu's **Try it on with …** is back (0.6.10 took it out by mistake: the "Try On"
+  that did nothing was Glamourer's, the purple G). With more than one of your looks using the
+  piece, it's a submenu of them.
 
 ### 0.6.12
 

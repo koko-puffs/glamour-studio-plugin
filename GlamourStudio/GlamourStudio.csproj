@@ -6,7 +6,7 @@
     from GlamourStudio.json and, in Release, zips the plugin to bin\x64\Release\GlamourStudio\latest.zip.
   -->
   <PropertyGroup>
-    <Version>0.6.12.0</Version>
+    <Version>0.6.13.0</Version>
     <AssemblyName>GlamourStudio</AssemblyName>
     <RootNamespace>GlamourStudio</RootNamespace>
     <Description>Your wardrobe on Glamour Studio, and its looks on your glamour plates.</Description>
