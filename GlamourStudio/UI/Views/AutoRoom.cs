@@ -46,13 +46,13 @@ public sealed partial class MainWindow
                 ? me.Dresser.Where(d => d.InSet && LookJson.BaseId(d.SetItem) == LookJson.BaseId(chance.SetItem)).Select(d => d.Index).DefaultIfEmpty(-1).First()
                 : -1;
             if (chance.Stored && storedAt < 0) continue;
-            if (pieces.Count < (storedAt >= 0 ? 1 : 2)) continue;
+            if (storedAt >= 0 ? pieces.Count < 1 : pieces.Count + chance.FromBags < 2) continue;
             foreach (var p in pieces) taken.Add(p.Index);
             fromBags += chance.FromBags;
             jobs.Add(new OutfitJob(chance.SetItem, pieces, storedAt));
         }
         var plan = new AutoRoomPlan(jobs,
-            jobs.Sum(j => j.StoredAt >= 0 ? j.Pieces.Count : j.Pieces.Count - 1),
+            jobs.Sum(j => j.StoredAt >= 0 ? j.Pieces.Count : Math.Max(0, j.Pieces.Count - 1)),
             jobs.Sum(j => j.Pieces.Count),
             jobs.Sum(j => j.Pieces.Count) + fromBags,
             jobs.Count == 0 ? 0 : jobs.Max(j => j.Pieces.Count),
@@ -86,8 +86,8 @@ public sealed partial class MainWindow
     private string AutoRoomWords(AutoRoomPlan plan, (int Prisms, int FreeBag) have) =>
         $"{Words.Count(plan.Jobs.Count, "set")} from {Words.Count(plan.Pieces, "loose piece")}: frees {Words.Count(plan.Frees, "place")}. "
         + $"Each piece goes to your bags and back in as its set, spending a glamour prism ({plan.Prisms} of your {have.Prisms}); "
-        + $"it needs {plan.MostAtOnce} free bag places at a time (you have {have.FreeBag}). "
-        + "A new set needs every one of its pieces: one with a piece missing stays loose."
+        + $"it needs {plan.MostAtOnce} free bag places at a time (you have {have.FreeBag})."
+        + (plan.Prisms > plan.Pieces ? $" {Words.Count(plan.Prisms - plan.Pieces, "piece")} of these sets in your bags go in with them." : string.Empty)
         + HeldBackWords(plan);
 
     /// <summary>The sets left out because their only copy of a piece is dyed or high quality.</summary>

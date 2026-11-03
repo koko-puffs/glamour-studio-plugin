@@ -170,10 +170,13 @@ it's pressed twice): the plugin gathers the sets for you (`Game/OutfitStorer.cs`
 an outfit only from your bags or armoury chest, so for each set each loose piece is restored to
 your bags (`MirageManager.RestorePrismBoxItem`, the dresser's "Restore item to its original form";
 its place found again first, should the dresser close up), and once they're all there they go in
-as the set (`StoreNewOutfit`, or `StoreExistingOutfit` into the set stored already; each piece at
-its place in the set's list of pieces, in order with none left out, as the outfit window picks them
-by: Tradewinds' body to feet were 0 to 3 in a recording; 0.6.1 sent the sheet's column, 3 to 6,
-and the game took nothing), a glamour prism a piece, as storing by hand spends. The set's pieces
+as the set (`StoreNewOutfit`, or `StoreExistingOutfit` into the set stored already, sending only
+the pieces it lacks: `IsSetSlotUnlocked(place, column)` says which it has), a glamour prism a piece,
+as storing by hand spends. The pieces sent are packed: first to last in the set's order, from the
+first place on with no gaps, the rest `Invalid` (as GlamourLog's store-all does). A whole set's
+pieces are then at their place in its list, which is why whole sets always went in; 0.6.1 sent the
+sheet's columns (3 to 6) and 0.6.2 to 0.6.5 a partial set's places in the list (Gleaner's Attire at
+1 to 3, a stored set's one missing piece at 1), and the game took each ask and never answered. The set's pieces
 already in your bags go in with it. There are no set waits between steps: the game refuses an ask
 (restore or store) while it's still settling the last one, and a refusal sends nothing, so a refused
 ask is asked again every quarter second, for up to ten seconds, and it goes as fast as the game
@@ -187,14 +190,13 @@ stored set's place is found again before pieces go into it. A piece that doesn't
 the ones that did go in as the set (when enough for one), then it stops and says which pieces are
 left in your bags. It says first what it'll do:
 the sets, the places freed, the prisms (and how many you have), the free bag places it needs at a
-time; it's asked (Store them / Not now) and needs the dresser open. A new set is made only whole:
-every one of its pieces loose in the dresser or in your bags (a recording saw every set with a piece
-missing sent and never answered, and every whole one go in at once); pieces can join a set stored
-already one at a time. Only normal-quality undyed copies go into sets: the game refused a set of
-high-quality pieces every time, and a set may not keep a piece's dyes (a set waiting only on a dyed
-or high-quality copy is counted and said). A piece two sets share goes to the first (the second, a
-new set, then can't be made), and a new set with one piece from the dresser is left (it frees
-nothing). Stop waits for the step the game is answering. It's worked out again from the dresser as it
+time; it's asked (Store them / Not now) and needs the dresser open. A new set needs two pieces or
+more, loose or in your bags (a set's pieces left in your bags by a run that stopped are put away as
+the set, freeing nothing but tidier than loose); pieces join a set stored already one or more at a
+time. Only normal-quality undyed copies go into sets: the game refused a set of high-quality pieces
+every time, and a set may not keep a piece's dyes (a set left only for want of such a copy is
+counted and said). A piece two sets share goes to the first. A set the game doesn't take is left,
+its pieces in your bags (said at the end), and the run goes on; three in a row and it stops. Stop waits for the step the game is answering. It's worked out again from the dresser as it
 is when you say yes. Recordings write each step (`OUTFITS …`). New: not yet watched in the game.
 
 **Duplicates** (the same card, and the dresser's panel): a second loose copy of an item with the
@@ -553,6 +555,20 @@ this one too, within a few minutes of a release.
 The workflows need Settings → Actions → General → Workflow permissions → Read and write.
 
 ## Release notes
+
+### 0.6.6
+
+From the 0.6.5 run, and how GlamourLog's store-all sends sets:
+
+- The pieces sent to store a set are packed from the first place, in the set's order, with no
+  gaps. Sending a partial set's pieces at their place in its list left a gap where a missing piece
+  goes, and the game took the ask and never answered (Gleaner's Attire, #55 Armor, Mistwake's one
+  piece into its stored set). So a new set needn't be whole after all: 0.6.5's rule is undone.
+- Into a set stored already, only the pieces it lacks are sent: 0.6.5 sent a copy from your bags
+  of a piece it had (Southern Seas Shirt & Trousers), and the game refused.
+- A set the game doesn't take no longer ends the run: its pieces stay in your bags, said at the
+  end, and it goes on (three in a row, and it stops).
+- A set's pieces in your bags (two or more, from a run that stopped) are put away as the set.
 
 ### 0.6.5
 

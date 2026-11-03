@@ -36,9 +36,7 @@ public sealed partial class MainWindow
         {
             var line = o.Stored
                 ? $"The set's in your dresser: {Words.Count(o.Pieces.Count, "loose piece")} could join it"
-                : o.FromBags > 0
-                    ? $"Every piece to hand: {o.Pieces.Count} loose in your dresser, {o.FromBags} in your bags"
-                    : $"All {o.Pieces.Count} pieces loose in your dresser";
+                : $"{o.Pieces.Count} of {data.SetPieces(o.SetItem).Count} pieces loose in your dresser{(o.FromBags > 0 ? $", {o.FromBags} in your bags" : string.Empty)}";
             return new CleanupRow(o.SetItem, line, o.Frees > 0 ? $"Frees {o.Frees}" : "Tidier", o.Frees > 0);
         }).ToList();
         var unused = DresserCleanup.Unused(me.Dresser, used).Select(d =>
