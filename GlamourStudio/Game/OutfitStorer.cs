@@ -21,9 +21,11 @@ public sealed record OutfitJob(uint SetItem, IReadOnlyList<DresserPiece> Pieces,
 /// Before a set's first piece leaves the dresser, every piece is found (its place now), the bags are
 /// checked for room, and a Unique piece you already hold is left. Each step is waited for: a restore
 /// until the dresser has one copy fewer and a new bag place holds it; a store until those places are
-/// empty. When a piece doesn't come, the ones that did still go in as the set (when enough for one),
-/// and it stops, saying what's left in your bags. Stop waits for a step the game is answering. With
-/// the glamour dresser open. Framework thread. Not yet watched in the game.
+/// empty. An ask the game refuses (it does while it settles the last step) is asked again every
+/// quarter second, up to ten seconds, so it goes as fast as the game takes them. When a piece doesn't
+/// come, the ones that did still go in as the set (when enough for one), and it stops, saying what's
+/// left in your bags. Stop waits for a step the game is answering. With the glamour dresser open.
+/// Framework thread.
 /// </para>
 /// </summary>
 public static unsafe class OutfitStorer
@@ -40,8 +42,24 @@ public static unsafe class OutfitStorer
     private static HashSet<(InventoryType Type, int Slot)> before = new();
     private static int dresserBefore;
 
-    /// <summary>How many times the piece at work was asked for and refused.</summary>
+    /// <summary>How many times the step at work was asked for and refused, and since when.</summary>
     private static int tries;
+
+    private static DateTime refusedSince;
+
+    /// <summary>Whether the set at work was handed to the game a second time (the first ask unanswered).</summary>
+    private static bool storeAskedAgain;
+
+    /// <summary>How many of the set were in the dresser before a new set was stored (seeing it arrive).</summary>
+    private static int setsBefore;
+
+    // The pace. The game refuses an ask while it's still settling the last one (a refusal sends
+    // nothing), so instead of waiting set times between steps it's asked again every quarter second
+    // until it takes it: as fast as the game goes. Recordings saw a refusal right after a piece came
+    // and after a set was stored, each taken a moment later.
+    internal static readonly TimeSpan Retry = TimeSpan.FromMilliseconds(250);
+    internal static readonly TimeSpan GiveUp = TimeSpan.FromSeconds(10);
+    private static readonly TimeSpan AfterStep = TimeSpan.FromMilliseconds(150);
 
     /// <summary>The pieces of the set at work that are in your bags now (and where).</summary>
     private static readonly List<(DresserPiece Piece, InventoryType Type, int Slot)> restored = new();
@@ -149,19 +167,26 @@ public static unsafe class OutfitStorer
                 before = DresserPlaces.InBags(id);
                 dresserBefore = DresserPlaces.Count(mgr, id);
                 var ok = mgr->RestorePrismBoxItem((uint)at);
-                Recorder.Log($"  RestorePrismBoxItem {at} (read at {piece.Index}, {piece.Item}) → {ok}, dresser had {dresserBefore}{(tries > 0 ? $", try {tries + 1}" : string.Empty)}");
                 if (!ok)
                 {
-                    // The game says no now and then with room to spare (a recording: the fifth piece,
-                    // half a second after the fourth): asked again a little later, three times.
-                    if (++tries < 4)
+                    // The game says no while it's settling the last step (with room to spare):
+                    // asked again in a moment, for up to ten seconds.
+                    if (tries++ == 0)
                     {
-                        deadline = now + TimeSpan.FromSeconds(1.5 * tries);
+                        refusedSince = now;
+                        Recorder.Log($"  RestorePrismBoxItem {at} (read at {piece.Index}, {piece.Item}) → refused, asking again");
+                    }
+                    if (now - refusedSince < GiveUp)
+                    {
+                        deadline = now + Retry;
                         break;
                     }
+                    Recorder.Log($"  RestorePrismBoxItem {at}: refused {tries} times over {(now - refusedSince).TotalSeconds:0.0} s");
+                    tries = 0;
                     StoreWhatCameOrFinish($"The game wouldn't restore {data!.ItemName(piece.Item)}");
                     break;
                 }
+                Recorder.Log($"  RestorePrismBoxItem {at} (read at {piece.Index}, {piece.Item}) → true, dresser had {dresserBefore}{(tries > 0 ? $" (after {tries} refusals, {(now - refusedSince).TotalSeconds:0.0} s)" : string.Empty)}");
                 tries = 0;
                 phase = Phase.WaitRestored;
                 deadline = now + TimeSpan.FromSeconds(6);
@@ -180,7 +205,7 @@ public static unsafe class OutfitStorer
                     Recorder.Log($"  restored {id} to {fresh[0].Type}:{fresh[0].Slot}{(fresh.Count > 1 ? $" ({fresh.Count} new places held it: the first taken)" : string.Empty)}");
                     pieceAt++;
                     phase = pieceAt < pieces.Count ? Phase.Restoring : Phase.Storing;
-                    deadline = now + TimeSpan.FromMilliseconds(900);
+                    deadline = now + AfterStep;
                     break;
                 }
                 if (now > deadline) StoreWhatCameOrFinish($"{data!.ItemName(piece.Item)} didn't come to your bags (it may come yet: check them)");
@@ -194,8 +219,12 @@ public static unsafe class OutfitStorer
             }
             case Phase.WaitStored:
             {
-                if (storing.All(r => DresserPlaces.SlotItem(r.Type, r.Slot) != LookJson.BaseId(r.Piece.Item)))
+                // Stored: the places it was sent from are empty (or a new set's come into the dresser).
+                var emptied = storing.All(r => DresserPlaces.SlotItem(r.Type, r.Slot) != LookJson.BaseId(r.Piece.Item));
+                var arrived = job!.StoredAt < 0 && DresserPlaces.Count(mgr, LookJson.BaseId(job.SetItem)) > setsBefore;
+                if (emptied || arrived)
                 {
+                    if (!emptied) Recorder.Log("  the set's in the dresser, its places in your bags not yet emptied");
                     var freed = job!.StoredAt >= 0 ? storing.Count : Math.Max(0, storing.Count - 1);
                     SetsDone++;
                     PlacesFreed += freed;
@@ -219,18 +248,37 @@ public static unsafe class OutfitStorer
                     }
                     job = null;
                     phase = Phase.Between;
-                    // (A set's first piece asked for a second after the last set was stored was
-                    // refused every time in a recording, and taken 1.5 s later: two seconds between sets.)
-                    deadline = now + TimeSpan.FromSeconds(2);
+                    // (The next set's first piece is refused while the game settles this one: asked
+                    // again until it's taken.)
+                    deadline = now + AfterStep;
                     break;
                 }
                 if (now > deadline)
                 {
-                    // The ask went: whether the game took it isn't known here.
+                    var untouched = storing.All(r => DresserPlaces.SlotItem(r.Type, r.Slot) == LookJson.BaseId(r.Piece.Item));
+                    if (untouched && !storeAskedAgain)
+                    {
+                        // Nothing moved: the ask seems lost. Asked once more (the game refuses it
+                        // while the first is still on its way, and storing twice isn't possible:
+                        // the pieces are in one place).
+                        Recorder.Log($"  no answer to the store in 15 s, nothing moved: asking once more");
+                        storeAskedAgain = true;
+                        storing.Clear();
+                        phase = Phase.Storing;
+                        deadline = DateTime.MinValue;
+                        tries = 0;
+                        break;
+                    }
                     var names = Words.List(storing.Select(r => data!.ItemName(r.Piece.Item)));
                     storing.Clear();
+                    if (untouched)
+                    {
+                        // Still in your bags (Finish lists them).
+                        Finish($"The game didn't take {data!.ItemName(job.SetItem)}, asked twice", false);
+                        break;
+                    }
                     restored.Clear();
-                    Finish($"{data!.ItemName(job!.SetItem)}: the game hasn't answered. {names} may have gone into the set: check the dresser and your bags", false);
+                    Finish($"{data!.ItemName(job.SetItem)}: the game hasn't answered. {names} may have gone into the set: check the dresser and your bags", false);
                 }
                 break;
             }
@@ -257,6 +305,7 @@ public static unsafe class OutfitStorer
         Recorder.Log($"  {why}: storing the {restored.Count} that came, then stopping");
         stopAfterStore = why;
         phase = Phase.Storing;
+        tries = 0;
         deadline = DateTime.MinValue;
     }
 
@@ -315,19 +364,37 @@ public static unsafe class OutfitStorer
                 return;
             }
         }
+        setsBefore = DresserPlaces.Count(mgr, LookJson.BaseId(job.SetItem));
         var ok = storedAt >= 0
             ? mgr->StoreExistingOutfit((uint)storedAt, containers, slots)
             : mgr->StoreNewOutfit(job.SetItem, containers, slots);
-        Recorder.Log($"  {(storedAt >= 0 ? $"StoreExistingOutfit {storedAt} (read at {job.StoredAt})" : $"StoreNewOutfit {job.SetItem}")}: "
-                     + string.Join(" ", Enumerable.Range(0, 11).Where(i => containers[i] != InventoryType.Invalid).Select(i => $"[{i}]={containers[i]}:{slots[i]}")) + $" → {ok}");
+        var what = $"{(storedAt >= 0 ? $"StoreExistingOutfit {storedAt} (read at {job.StoredAt})" : $"StoreNewOutfit {job.SetItem}")}: "
+                   + string.Join(" ", Enumerable.Range(0, 11).Where(i => containers[i] != InventoryType.Invalid).Select(i => $"[{i}]={containers[i]}:{slots[i]}"));
         if (!ok)
         {
             storing.Clear();
-            Finish($"The game wouldn't store {data.ItemName(job.SetItem)} (glamour prisms?)", false);
+            // Refused as a restore is, while the game settles the last piece (0.6.3 stopped here,
+            // with prisms to spare): asked again in a moment, for up to ten seconds.
+            if (tries++ == 0)
+            {
+                refusedSince = now;
+                Recorder.Log($"  {what} → refused, asking again");
+            }
+            if (now - refusedSince < GiveUp)
+            {
+                deadline = now + Retry;
+                return;
+            }
+            Recorder.Log($"  {what}: refused {tries} times over {(now - refusedSince).TotalSeconds:0.0} s");
+            tries = 0;
+            var (prisms, _) = Supplies(data);
+            Finish($"The game wouldn't store {data.ItemName(job.SetItem)}{(prisms < restored.Count ? " (not enough glamour prisms?)" : string.Empty)}", false);
             return;
         }
+        Recorder.Log($"  {what} → true{(tries > 0 ? $" (after {tries} refusals, {(now - refusedSince).TotalSeconds:0.0} s)" : string.Empty)}");
+        tries = 0;
         phase = Phase.WaitStored;
-        deadline = now + TimeSpan.FromSeconds(8);
+        deadline = now + TimeSpan.FromSeconds(15);
     }
 
     /// <summary>The next set: its pieces found and checked before any leaves the dresser.</summary>
@@ -385,6 +452,7 @@ public static unsafe class OutfitStorer
             pieces = ready;
             pieceAt = 0;
             tries = 0;
+            storeAskedAgain = false;
             restored.AddRange(inBags);
             if (inBags.Count > 0) Recorder.Log($"  in your bags already: {string.Join(" ", inBags.Select(b => $"{b.Piece.Item} at {b.Type}:{b.Slot}"))}");
             phase = pieces.Count > 0 ? Phase.Restoring : Phase.Storing;

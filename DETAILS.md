@@ -174,9 +174,12 @@ as the set (`StoreNewOutfit`, or `StoreExistingOutfit` into the set stored alrea
 its place in the set's list of pieces, in order with none left out, as the outfit window picks them
 by: Tradewinds' body to feet were 0 to 3 in a recording; 0.6.1 sent the sheet's column, 3 to 6,
 and the game took nothing), a glamour prism a piece, as storing by hand spends. The set's pieces
-already in your bags go in with it. A restore the game refuses is asked again three times, 1.5,
-3 and 4.5 s later (a recording saw the fifth piece refused half a second after the fourth, with
-room in the bags); pieces go 0.9 s apart, sets 2 s apart. Until it has stored a set once here, a run does one set
+already in your bags go in with it. There are no set waits between steps: the game refuses an ask
+(restore or store) while it's still settling the last one, and a refusal sends nothing, so a refused
+ask is asked again every quarter second, for up to ten seconds, and it goes as fast as the game
+takes them (recordings saw a refusal right after a piece came and right after a set was stored,
+each taken a moment later; 0.6.3 gave up on a refused store). A store that gets no answer in 15 s
+with nothing moved is asked once more. Until it has stored a set once here, a run does one set
 (Try it on one set), so you can check it before it does them all. Before a set's first piece leaves the dresser, every piece is found again, your bags are
 checked for room and a Unique piece you hold is left; each restore is waited for until the dresser
 has one copy fewer and a new bag place holds it, the store until those places are empty, and a
@@ -546,6 +549,19 @@ this one too, within a few minutes of a release.
 The workflows need Settings → Actions → General → Workflow permissions → Read and write.
 
 ## Release notes
+
+### 0.6.4
+
+From a long Make room for me run (95 sets down to 51, then two stops):
+
+- Faster: no set waits between pieces and sets. The game refuses an ask while it settles the last
+  one (a refusal sends nothing), so a refused restore or store is asked again every quarter second,
+  up to ten seconds, and it goes as fast as the game takes them. Take out duplicates too.
+- A store the game refused stopped the run ("wouldn't store … (glamour prisms?)", with 451
+  prisms): now it's asked again like a restore, and prisms are only blamed when you're short.
+- A store with no answer waits 15 s (was 8), counts as done when the new set shows in the dresser,
+  and when nothing moved is asked once more; if it's still not taken, it says the pieces are in your
+  bags rather than "may have gone into the set".
 
 ### 0.6.3
 

@@ -12,8 +12,8 @@ namespace GlamourStudio.Game;
 /// does, one at a time, each waited for (the dresser one copy fewer, a new bag place holding it).
 /// Its place is found again first (the same item with the same dyes), a Unique piece you hold is
 /// left, and it stops when your bags are full or a piece doesn't come. Nothing's thrown away: what
-/// comes out is yours to sell or discard. With the glamour dresser open. Framework thread. Not yet
-/// watched in the game.
+/// comes out is yours to sell or discard. A refused ask is asked again in a moment, as
+/// <see cref="OutfitStorer"/> does. With the glamour dresser open. Framework thread.
 /// </summary>
 public static unsafe class DresserTaker
 {
@@ -27,6 +27,7 @@ public static unsafe class DresserTaker
     private static HashSet<(InventoryType Type, int Slot)> before = new();
     private static int dresserBefore;
     private static int tries;
+    private static DateTime refusedSince;
     private static readonly List<string> skipped = new();
     private static Action<string, bool>? report;
     private static bool stopAsked;
@@ -115,19 +116,26 @@ public static unsafe class DresserTaker
                 before = DresserPlaces.InBags(id);
                 dresserBefore = DresserPlaces.Count(mgr, id);
                 var ok = mgr->RestorePrismBoxItem((uint)at);
-                Recorder.Log($"  RestorePrismBoxItem {at} (read at {current.Index}, {current.Item} {current.Dye1}/{current.Dye2}) → {ok}{(tries > 0 ? $", try {tries + 1}" : string.Empty)}");
                 if (!ok)
                 {
-                    // Now and then the game says no with room to spare: asked again a little later.
-                    if (++tries < 4)
+                    // The game says no while it settles the last piece (with room to spare): asked
+                    // again every quarter second, up to ten seconds, as the outfit storer does.
+                    if (tries++ == 0)
                     {
-                        deadline = now + TimeSpan.FromSeconds(1.5 * tries);
+                        refusedSince = now;
+                        Recorder.Log($"  RestorePrismBoxItem {at} (read at {current.Index}, {current.Item}) → refused, asking again");
+                    }
+                    if (now - refusedSince < OutfitStorer.GiveUp)
+                    {
+                        deadline = now + OutfitStorer.Retry;
                         break;
                     }
+                    Recorder.Log($"  RestorePrismBoxItem {at}: refused {tries} times over {(now - refusedSince).TotalSeconds:0.0} s");
                     tries = 0;
                     Finish($"The game wouldn't take out {data.ItemName(current.Item)}", false);
                     break;
                 }
+                Recorder.Log($"  RestorePrismBoxItem {at} (read at {current.Index}, {current.Item} {current.Dye1}/{current.Dye2}) → true{(tries > 0 ? $" (after {tries} refusals)" : string.Empty)}");
                 tries = 0;
                 phase = Phase.Waiting;
                 deadline = now + TimeSpan.FromSeconds(6);
@@ -140,7 +148,7 @@ public static unsafe class DresserTaker
                 {
                     Done++;
                     phase = Phase.Taking;
-                    deadline = now + TimeSpan.FromMilliseconds(900);
+                    deadline = now + TimeSpan.FromMilliseconds(150);
                     break;
                 }
                 if (now > deadline) Finish($"{data!.ItemName(current.Item)} didn't come to your bags (it may come yet: check them)", false);
