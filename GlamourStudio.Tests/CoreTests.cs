@@ -490,3 +490,68 @@ public class ReviewFixTests
         Assert.StartsWith("Plate 3 has 1 of the look's 2 pieces", Words.Filled(3, plan, 1));
     }
 }
+
+public class ConsentTests
+{
+    [Fact]
+    public void TheSitesWordWins()
+    {
+        Assert.Equal(ConsentStep.Send, Consent.Decide(null, SendChoice.Yes));
+        Assert.Equal(ConsentStep.Send, Consent.Decide(false, SendChoice.Yes));
+        Assert.Equal(ConsentStep.Hold, Consent.Decide(true, SendChoice.No));
+    }
+
+    [Fact]
+    public void AnAnswerTheSiteDoesntKnowIsToldToIt()
+    {
+        Assert.Equal(ConsentStep.TellYes, Consent.Decide(true, SendChoice.Ask));
+        Assert.Equal(ConsentStep.TellNo, Consent.Decide(false, SendChoice.Ask));
+    }
+
+    [Fact]
+    public void NobodySaidSoItsAsked()
+    {
+        Assert.Equal(ConsentStep.AskPlayer, Consent.Decide(null, SendChoice.Ask));
+    }
+
+    [Fact]
+    public void NothingIsSentBeforeTheSitesBeenAsked()
+    {
+        // (Not read yet: a yes here waits; a no holds.)
+        Assert.Equal(ConsentStep.Wait, Consent.Decide(true, null));
+        Assert.Equal(ConsentStep.Wait, Consent.Decide(null, null));
+        Assert.Equal(ConsentStep.Hold, Consent.Decide(false, null));
+    }
+
+    [Fact]
+    public void ReadsWhatTheSiteHas()
+    {
+        var map = Consent.ReadCharacters(JsonNode.Parse("""[{"key":"a","send":"yes"},{"key":"b","send":"no"},{"key":"c","send":"ask"},{"key":"d"},{"send":"yes"},7]"""))!;
+        Assert.Equal(SendChoice.Yes, map["a"]);
+        Assert.Equal(SendChoice.No, map["b"]);
+        Assert.Equal(SendChoice.Ask, map["c"]);
+        Assert.Equal(SendChoice.Ask, map["d"]);
+        Assert.Equal(4, map.Count);
+        Assert.Null(Consent.ReadCharacters(JsonNode.Parse("""{"key":"a"}""")));
+    }
+
+    [Fact]
+    public void ANoSendsNeitherNameNorWorld()
+    {
+        var no = Consent.CharacterArgs("key", "Koko Nyan", "Lich", false);
+        Assert.Equal("", no["p_character"]!["name"]!.GetValue<string>());
+        Assert.Equal("", no["p_character"]!["world"]!.GetValue<string>());
+        Assert.False(no["p_send"]!.GetValue<bool>());
+        var yes = Consent.CharacterArgs("key", "Koko Nyan", "Lich", true);
+        Assert.Equal("Koko Nyan", yes["p_character"]!["name"]!.GetValue<string>());
+        Assert.True(yes["p_send"]!.GetValue<bool>());
+    }
+
+    [Fact]
+    public void TheQuestionNamesTheCharacter()
+    {
+        Assert.Equal("Send Koko Nyan's wardrobe to Glamour Studio?", Consent.Question("Koko Nyan"));
+        Assert.Equal("Send this character's wardrobe to Glamour Studio?", Consent.Question(""));
+        Assert.Equal("A new character on Lich", Consent.Eyebrow("Lich"));
+    }
+}

@@ -447,6 +447,13 @@ public sealed partial class MainWindow : Window
         if (sync.TokenRefused) return ("Link again: token refused", Palette.Danger);
         if (sync.Syncing) return ("Sending your closet…", Palette.Rose);
         if (sync.SyncProblem != null) return ("Closet not sent: see Closet", Palette.Danger);
+        switch (sync.StepFor(wardrobe.Current))
+        {
+            case ConsentStep.AskPlayer:
+                return ("Not sent yet: say yes or no", Palette.Faint);
+            case ConsentStep.Hold or ConsentStep.TellNo:
+                return ("Not sent: you said no", Palette.Faint);
+        }
         if (sync.LastSyncAt is { } at) return ($"Closet sent {Words.Ago(at, DateTimeOffset.UtcNow)}", Palette.Success);
         return (config.AutoSync ? "Linked · sends as you play" : "Linked", Palette.Success);
     }

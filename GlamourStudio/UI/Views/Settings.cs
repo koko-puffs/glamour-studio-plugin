@@ -205,7 +205,7 @@ public sealed partial class MainWindow
             config.Save();
         }
         if (ButtonRow(i, "##forget", "Forget this character", "What the plugin has read of it, here", "Forget", Btn.Glass, wardrobe.Current == null, null,
-                "Its dresser, armoire, saddlebags, retainers and plates as last read are forgotten (they're read again as you open them). The site keeps what it was sent until you forget the character there too."))
+                "Its dresser, armoire, saddlebags, retainers and plates as last read are forgotten (they're read again as you open them). The site keeps what it was sent until you forget the character there too (or turn it off in Settings → Account → Characters)."))
         {
             var me = wardrobe.Current;
             if (me != null)
@@ -319,7 +319,7 @@ public sealed partial class MainWindow
         }
         if (recorder.HookReport.Count > 0) sb.AppendLine("Recorder hooks: " + string.Join("; ", recorder.HookReport));
         if (recorder.SetupError != null) sb.AppendLine("Recorder: " + recorder.SetupError);
-        sb.AppendLine($"Character: {(me != null ? $"{me.Name}@{me.World}" : "none")} · linked {sync.Linked} (refused {sync.TokenRefused}) · looks {sync.Library.Mine.Count} mine, {sync.Library.Loved.Count} loved, {sync.Wearable.Count} wearable, {sync.Inbox.Count} sent, {sync.Plans.Count} plans");
+        sb.AppendLine($"Character: {(me != null ? $"{me.Name}@{me.World} (sending: {sync.StepFor(me)})" : "none")} · linked {sync.Linked} (refused {sync.TokenRefused}) · looks {sync.Library.Mine.Count} mine, {sync.Library.Loved.Count} loved, {sync.Wearable.Count} wearable, {sync.Inbox.Count} sent, {sync.Plans.Count} plans");
         sb.AppendLine($"Settings: empty bare slots {config.ClearBare}, dye from bags {config.DyeFromBags}, open with editor {config.OpenWithEditor}, auto send {config.AutoSync}, send plates {config.SendPlates}, chat notes {config.ChatNotes}");
         if (me != null)
             sb.AppendLine("Read: " + string.Join(", ", Places.ByPriority.Select(p => $"{Places.Key(p)} {(me.Get(p) is { } r ? $"{r.Items.Count} at {r.ReadAt:yyyy-MM-dd HH:mm}" : "never")}"))
@@ -402,6 +402,7 @@ public sealed partial class MainWindow
         Kit.EndPanel();
         Kit.Gap(14);
         Txt.Para(new[] { new Run("Anyone with the token can read and change your closet, so keep it to yourself. Revoke it on the site if it gets out.", Face.Sans, 12, Palette.Muted) }, 18);
+        DrawCharactersGroup();
     }
 
     private void LinkToken()

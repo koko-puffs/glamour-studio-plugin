@@ -273,13 +273,53 @@ public static class SiteLink
         return LookJson.ReadPlans(r.Value) is { } list ? new SiteReply<List<PlannedPlate>>(list) : Unreadable<List<PlannedPlate>>();
     }
 
-    /// <summary>The public looks you own every piece of, the most loved first.</summary>
-    public static async Task<SiteReply<List<Look>>> WearableAsync(HttpClient http, string token, CancellationToken cancel = default)
+    /// <summary>
+    /// The public looks you own every piece of, the most loved first: as <paramref name="character"/> (the
+    /// one you're on, when the site takes its data), else with every character's pieces together.
+    /// </summary>
+    public static async Task<SiteReply<List<Look>>> WearableAsync(HttpClient http, string token, string? character = null, CancellationToken cancel = default)
     {
         if (!LooksRight(token)) return NoToken<List<Look>>();
-        var r = await CallAsync(http, "gs_plugin_wearable", new JsonObject { ["p_token"] = token }, LongTimeout, cancel).ConfigureAwait(false);
+        var args = new JsonObject { ["p_token"] = token };
+        if (character != null) args["p_character"] = character;
+        var r = await CallAsync(http, "gs_plugin_wearable", args, LongTimeout, cancel).ConfigureAwait(false);
         if (!r.Ok) return r.As<List<Look>>();
         return LookJson.ReadLooks(r.Value) is { } list ? new SiteReply<List<Look>>(list) : Unreadable<List<Look>>();
+    }
+
+    /// <summary>What the site does with each of your characters' data (<c>gs_plugin_characters</c>), by key.</summary>
+    public static async Task<SiteReply<Dictionary<string, SendChoice>>> CharactersAsync(HttpClient http, string token, CancellationToken cancel = default)
+    {
+        if (!LooksRight(token)) return NoToken<Dictionary<string, SendChoice>>();
+        var r = await CallAsync(http, "gs_plugin_characters", new JsonObject { ["p_token"] = token }, CallTimeout, cancel).ConfigureAwait(false);
+        if (!r.Ok) return r.As<Dictionary<string, SendChoice>>();
+        return Consent.ReadCharacters(r.Value) is { } map ? new SiteReply<Dictionary<string, SendChoice>>(map) : Unreadable<Dictionary<string, SendChoice>>();
+    }
+
+    /// <summary>
+    /// Tells the site your answer for a character (<c>gs_plugin_character</c>): yes, its name and world go
+    /// with it; no, only its key, and the site lets go of anything it had of it. The value: what the site does now.
+    /// </summary>
+    public static async Task<SiteReply<SendChoice>> CharacterAsync(HttpClient http, string token, string key, string name, string world, bool send,
+        CancellationToken cancel = default)
+    {
+        if (!LooksRight(token)) return NoToken<SendChoice>();
+        var args = Consent.CharacterArgs(key, name, world, send);
+        args["p_token"] = token;
+        var r = await CallAsync(http, "gs_plugin_character", args, CallTimeout, cancel).ConfigureAwait(false);
+        if (!r.Ok) return r.As<SendChoice>();
+        return r.Value is JsonObject o && Text(o["send"]) is { } s ? new SiteReply<SendChoice>(Consent.Parse(s)) : Unreadable<SendChoice>();
+    }
+
+    /// <summary>Says which of your characters wore a shot just sent (shown on the site only while you show that character on your shots).</summary>
+    public static async Task<SiteReply<bool>> ShotCharacterAsync(HttpClient http, string token, string shotId, string character, CancellationToken cancel = default)
+    {
+        if (!LooksRight(token)) return NoToken<bool>();
+        if (!LookJson.IsUuid(shotId)) return new SiteReply<bool>(false);
+        var args = new JsonObject { ["p_token"] = token, ["p_shot"] = shotId, ["p_character"] = character };
+        var r = await CallAsync(http, "gs_plugin_shot_character", args, CallTimeout, cancel).ConfigureAwait(false);
+        if (!r.Ok) return r.As<bool>();
+        return new SiteReply<bool>(r.Value is JsonObject o && o["ok"] is JsonValue v && v.TryGetValue<bool>(out var ok) && ok);
     }
 
     /// <summary>The edge function that takes shots from the game.</summary>

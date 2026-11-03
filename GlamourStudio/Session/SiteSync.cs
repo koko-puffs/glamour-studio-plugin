@@ -17,7 +17,8 @@ namespace GlamourStudio.Session;
 /// looks and the ones you love read when the window opens (and every ten minutes while it's open); the
 /// looks sent from the site looked for every minute while the window's open, every five otherwise.
 /// Calls run off the framework thread; their answers come back to it (<see cref="Tick"/>), where the
-/// window reads them. Nothing is sent before the plugin's linked.
+/// window reads them. Nothing is sent before the plugin's linked, and nothing of a character before you've
+/// said yes to sending it (<see cref="Consent"/>: asked once per character, kept here and on the site).
 /// </summary>
 public sealed class SiteSync : IDisposable
 {
@@ -49,6 +50,21 @@ public sealed class SiteSync : IDisposable
     private DateTime nextLibrary;
     private DateTime nextInbox;
     private DateTime nextPlans;
+
+    /// <summary>What the site does with each character's data (null: not read yet since linking).</summary>
+    private Dictionary<string, SendChoice>? siteChoices;
+    private DateTime nextCharacters;
+    private DateTime nextTell;
+    private string? charactersFor;
+
+    /// <summary>Characters whose answer is on its way to the site (not told twice at once).</summary>
+    private readonly HashSet<string> telling = new();
+
+    /// <summary>Characters you said "Not now" for, this session: not asked again until the plugin loads again.</summary>
+    private readonly HashSet<string> notNow = new();
+
+    private static readonly TimeSpan CharactersOpen = TimeSpan.FromMinutes(10);
+    private static readonly TimeSpan CharactersClosed = TimeSpan.FromMinutes(30);
 
     public SiteSync(Configuration config, WardrobeReader wardrobe)
     {
@@ -117,13 +133,127 @@ public sealed class SiteSync : IDisposable
         Wearable = Array.Empty<Look>();
         Plans = Array.Empty<PlannedPlate>();
         plansFor = null;
+        siteChoices = null;
+        charactersFor = null;
+        telling.Clear();
         LastSync = null;
         LastSyncAt = null;
         SyncProblem = null;
         lastSent = string.Empty;
         versionSent = -1;
-        nextLibrary = nextInbox = nextAutoSync = nextWearable = nextPlans = DateTime.MinValue;
+        nextLibrary = nextInbox = nextAutoSync = nextWearable = nextPlans = nextCharacters = nextTell = DateTime.MinValue;
         Version++;
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Asking about each character.
+
+    /// <summary>What the site does with a character's data, as last read (null: not read yet).</summary>
+    public SendChoice? SiteChoice(string key) =>
+        siteChoices == null ? null : siteChoices.TryGetValue(key, out var c) ? c : SendChoice.Ask;
+
+    /// <summary>Your answer for a character, kept here (null: not asked).</summary>
+    public bool? MyAnswer(string key) => config.Characters.TryGetValue(key, out var k) ? k.Send : null;
+
+    /// <summary>What to do about a character's data now.</summary>
+    public ConsentStep StepFor(CharacterWardrobe? c) => c == null ? ConsentStep.Wait : Consent.Decide(MyAnswer(c.Key), SiteChoice(c.Key));
+
+    /// <summary>The site takes this character's data: its closet may be sent, and its key said.</summary>
+    public bool Sends(CharacterWardrobe? c) => Linked && StepFor(c) == ConsentStep.Send;
+
+    /// <summary>The character to ask about now (the one you're on, linked, not answered, not put off), or null.</summary>
+    public CharacterWardrobe? ToAsk
+    {
+        get
+        {
+            var c = wardrobe.Current;
+            if (!Linked || TokenRefused || c == null || c.Name.Length == 0 || notNow.Contains(c.Key)) return null;
+            return StepFor(c) == ConsentStep.AskPlayer ? c : null;
+        }
+    }
+
+    /// <summary>"Not now": not asked about this character again until the plugin loads again (nothing's sent meanwhile).</summary>
+    public void NotNow(string key)
+    {
+        notNow.Add(key);
+        Version++;
+    }
+
+    /// <summary>
+    /// Your answer for a character: kept here at once, and told to the site (yes: its name and world go with
+    /// it, and its closet follows; no: the site lets go of what it had of it).
+    /// </summary>
+    public void Answer(string key, string name, string world, bool send)
+    {
+        if (!config.Characters.TryGetValue(key, out var k)) config.Characters[key] = k = new KnownCharacter();
+        if (name.Length > 0) k.Name = name;
+        if (world.Length > 0) k.World = world;
+        k.Send = send;
+        k.AnsweredAt = DateTime.UtcNow;
+        config.Save();
+        notNow.Remove(key);
+        Version++;
+        Tell(key, send);
+    }
+
+    /// <summary>Tells the site your answer for a character (once at a time each).</summary>
+    private void Tell(string key, bool send)
+    {
+        if (!Linked || !telling.Add(key)) return;
+        var k = config.Characters.TryGetValue(key, out var known) ? known : null;
+        var me = wardrobe.Current?.Key == key ? wardrobe.Current : null;
+        var name = me?.Name is { Length: > 0 } n ? n : k?.Name ?? string.Empty;
+        var world = me?.World is { Length: > 0 } w ? w : k?.World ?? string.Empty;
+        Run(SiteLink.CharacterAsync(http, config.SiteToken, key, name, world, send, stopping.Token), r =>
+        {
+            telling.Remove(key);
+            if (r.Ok)
+            {
+                siteChoices ??= new Dictionary<string, SendChoice>(StringComparer.Ordinal);
+                siteChoices[key] = r.Value;
+                if (r.Value == SendChoice.Yes && wardrobe.Current?.Key == key)
+                {
+                    // Its closet goes now, and its plans and what it can wear are read.
+                    versionSent = -1;
+                    lastSent = string.Empty;
+                    nextAutoSync = nextPlans = nextWearable = DateTime.MinValue;
+                    plansFor = null;
+                }
+            }
+            else
+            {
+                TokenRefused |= r.TokenRefused;
+                // Tried again in a minute.
+                nextTell = DateTime.UtcNow + TimeSpan.FromMinutes(1);
+            }
+        }, () => telling.Remove(key));
+    }
+
+    /// <summary>What the site does with each of your characters (read when linking, changing character, and now and then).</summary>
+    public void RefreshCharacters(bool windowOpen = false)
+    {
+        if (!Linked) return;
+        nextCharacters = DateTime.UtcNow + (windowOpen ? CharactersOpen : CharactersClosed);
+        Run(SiteLink.CharactersAsync(http, config.SiteToken, stopping.Token), r =>
+        {
+            if (!r.Ok)
+            {
+                TokenRefused |= r.TokenRefused;
+                return;
+            }
+            siteChoices = r.Value!;
+            // The site's word wins: what you changed there is your answer here too.
+            var changed = false;
+            foreach (var (key, choice) in siteChoices)
+            {
+                if (choice == SendChoice.Ask || !config.Characters.TryGetValue(key, out var k)) continue;
+                var send = choice == SendChoice.Yes;
+                if (k.Send == send) continue;
+                k.Send = send;
+                changed = true;
+            }
+            if (changed) config.Save();
+        });
     }
 
     /// <summary>The window opened: what's sent from the site is looked for at once.</summary>
@@ -147,10 +277,27 @@ public sealed class SiteSync : IDisposable
         if (!Linked || TokenRefused) return;
         var now = DateTime.UtcNow;
 
+        // What the site does with your characters: now and then, and at once on another character.
+        var current = wardrobe.Current;
+        if (now >= nextCharacters || (current != null && current.Key != charactersFor))
+        {
+            // Another character: what it can wear is read again too.
+            if (current != null && current.Key != charactersFor) nextWearable = DateTime.MinValue;
+            charactersFor = current?.Key;
+            RefreshCharacters(windowOpen);
+        }
+        // An answer given here the site doesn't know yet (given while unlinked, or a call that failed): told.
+        if (current != null && now >= nextTell)
+        {
+            var step = StepFor(current);
+            if (step == ConsentStep.TellYes) Tell(current.Key, true);
+            else if (step == ConsentStep.TellNo) Tell(current.Key, false);
+        }
+
         if (windowOpen && now >= nextLibrary && !LibraryBusy) RefreshLibrary();
         if (windowOpen && now >= nextWearable) RefreshWearable();
-        // Another character: its plans.
-        if (wardrobe.Current?.Key is { } me && me != plansFor && now >= nextPlans)
+        // Another character: its plans (only for one the site takes).
+        if (Sends(current) && current!.Key != plansFor && now >= nextPlans)
         {
             nextPlans = now + TimeSpan.FromSeconds(30);
             RefreshPlans();
@@ -168,7 +315,7 @@ public sealed class SiteSync : IDisposable
             versionSeen = v;
             changedAt = now;
         }
-        if (now - changedAt >= Settle && now >= nextAutoSync && wardrobe.Current != null && v != versionSent) SyncNow(auto: true);
+        if (now - changedAt >= Settle && now >= nextAutoSync && Sends(wardrobe.Current) && v != versionSent) SyncNow(auto: true);
     }
 
     /// <summary>Sends your wardrobe now (or, <paramref name="auto"/>, only when it changed since the last send).</summary>
@@ -179,6 +326,12 @@ public sealed class SiteSync : IDisposable
         // closet from all of them, so another PC or character never takes this one's pieces off.
         var current = wardrobe.Current;
         if (current == null) return;
+        // Nothing of a character you haven't said yes to (asked again if you put it off).
+        if (!Sends(current))
+        {
+            if (!auto) notNow.Remove(current.Key);
+            return;
+        }
         // First: should what follows throw, it isn't tried again every frame.
         nextAutoSync = DateTime.UtcNow + AutoSyncGap;
         var (closet, read) = Wardrobe.Closet(new[] { current }, current.Key);
@@ -229,6 +382,18 @@ public sealed class SiteSync : IDisposable
             {
                 SyncProblem = r.Why;
                 TokenRefused |= r.TokenRefused;
+                // The site says no to this character (you said so there): not sent again, and so it is here.
+                if (r.Hint == "refused")
+                {
+                    siteChoices ??= new Dictionary<string, SendChoice>(StringComparer.Ordinal);
+                    siteChoices[current.Key] = SendChoice.No;
+                    if (config.Characters.TryGetValue(current.Key, out var k) && k.Send != false)
+                    {
+                        k.Send = false;
+                        config.Save();
+                    }
+                    SyncProblem = null;
+                }
                 // A passing trouble is tried again by itself in a few minutes.
                 if (r.Passing) nextAutoSync = DateTime.UtcNow + AutoSyncGap;
             }
@@ -247,7 +412,7 @@ public sealed class SiteSync : IDisposable
     public void RefreshPlans()
     {
         var key = wardrobe.Current?.Key;
-        if (!Linked || key == null) return;
+        if (!Sends(wardrobe.Current) || key == null) return;
         Run(SiteLink.PlansAsync(http, config.SiteToken, key, stopping.Token), r =>
         {
             if (r.Ok)
@@ -265,7 +430,10 @@ public sealed class SiteSync : IDisposable
     {
         if (!Linked) return;
         nextWearable = DateTime.UtcNow + LibraryEvery;
-        Run(SiteLink.WearableAsync(http, config.SiteToken, stopping.Token), r =>
+        // As the character you're on, when the site takes it; else with every character's pieces together.
+        var me = wardrobe.Current;
+        var character = Sends(me) ? me!.Key : null;
+        Run(SiteLink.WearableAsync(http, config.SiteToken, character, stopping.Token), r =>
         {
             if (r.Ok) Wearable = r.Value!;
             else TokenRefused |= r.TokenRefused;

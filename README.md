@@ -12,6 +12,9 @@ Linked to your account on the site, it keeps your **closet** there up to date by
 your glamour dresser, armoire, bags, armoury chest, saddlebags and retainers, your glamour plates and
 what you're wearing. Looks you **Send to game** from the site wait in the plugin, and a plate (or your
 outfit, or someone you examine) can be kept as a new look on the site.
+On each character it hasn't seen before it **asks you first** whether to send that character at
+all, and sends nothing of it until you say yes; what's sent stays private on the site unless you
+choose to show it there.
 
 Most of it is right beside the game's own windows: open the glamour dresser, Glamour Plates, the
 armoire, the fitting room, Examine, a retainer's bags or the market board, and a small panel sits

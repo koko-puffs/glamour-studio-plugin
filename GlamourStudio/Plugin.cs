@@ -53,6 +53,8 @@ public sealed class Plugin : IDalamudPlugin
                     + $"wardrobe v{wardrobe.Version} dresser live {wardrobe.DresserLive} armoire live {wardrobe.ArmoireLive}, shot {(shots.Capturing ? "capturing" : shots.Taken is { } t ? (t.Sending ? "sending" : t.Sent ? "sent" : "taken") : "none")}, {window?.CompanionState() ?? "no panel"}",
             };
             window = new MainWindow(config, data, wardrobe, sync, fonts, shots, recorder);
+            // A shot says which character wore it, when the site takes that character.
+            shots.WhoWore = () => sync.Sends(wardrobe.Current) ? wardrobe.Current!.Key : null;
             // The site's calls, as SITE lines in a recording (any thread; no token, no body).
             Core.SiteLink.Trace = Recorder.Raw;
             windows.AddWindow(window);
@@ -65,6 +67,7 @@ public sealed class Plugin : IDalamudPlugin
             Services.PluginInterface.UiBuilder.Draw += windows.Draw;
             Services.PluginInterface.UiBuilder.Draw += window.DrawCompanions;
             Services.PluginInterface.UiBuilder.Draw += window.DrawTooltipLines;
+            Services.PluginInterface.UiBuilder.Draw += window.DrawCharacterQuestion;
             Services.ContextMenu.OnMenuOpened += window.OnContextMenu;
             Services.PluginInterface.UiBuilder.OpenMainUi += window.ShowMain;
             Services.PluginInterface.UiBuilder.OpenConfigUi += window.ShowSettings;
@@ -198,6 +201,7 @@ public sealed class Plugin : IDalamudPlugin
         {
             Safely(() => Services.PluginInterface.UiBuilder.Draw -= window.DrawCompanions);
             Safely(() => Services.PluginInterface.UiBuilder.Draw -= window.DrawTooltipLines);
+            Safely(() => Services.PluginInterface.UiBuilder.Draw -= window.DrawCharacterQuestion);
             Safely(() => Services.ContextMenu.OnMenuOpened -= window.OnContextMenu);
             Safely(() => Services.PluginInterface.UiBuilder.OpenMainUi -= window.ShowMain);
             Safely(() => Services.PluginInterface.UiBuilder.OpenConfigUi -= window.ShowSettings);
@@ -217,7 +221,7 @@ public sealed class Plugin : IDalamudPlugin
     private IEnumerable<string> RecordingHeader()
     {
         var me = wardrobe.Current;
-        yield return $"Character {(me != null ? $"{me.Name}@{me.World} key {me.Key}" : "none")}, linked {sync.Linked}, Dalamud {typeof(IDalamudPlugin).Assembly.GetName().Version}, game {GameVersion()}";
+        yield return $"Character {(me != null ? $"{me.Name}@{me.World} key {me.Key} sending {sync.StepFor(me)}" : "none")}, linked {sync.Linked}, Dalamud {typeof(IDalamudPlugin).Assembly.GetName().Version}, game {GameVersion()}";
         yield return $"Settings: empty bare slots {config.ClearBare}, dye from bags {config.DyeFromBags}, open with editor {config.OpenWithEditor}, auto send {config.AutoSync}, send plates {config.SendPlates}, chat notes {config.ChatNotes}";
         yield return me == null ? "Read: nothing" : "Read: " + string.Join(", ", Places.ByPriority.Select(p => $"{Places.Key(p)} {(me.Get(p) is { } r ? $"{r.Items.Count} at {r.ReadAt:HH:mm}" : "never")}"))
                                                      + $", plates {(me.PlatesReadAt is { } pr ? pr.ToString("HH:mm") : "never")}, retainers {me.Retainers.Count}";

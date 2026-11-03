@@ -46,6 +46,13 @@ public sealed partial class MainWindow
         if (sync.TokenRefused) return ("Link again: the site doesn't know this token", Tone.Danger, false);
         if (sync.Syncing) return ("Sending your closet…", Tone.Live, true);
         if (sync.SyncProblem is { } p) return (p, Tone.Danger, false);
+        switch (sync.StepFor(wardrobe.Current))
+        {
+            case ConsentStep.AskPlayer:
+                return ("This character isn't sent yet: say yes or no", Tone.Neutral, false);
+            case ConsentStep.Hold or ConsentStep.TellNo:
+                return ("This character isn't sent to the site", Tone.Neutral, false);
+        }
         if (sync.LastSyncAt is { } at) return ($"Closet up to date · sent {Words.Ago(at, DateTimeOffset.UtcNow)}", Tone.Success, false);
         return (config.AutoSync ? "Linked · sends your closet as you play" : "Linked", Tone.Success, false);
     }
