@@ -163,14 +163,29 @@ outfit set (`MirageStoreSetItem`) with two or more loose pieces in the dresser (
 already stored), the most freed first; a stored set's own pieces don't count as joining it again.
 **Not in any look or plate**: loose pieces none of your looks, the looks you love, looks sent or
 planned for this character, your plates or your outfit uses (shown only once your looks have been
-read). It only shows: the storing and taking out are the dresser's own.
+read).
+
+**Make room for me** (between the numbers and the lists; smaller in the dresser's panel, where
+it's pressed twice): the plugin gathers the sets for you (`Game/OutfitStorer.cs`). The game stores
+an outfit only from your bags or armoury chest, so for each set each loose piece is restored to
+your bags (`MirageManager.RestorePrismBoxItem`, the dresser's "Restore item to its original form";
+its place found again first, should the dresser close up), and once they're all there they go in
+as the set (`StoreNewOutfit`, or `StoreExistingOutfit` into the set stored already; each piece at
+its `MirageStoreSetItem` column, the rest `Invalid`), a glamour prism a piece, as storing by hand
+spends. Each step is waited for (the piece in your bags, the set taking them); the first that
+doesn't come stops it, and says which pieces are left in your bags. It says first what it'll do:
+the sets, the places freed, the prisms (and how many you have), the free bag places it needs at a
+time; it's asked (Store them / Not now) and needs the dresser open. Dyed loose pieces stay loose (a
+set may not keep a piece's dyes), as do a piece two sets share (the first set takes it) and a new
+set of one piece (it frees nothing). Stop stops after the step at work. Recordings write each step
+(`OUTFITS …`). New: not yet watched in the game.
 
 ## Beside the game's windows
 
 A small Glamour Studio panel (300 wide, the plugin's own look) docked to the edge of the game window
 you have open, its top level with the window's, moving with it as you drag it; on the side with room
-(right by default; Settings can pin a side). As tall as what's in it, up to the window's height (360
-at least), then it scrolls. Its header: GLAMOUR STUDIO in small rose capitals over what it's beside, the arrow
+(right by default; Settings can pin a side). As tall as what's in it, whatever the game window's
+height (it measures what it drew each frame), scrolling only when the screen runs out. Its header: GLAMOUR STUDIO in small rose capitals over what it's beside, the arrow
 that opens the plugin's window on the matching screen, and the fold button: folded, a slim tab stays
 on the window's edge with its one number (looks ready, the plate, your list's length), remembered
 for each window. The panels share their parts: a piece's row (its icon, name, a line under it, and
@@ -193,7 +208,7 @@ is off meanwhile). `UI/Companions/Companion.cs` is the panel, `Panes.cs` what ea
 | **Armoire** | Your looks' pieces stored in it (plates take them from there); what in your bags and armoury chest it takes, each with **Store**, and **Store all** (one by one, 0.6 s apart); how many pieces in your dresser it would take (and which), each a place freed once moved. |
 | **Storing an outfit set** | The set's name; dresser places freed by storing it (its loose pieces, less the one place the set takes); your looks that use it and which of its pieces; each piece and where it is. |
 | **Fitting Room** | Your looks (all, or just the ready ones) to step through with the arrows, each put on in the fitting room (the panel stays while it reopens); where each piece is; the ones you don't have onto your shopping list; Wear it · plate N when the look's on a plate. What you tried on by hand: Keep it as a look. |
-| **Examine** | How many of their pieces you have (a ring), each piece and where yours is, the missing ones onto your list, Try it on, Keep it as a look (named "An outfit I saw": never their name). |
+| **Examine** | How many of their pieces you have (a ring), each piece and where yours is, the missing ones onto your list, Try it on, Keep it as a look (named after them, "Their name's outfit", as Home's; "An outfit I saw" when the name can't be read). |
 | **Dye** | The piece being dyed (the first dyeable gear in the window's values, else the one piece its preview shows: not yet watched), your looks that have it and the dyes each wants, the bottles in your bags for them, the missing ones onto your list. |
 | **A retainer's bags** | Your looks' pieces on this retainer that aren't in your dresser or armoire; how much glamour on it no look uses, and what of it the armoire takes (and which); your other retainers, each with how many of your looks' pieces it has (or not read yet). |
 | **Market board** | Your shopping list: what the market board sells (each with the look it's for, the cheapest listing while its results are open, **Search**, which types it into the market board's search and searches: not yet watched, else it copies the name), and what it doesn't (untradable). |
@@ -514,6 +529,20 @@ this one too, within a few minutes of a release.
 The workflows need Settings → Actions → General → Workflow permissions → Read and write.
 
 ## Release notes
+
+### 0.6.0
+
+- **Make room for me:** on Make room and in the glamour dresser's panel, the plugin gathers outfit
+  sets' loose pieces into their sets for you (restored to your bags, stored back as the set, a
+  glamour prism a piece). It says what it'll do and asks first; dyed pieces stay loose. New: not
+  yet watched in the game.
+- The panels beside the game's windows are as tall as what's in them (they were held to the game
+  window's height, and measured a little short, so a scrollbar showed that barely moved).
+- Keep it as a look from the Examine panel names the look after them ("Their name's outfit"), as
+  Home does; the panel's title says whose outfit it is.
+- Fitting: a heading whose label doesn't fit beside it puts the label under it (Gearsets showed
+  only its label), the rail keeps "Make room" whole (its count shorter, or in the tooltip), and a
+  few lines that could run past their card are cut to fit.
 
 ### 0.5.2
 

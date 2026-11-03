@@ -192,6 +192,26 @@ public sealed class GameData
         return jobs[classJob] = abbr;
     }
 
+    private uint[]? prisms;
+
+    /// <summary>The glamour prisms' items (storing in the dresser spends one a piece), found by name in the Item sheet.</summary>
+    public IReadOnlyList<uint> GlamourPrisms()
+    {
+        if (prisms != null) return prisms;
+        try
+        {
+            prisms = Services.Data.GetExcelSheet<Item>()
+                .Where(r => r.RowId != 0 && r.Name.ExtractText() is var n && n.StartsWith("Glamour Prism", StringComparison.OrdinalIgnoreCase))
+                .Select(r => r.RowId).ToArray();
+        }
+        catch (Exception ex)
+        {
+            Services.Log.Warning(ex, "Glamour Studio couldn't find the glamour prisms");
+            prisms = Array.Empty<uint>();
+        }
+        return prisms;
+    }
+
     private Dictionary<uint, uint>? setOfPiece;
 
     /// <summary>The outfit set a piece belongs to (its own item), or 0.</summary>

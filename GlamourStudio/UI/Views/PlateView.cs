@@ -350,7 +350,7 @@ public sealed partial class MainWindow
     private void DrawGearsets(int plate, List<Gearset> all)
     {
         var linked = all.Where(g => g.Plate == plate).ToList();
-        Kit.Heading("Gearsets", "Change to one: its plate comes with it", 14);
+        Kit.Heading("Gearsets", "Its plate comes with it", 14);
         Kit.Gap(14);
         Kit.BeginPanel("##gearsets", 4, 4, 4, Palette.Card, Palette.Line, 14);
         var dl = Kit.Dl;

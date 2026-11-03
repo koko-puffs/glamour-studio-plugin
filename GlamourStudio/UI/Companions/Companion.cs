@@ -217,8 +217,9 @@ public sealed partial class MainWindow
     private void DrawCompanionPanel(Pane pane, string key, WindowRect rect, bool right, float width, float gap, Vector2 vpPos, Vector2 vpSize)
     {
         var headerH = S(56);
-        // As tall as what's in it, up to the game window's height (360 at the least), and on the screen.
-        var maxH = MathF.Min(MathF.Max(rect.Size.Y, S(360)), vpSize.Y - S(16));
+        // As tall as what's in it, whatever the game window's height: it scrolls only when the screen
+        // runs out (it was held to the game window's height, and a few pixels short of its content).
+        var maxH = vpSize.Y - S(16);
         var bodyH = companionContentH > 0 ? companionContentH : S(240);
         var height = MathF.Min(headerH + bodyH, maxH);
         var x = right ? rect.Max.X + gap : rect.Pos.X - gap - width;
@@ -247,8 +248,9 @@ public sealed partial class MainWindow
                         Kit.BeginPane("##gs-companion-body", new Vector2(win.X, bodyTop), new Vector2(width, height - headerH), 14, 12, 14);
                         var top = ImGui.GetCursorPosY();
                         DrawPaneBody(pane);
-                        Kit.Gap(14);
-                        var content = ImGui.GetCursorPosY() - top + S(12);
+                        // What's in it, with the pane's padding above (12) and below (14), and a pixel
+                        // spare so a body that fits never shows a scrollbar.
+                        var content = ImGui.GetCursorPosY() - top + S(12) + S(14) + 1;
                         Kit.EndPane();
                         if (MathF.Abs(content - companionContentH) > 0.5f) companionContentH = content;
                     }
@@ -367,7 +369,7 @@ public sealed partial class MainWindow
         Pane.FittingRoom => "Trying on",
         Pane.Armoire => "At the armoire",
         Pane.Dresser => "At the dresser",
-        Pane.Examine => "Their outfit",
+        Pane.Examine => examined is { Name.Length: > 0 } ex ? $"{ex.Name}'s outfit" : "Their outfit",
         Pane.Retainer => GameWindows.RetainerOpen() is { } r && r.Name.Length > 0 ? $"On {r.Name}" : "A retainer's bags",
         Pane.Market => "Shopping list",
         _ => "Shopping list",

@@ -72,6 +72,8 @@ public sealed partial class MainWindow
         }
         var now = CleanupNow(me);
         DrawRoomFacts(now);
+        Kit.Gap(12);
+        DrawAutoRoom(me);
         Kit.Gap(16);
         var room = MathF.Max(S(200), Kit.PaneRoom());
         var lat = Kit.At;
@@ -80,7 +82,7 @@ public sealed partial class MainWindow
         RoomList("##sets", new Vector2(lat.X, lat.Y), new Vector2(cw, room), "Keep as outfits", Words.Count(now.Sets.Count, "set"),
             now.Sets.Count == 0
                 ? "No outfit set has loose pieces in your dresser: nothing to gather."
-                : "A set's pieces kept as one outfit take one place. At a glamour dresser, pick the set under Outfit Glamour and store it.",
+                : "A set's pieces kept as one outfit take one place. Store them for me (above, with the dresser open), or pick the set under Outfit Glamour yourself.",
             now.Sets, 38, 500);
         string note;
         List<CleanupRow> rows;
@@ -133,7 +135,7 @@ public sealed partial class MainWindow
             var vy = q.Y + Txt.Natural(Face.Mono, 10) + S(6);
             var vw = Txt.Draw(dl, new Vector2(q.X, vy), Txt.Fit(value, Face.Display, 26, cw - S(36)), Face.Display, 26, color);
             if (note != null && vw + S(6) < cw - S(36))
-                Txt.Draw(dl, new Vector2(q.X + vw + S(6), vy + Txt.Ascent(Face.Display, 26) - Txt.Ascent(Face.Sans, 13)), note, Face.Sans, 13, Palette.Muted);
+                Txt.Draw(dl, new Vector2(q.X + vw + S(6), vy + Txt.Ascent(Face.Display, 26) - Txt.Ascent(Face.Sans, 13)), Txt.Fit(note, Face.Sans, 13, cw - S(36) - vw - S(6)), Face.Sans, 13, Palette.Muted);
         }
         Kit.Reserve(at, w, h);
     }

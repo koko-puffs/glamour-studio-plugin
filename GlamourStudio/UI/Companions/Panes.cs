@@ -68,6 +68,8 @@ public sealed partial class MainWindow
             }
         }
         else PaneNote($"{Words.Count(free, "place")} free.");
+        Kit.Gap(8);
+        PaneAutoRoom(me);
         Kit.Gap(16);
 
         if (!Linked)
@@ -729,8 +731,9 @@ public sealed partial class MainWindow
             var nh = Txt.Natural(Face.SansSemibold, 14);
             var lh = Txt.Natural(Face.Sans, 11);
             var ty = at.Y + (d - nh - lh - S(3)) / 2;
-            Txt.Draw(Kit.Dl, new Vector2(x, ty), $"You have {have} of {Words.Count(total, "piece")}", Face.SansSemibold, 14, Palette.Ink);
-            Txt.Draw(Kit.Dl, new Vector2(x, ty + nh + S(3)), "Dyes as they wear them.", Face.Sans, 11, Palette.Muted);
+            var tw = at.X + Kit.Width - x;
+            Txt.Draw(Kit.Dl, new Vector2(x, ty), Txt.Fit($"You have {have} of {Words.Count(total, "piece")}", Face.SansSemibold, 14, tw), Face.SansSemibold, 14, Palette.Ink);
+            Txt.Draw(Kit.Dl, new Vector2(x, ty + nh + S(3)), Txt.Fit("Dyes as they wear them.", Face.Sans, 11, tw), Face.Sans, 11, Palette.Muted);
             Kit.Reserve(at, Kit.Width, d);
         }
         Kit.Gap(12);
@@ -761,11 +764,12 @@ public sealed partial class MainWindow
         {
             var pieces = new Dictionary<Slot, Piece>(e.Pieces);
             var body = e.Body;
+            // Named after them, as Home's Keep it as a look does ("Their name's outfit").
+            var lookName = e.Name.Length > 0 ? $"{e.Name}'s outfit" : "An outfit I saw";
             Later(() =>
             {
                 keepingExamined = true;
-                // Never their name: an outfit seen.
-                sync.SaveLook("An outfit I saw", body, pieces, r =>
+                sync.SaveLook(lookName, body, pieces, r =>
                 {
                     keepingExamined = false;
                     Notify(r.Ok ? $"Kept as “{r.Value!.Name}” in your looks" : r.Why ?? "The site said no");
@@ -811,9 +815,10 @@ public sealed partial class MainWindow
                 var info = data.Dye(d);
                 if (info != null) Kit.Dl.AddCircleFilled(c, S(7), Palette.U32(Palette.FromRgb(info.Rgb)), 20);
                 Kit.Dl.AddCircle(c, S(7) - 0.5f, Palette.U32(Palette.WithAlpha(Palette.White, 0.3f)), 20, 1f);
-                var name = data.DyeName(d);
+                var name = Txt.Fit(data.DyeName(d), Face.Sans, 12, MathF.Max(S(20), at.X + w - dx - S(18)));
                 Txt.Draw(Kit.Dl, new Vector2(dx + S(18), dy), name, Face.Sans, 12, Palette.Soft);
                 dx += S(18) + Txt.Measure(name, Face.Sans, 12).X + S(12);
+                if (dx > at.X + w - S(40)) break;
             }
             if (piece.Dye1 == 0 && piece.Dye2 == 0) Txt.Draw(Kit.Dl, new Vector2(dx, dy), "No dye", Face.Sans, 12, Palette.Muted);
             Kit.Reserve(at, w, h);

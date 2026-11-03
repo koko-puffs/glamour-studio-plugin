@@ -144,9 +144,17 @@ public static partial class Kit
         else
         {
             Icons.Draw(dl, icon, new Vector2(pos.X + S(12), pos.Y + (h - S(16)) / 2), S(16), on ? Palette.Rose : ink);
-            var cw = count != null ? Txt.Measure(count, Face.Mono, 11).X : 0;
             var lx = pos.X + S(12 + 16 + 12);
-            Txt.Line(dl, new Vector2(lx, pos.Y), Txt.Fit(label, Face.SansMedium, 14, width - S(12) - (lx - pos.X) - cw - S(6)), Face.SansMedium, 14, ink, 40);
+            var room = width - S(12) - (lx - pos.X);
+            var cw = count != null ? Txt.Measure(count, Face.Mono, 11).X : 0;
+            // The name whole first: a count that leaves it no room goes to the tooltip ("Make ro… 662 / 800").
+            if (count != null && Txt.Measure(label, Face.SansMedium, 14).X > room - cw - S(6))
+            {
+                if (hovered) Tooltip($"{label} · {count}");
+                count = null;
+                cw = 0;
+            }
+            Txt.Line(dl, new Vector2(lx, pos.Y), Txt.Fit(label, Face.SansMedium, 14, room - (cw > 0 ? cw + S(6) : 0)), Face.SansMedium, 14, ink, 40);
             if (count != null) Txt.Line(dl, new Vector2(pos.X + width - S(12) - cw, pos.Y), count, Face.Mono, 11, Palette.Dim, 40);
         }
         FocusRing(pos, max, S(12));
@@ -258,7 +266,11 @@ public static partial class Kit
 
     public static float SubWidth(string text) => Txt.SpacedWidth(text.ToUpperInvariant(), Face.Mono, 11, 0.06f);
 
-    /// <summary>A heading (15px 600, ink) with a small label on its right, on one row.</summary>
+    /// <summary>
+    /// A heading (15px 600, ink) with a small label on its right, on one row; when the two don't fit
+    /// side by side, the label goes on a line of its own under the heading (it squeezed the heading
+    /// out: "Gearsets" in a narrow pane showed only its label).
+    /// </summary>
     public static void Heading(string text, string? sub = null, float px = 15, Vector4? subColor = null)
     {
         var at = At;
@@ -266,10 +278,19 @@ public static partial class Kit
         var ipx = (int)px;
         var h = Txt.Natural(Face.SansSemibold, ipx);
         var subW = sub != null ? SubWidth(sub) : 0;
-        Txt.Line(Dl, at, Txt.Fit(text, Face.SansSemibold, ipx, w - subW - S(12)), Face.SansSemibold, ipx, Palette.Ink);
-        if (sub != null)
-            Sub(new Vector2(at.X + w - subW, at.Y + (h - Txt.Natural(Face.Mono, 11)) / 2 + S(1)), sub, subColor);
-        Reserve(at, w, h);
+        var textW = Txt.Measure(text, Face.SansSemibold, ipx).X;
+        if (sub == null || textW + S(12) + subW <= w)
+        {
+            Txt.Line(Dl, at, Txt.Fit(text, Face.SansSemibold, ipx, w - subW - (sub != null ? S(12) : 0)), Face.SansSemibold, ipx, Palette.Ink);
+            if (sub != null)
+                Sub(new Vector2(at.X + w - subW, at.Y + (h - Txt.Natural(Face.Mono, 11)) / 2 + S(1)), sub, subColor);
+            Reserve(at, w, h);
+            return;
+        }
+        Txt.Line(Dl, at, Txt.Fit(text, Face.SansSemibold, ipx, w), Face.SansSemibold, ipx, Palette.Ink);
+        var sh = Txt.Natural(Face.Mono, 11);
+        Sub(new Vector2(at.X, at.Y + h + S(3)), sub, subColor, w);
+        Reserve(at, w, h + S(3) + sh);
     }
 
     /// <summary>A heading with a rose link on its right (true when the link's pressed).</summary>

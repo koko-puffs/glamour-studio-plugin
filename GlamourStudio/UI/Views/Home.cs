@@ -230,7 +230,7 @@ public sealed partial class MainWindow
         }
         Kit.Gap(18);
         var nat = Kit.At;
-        Txt.Line(dl, nat, "Nothing's saved until you press Save in the game's window.", Face.Sans, 12, Palette.Muted);
+        Txt.Line(dl, nat, Txt.Fit("Nothing's saved until you press Save in the game's window.", Face.Sans, 12, w), Face.Sans, 12, Palette.Muted);
         Kit.Reserve(nat, w, Txt.Natural(Face.Sans, 12));
         Kit.EndPanel();
     }

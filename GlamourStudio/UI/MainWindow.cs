@@ -427,9 +427,9 @@ public sealed partial class MainWindow : Window
     private string? RailCount(Screen s, CharacterWardrobe? me) => s switch
     {
         Screen.Looks when Linked && sync.LibraryAt != null => sync.Library.Mine.Count.ToString("N0", System.Globalization.CultureInfo.InvariantCulture),
-        Screen.Plates when me?.PlatesReadAt != null => $"{me.Plates.Count(p => p.Pieces.Count > 0)} / {Plates.Count}",
+        Screen.Plates when me?.PlatesReadAt != null => $"{me.Plates.Count(p => p.Pieces.Count > 0)}/{Plates.Count}",
         Screen.Closet when me != null && PiecesKnown() > 0 => PiecesKnown().ToString("N0", System.Globalization.CultureInfo.InvariantCulture),
-        Screen.MakeRoom when me?.Get(Place.Dresser) != null => $"{DresserUsed(me)} / {DresserCleanup.Capacity}",
+        Screen.MakeRoom when me?.Get(Place.Dresser) != null => $"{DresserUsed(me)}/{DresserCleanup.Capacity}",
         _ => null,
     };
 

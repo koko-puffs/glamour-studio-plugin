@@ -78,7 +78,7 @@ public sealed partial class MainWindow
             return;
         }
         Txt.Draw(dl, new Vector2(x + nw + S(10), y + (Txt.Natural(Face.SansSemibold, 14) - Txt.Natural(Face.Sans, 12)) / 2),
-            $"read {Words.Ago(new DateTimeOffset(read.ReadAt, TimeSpan.Zero), DateTimeOffset.UtcNow)}", Face.Sans, 12, Palette.Muted);
+            Txt.Fit($"read {Words.Ago(new DateTimeOffset(read.ReadAt, TimeSpan.Zero), DateTimeOffset.UtcNow)}", Face.Sans, 12, MathF.Max(S(20), tw - nw - S(10))), Face.Sans, 12, Palette.Muted);
         var used = DresserUsed(me);
         var of = $" of {DresserCleanup.Capacity} places";
         var ofW = Txt.Measure(of, Face.Sans, 13).X;
