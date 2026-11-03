@@ -267,11 +267,17 @@ public static unsafe class PlateEditor
         return sb.ToString();
     }
 
+    /// <summary>A plate picked in the window, to apply once the game shows it picked (and when it gives up).</summary>
+    private static (int Plate, DateTime Until)? applyAfterPick;
+
     /// <summary>
-    /// Applies a plate in the plate window opened from the Character window (mode 1), as its own
-    /// apply does: <c>[i:15, u:plate−1]</c> (seen in the first recording, "Glamours projected from
-    /// plate N"). <c>/gearset change</c> is refused while that window's open ("…while occupied", a
-    /// recording saw). Null when asked of the game, else why not.
+    /// Applies a plate in the plate window opened from the Character window (mode 1), as doing it by
+    /// hand does: the plate picked first (<c>[i:17, u:plate−1]</c>), then the window's apply
+    /// (<c>[i:15, u:0]</c>, which applies the plate picked: its number isn't the plate; 0.6.6 sent
+    /// the plate there and the window applied plate 1, picked when it opens). The apply goes on the
+    /// frame the game shows the plate picked (<see cref="Tick"/>). <c>/gearset change</c> is refused
+    /// while that window's open ("…while occupied", a recording saw). Null when asked of the game,
+    /// else why not.
     /// </summary>
     public static string? ApplyInWindow(int plate)
     {
@@ -280,15 +286,9 @@ public static unsafe class PlateEditor
         if (Services.Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.InCombat]) return "Not in combat";
         try
         {
-            var a = (AtkUnitBase*)Services.GameGui.GetAddonByName(Window).Address;
-            if (a == null || !a->IsVisible) return "The Glamour Plate window closed";
-            var values = stackalloc AtkValue[2];
-            values[0].Type = AtkValueType.Int;
-            values[0].Int = 15;
-            values[1].Type = AtkValueType.UInt;
-            values[1].UInt = (uint)(plate - 1);
-            a->FireCallback(2, values, true);
-            Recorder.Log($"APPLY plate {plate} in the plate window: fired [i:15, u:{plate - 1}]");
+            if (!Fire(17, (uint)(plate - 1))) return "The Glamour Plate window closed";
+            Recorder.Log($"APPLY plate {plate} in the plate window: picked it [i:17, u:{plate - 1}]");
+            applyAfterPick = (plate, DateTime.UtcNow + TimeSpan.FromSeconds(2));
             return null;
         }
         catch (Exception ex)
@@ -296,6 +296,44 @@ public static unsafe class PlateEditor
             Services.Log.Warning(ex, "Glamour Studio couldn't apply a plate");
             return "The game wouldn't apply it";
         }
+    }
+
+    /// <summary>Applies the plate picked by <see cref="ApplyInWindow"/> once the window shows it picked. Framework thread.</summary>
+    public static void Tick()
+    {
+        if (applyAfterPick is not { } want) return;
+        try
+        {
+            if (Mode != 1 || DateTime.UtcNow > want.Until)
+            {
+                Recorder.Log($"APPLY plate {want.Plate}: {(Mode != 1 ? "the window closed" : $"plate {PickedPlate} still picked")}, not applied");
+                applyAfterPick = null;
+                return;
+            }
+            if (PickedPlate != want.Plate) return;
+            applyAfterPick = null;
+            Fire(15, 0);
+            Recorder.Log($"APPLY plate {want.Plate} in the plate window: applied [i:15, u:0]");
+        }
+        catch (Exception ex)
+        {
+            applyAfterPick = null;
+            Services.Log.Warning(ex, "Glamour Studio couldn't apply a plate");
+        }
+    }
+
+    /// <summary>The plate window's callback <c>[i:<paramref name="op"/>, u:<paramref name="arg"/>]</c>; false when it isn't shown.</summary>
+    private static bool Fire(int op, uint arg)
+    {
+        var a = (AtkUnitBase*)Services.GameGui.GetAddonByName(Window).Address;
+        if (a == null || !a->IsVisible) return false;
+        var values = stackalloc AtkValue[2];
+        values[0].Type = AtkValueType.Int;
+        values[0].Int = op;
+        values[1].Type = AtkValueType.UInt;
+        values[1].UInt = arg;
+        a->FireCallback(2, values, true);
+        return true;
     }
 
     /// <summary>

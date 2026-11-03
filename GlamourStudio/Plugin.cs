@@ -158,6 +158,7 @@ public sealed class Plugin : IDalamudPlugin
         Step(FittingRoom.Tick, "the fitting room");
         Step(OutfitStorer.Tick, "storing outfits");
         Step(DresserTaker.Tick, "taking out duplicates");
+        Step(PlateEditor.Tick, "applying a plate");
         Step(() =>
         {
             var editor = PlateEditor.IsOpen;

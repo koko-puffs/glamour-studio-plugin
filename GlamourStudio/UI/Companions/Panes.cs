@@ -373,7 +373,7 @@ public sealed partial class MainWindow
                     {
                         var why = PlateEditor.ApplyInWindow(plate);
                         recorder.Note($"WEAR plate {plate} from the panel: {why ?? "asked the game"}");
-                        Notify(why ?? $"Plate {plate} on");
+                        Notify(why ?? $"Wearing plate {plate}");
                     });
                 rx -= bw + S(6);
             }
