@@ -222,19 +222,20 @@ board (a city); a few looks of yours, one planned for a plate. Turn nothing off 
 | J14 | Open any shop that sells gear (a vendor or an exchange). MARK what the panel says. | yes |
 | J15 | Hide the HUD (Scroll Lock) with the dresser open, then show it. MARK whether the panel hid with it. | |
 
-## K · Make room for me (0.6.0)
+## K · Make room for me (0.6.2)
 
 **You need:** a glamour dresser with an outfit set's pieces loose in it (undyed: the plugin leaves
 dyed ones), glamour prisms (one a piece), and free bag places (as many as the biggest set's loose
-pieces).
+pieces). Start the recording (`/gstudio record`) before K1.
 
 | Id | Do this | DUMP |
 | --- | --- | --- |
-| K1 | Open the dresser, and the plugin's Make room. MARK what **Make room for me** says (sets, places, prisms, bag places). | yes |
-| K2 | Press **Store … for me**, read the question, press **Store them**. Don't touch anything until it says it's done (or stops). MARK what it said, and check the dresser: are the sets there, the loose pieces gone, your prisms spent? | yes, when it's done |
-| K3 | If it stopped, MARK the message and what's in your bags. | yes |
+| K1 | Open the dresser, and the plugin's Make room (or look at the panel beside the dresser). MARK what **Make room for me** says (sets, places, prisms, bag places). | yes |
+| K2 | Press **Try it on one set**, read the question (it names the set), press **Try it**. Don't touch anything until it says it's done (or stops). MARK what it said, then check the dresser: is that set there as one outfit, its loose pieces gone, a prism spent per piece? | yes, when it's done |
+| K3 | If it stopped, MARK the message and what's in your bags. If it worked, the button now says **Store … sets for me**: do it once more for all of them, and MARK how it ended. | yes |
 | K4 | With duplicates in the dresser (Make room → Duplicates says how many): press **Take out …**, then **Take them out**. MARK what it said, and check your bags and the dresser. | yes, when it's done |
 
+## Sending them
 
 Send the saved files (one per section). Screenshots of anything odd help, and so does a note of
 anything you didn't have (no outfit set, no alt) or skipped.
