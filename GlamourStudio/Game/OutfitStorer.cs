@@ -135,15 +135,20 @@ public static unsafe class OutfitStorer
         }
     }
 
-    /// <summary>How many glamour prisms you have (in your bags), and how many free bag places.</summary>
+    private static ((int Prisms, int FreeBag) Have, DateTime At) supplies;
+
+    /// <summary>How many glamour prisms you have (in your bags), and how many free bag places (read again at most every quarter second: the panels ask every frame).</summary>
     public static (int Prisms, int FreeBag) Supplies(GameData gameData)
     {
+        var now = DateTime.UtcNow;
+        if (now - supplies.At < TimeSpan.FromMilliseconds(250)) return supplies.Have;
         try
         {
             var mgr = InventoryManager.Instance();
             if (mgr == null) return (0, 0);
             var prisms = gameData.GlamourPrisms().Sum(id => mgr->GetInventoryItemCount(id) + mgr->GetInventoryItemCount(id, true));
-            return (prisms, (int)mgr->GetEmptySlotsInBag());
+            supplies = ((prisms, (int)mgr->GetEmptySlotsInBag()), now);
+            return supplies.Have;
         }
         catch
         {

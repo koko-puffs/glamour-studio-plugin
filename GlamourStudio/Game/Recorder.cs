@@ -39,6 +39,12 @@ public sealed unsafe class Recorder : IDisposable
 
     private const int LineAtMost = 6000;
 
+    /// <summary>All the lines' characters at most (about 60 MB): long lines (the windows' values) could otherwise run to hundreds.</summary>
+    private const long CharsAtMost = 30_000_000;
+
+    /// <summary>The characters the lines hold now.</summary>
+    private long chars;
+
     private const int WordsAtMost = 160;
 
     /// <summary>A recording stops by itself after this long (a whole list of steps fits).</summary>
@@ -261,6 +267,7 @@ public sealed unsafe class Recorder : IDisposable
         lock (lines)
         {
             lines.Clear();
+            chars = 0;
             headerCount = HeaderLines;
             lastBody = string.Empty;
             repeats = 0;
@@ -928,17 +935,34 @@ public sealed unsafe class Recorder : IDisposable
             }
             if (repeats > 0)
             {
-                lines.Add($"{(DateTime.UtcNow - started).TotalSeconds,8:0.000}    (the line above {repeats + 1} times in all)");
+                var again = $"{(DateTime.UtcNow - started).TotalSeconds,8:0.000}    (the line above {repeats + 1} times in all)";
+                lines.Add(again);
+                chars += again.Length;
                 repeats = 0;
             }
             lastBody = line;
-            lines.Add($"{(DateTime.UtcNow - started).TotalSeconds,8:0.000}  {line}");
-            // The oldest lines after the header go, a batch at a time.
-            if (lines.Count > MaxLines + 500)
+            var added = $"{(DateTime.UtcNow - started).TotalSeconds,8:0.000}  {line}";
+            lines.Add(added);
+            chars += added.Length;
+            // The oldest lines after the header go, a batch at a time (too many, or too long in all).
+            if (lines.Count > MaxLines + 500 || chars > CharsAtMost)
             {
-                var drop = lines.Count - MaxLines;
-                lines.RemoveRange(headerCount, drop);
-                dropped += drop;
+                var drop = Math.Max(lines.Count - MaxLines, 0);
+                var freed = 0L;
+                for (var i = 0; i < drop && headerCount + i < lines.Count; i++) freed += lines[headerCount + i].Length;
+                // Too long in all: a tenth more of the oldest go too.
+                while (chars - freed > CharsAtMost * 9 / 10 && headerCount + drop < lines.Count - 1)
+                {
+                    freed += lines[headerCount + drop].Length;
+                    drop++;
+                }
+                drop = Math.Min(drop, lines.Count - headerCount);
+                if (drop > 0)
+                {
+                    lines.RemoveRange(headerCount, drop);
+                    chars -= freed;
+                    dropped += drop;
+                }
             }
         }
     }

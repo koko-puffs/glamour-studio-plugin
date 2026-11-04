@@ -53,7 +53,9 @@ public sealed class GameData
         }
         catch (Exception ex)
         {
+            // Not kept: asked again next time.
             Services.Log.Debug(ex, "Glamour Studio couldn't read item {Id}", id);
+            return info;
         }
         items[id] = info;
         return info;
@@ -99,7 +101,8 @@ public sealed class GameData
     {
         if (stainsByItem == null)
         {
-            stainsByItem = new Dictionary<uint, List<byte>>();
+            // (Kept only once read whole: a failed read is tried again next time.)
+            var built = new Dictionary<uint, List<byte>>();
             try
             {
                 foreach (var row in Services.Data.GetExcelSheet<Stain>())
@@ -108,14 +111,16 @@ public sealed class GameData
                     foreach (var r in row.Item)
                     {
                         if (r.RowId == 0) continue;
-                        if (!stainsByItem.TryGetValue(r.RowId, out var list)) stainsByItem[r.RowId] = list = new List<byte>();
+                        if (!built.TryGetValue(r.RowId, out var list)) built[r.RowId] = list = new List<byte>();
                         if (!list.Contains((byte)row.RowId)) list.Add((byte)row.RowId);
                     }
                 }
+                stainsByItem = built;
             }
             catch (Exception ex)
             {
                 Services.Log.Warning(ex, "Glamour Studio couldn't read the dyes");
+                return Array.Empty<byte>();
             }
         }
         return stainsByItem.TryGetValue(LookJson.BaseId(item), out var l) ? l : Array.Empty<byte>();
@@ -128,7 +133,7 @@ public sealed class GameData
     public uint? CabinetOf(uint item)
     {
         BuildCabinet();
-        return cabinetByItem!.TryGetValue(LookJson.BaseId(item), out var row) ? row : null;
+        return cabinetByItem != null && cabinetByItem.TryGetValue(LookJson.BaseId(item), out var row) ? row : null;
     }
 
     /// <summary>Every armoire row and the item it stores.</summary>
@@ -144,21 +149,25 @@ public sealed class GameData
     private void BuildCabinet()
     {
         if (cabinetByItem != null) return;
-        cabinetByItem = new Dictionary<uint, uint>();
-        itemByCabinet = new Dictionary<uint, uint>();
+        // (Kept only once read whole; an empty pair meanwhile, so callers never see null.)
+        var byItem = new Dictionary<uint, uint>();
+        var byCabinet = new Dictionary<uint, uint>();
         try
         {
             foreach (var row in Services.Data.GetExcelSheet<Cabinet>())
             {
                 var item = row.Item.RowId;
                 if (row.RowId == 0 || item == 0) continue;
-                cabinetByItem.TryAdd(item, row.RowId);
-                itemByCabinet[row.RowId] = item;
+                byItem.TryAdd(item, row.RowId);
+                byCabinet[row.RowId] = item;
             }
+            cabinetByItem = byItem;
+            itemByCabinet = byCabinet;
         }
         catch (Exception ex)
         {
             Services.Log.Warning(ex, "Glamour Studio couldn't read the armoire's list");
+            itemByCabinet ??= new Dictionary<uint, uint>();
         }
     }
 
@@ -168,7 +177,9 @@ public sealed class GameData
         get
         {
             SetPieces(0);
-            return allSets ??= sets!.ToDictionary(kv => kv.Key, kv => kv.Value.Select(p => p.Item).ToArray());
+            // (None yet when the sheet couldn't be read: an empty list this time, read again next.)
+            if (sets == null) return new Dictionary<uint, uint[]>();
+            return allSets ??= sets.ToDictionary(kv => kv.Key, kv => kv.Value.Select(p => p.Item).ToArray());
         }
     }
 
@@ -224,6 +235,8 @@ public sealed class GameData
             foreach (var (set, pieces) in AllSets)
                 foreach (var p in pieces)
                     map.TryAdd(LookJson.BaseId(p), set);
+            // (Kept once there are sets to know: not while the sheet couldn't be read.)
+            if (map.Count == 0) return 0;
             setOfPiece = map;
         }
         return setOfPiece.TryGetValue(LookJson.BaseId(piece), out var s) ? s : 0;
@@ -234,7 +247,8 @@ public sealed class GameData
     {
         if (sets == null)
         {
-            sets = new Dictionary<uint, (int, uint)[]>();
+            // (Kept only once read whole: a failed read is tried again next time.)
+            var built = new Dictionary<uint, (int, uint)[]>();
             try
             {
                 foreach (var row in Services.Data.GetExcelSheet<MirageStoreSetItem>())
@@ -246,12 +260,14 @@ public sealed class GameData
                         row.Feet.RowId, row.Earrings.RowId, row.Necklace.RowId, row.Bracelets.RowId, row.Ring.RowId,
                     };
                     var pieces = cols.Select((item, col) => (col, item)).Where(p => p.item != 0).ToArray();
-                    if (pieces.Length > 0) sets[row.RowId] = pieces;
+                    if (pieces.Length > 0) built[row.RowId] = pieces;
                 }
+                sets = built;
             }
             catch (Exception ex)
             {
                 Services.Log.Warning(ex, "Glamour Studio couldn't read the outfit sets");
+                return Array.Empty<(int, uint)>();
             }
         }
         return sets.TryGetValue(LookJson.BaseId(setItem), out var p) ? p : Array.Empty<(int, uint)>();
