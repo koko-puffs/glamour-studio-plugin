@@ -215,10 +215,15 @@ public sealed class Wardrobe
         return (pieces, Places.ByPriority.Where(read.Contains).ToList());
     }
 
-    /// <summary>What changes what's sent, as one short text: to send only when something did.</summary>
-    public static string Fingerprint(IReadOnlyList<(uint Item, Place Place)> closet, IReadOnlyList<Place> read, CharacterWardrobe? character)
+    /// <summary>
+    /// What changes what's sent, as one short text: to send only when something did. <paramref name="whose"/>
+    /// is the key of the character it's read of, there even with plates off: two characters with the same
+    /// closet are two reads to send, not one.
+    /// </summary>
+    public static string Fingerprint(IReadOnlyList<(uint Item, Place Place)> closet, IReadOnlyList<Place> read, CharacterWardrobe? character, string? whose = null)
     {
         var sb = new StringBuilder();
+        sb.Append(whose ?? character?.Key).Append('|');
         foreach (var p in read) sb.Append(Places.Key(p)).Append(',');
         sb.Append('|');
         foreach (var (item, place) in closet.OrderBy(p => p.Item)) sb.Append(item).Append(':').Append((int)place).Append(';');

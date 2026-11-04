@@ -51,13 +51,21 @@ public sealed class KnownCharacter
     public bool? Send { get; set; }
 
     public DateTime? AnsweredAt { get; set; }
+
+    /// <summary>
+    /// Your answer here the site hasn't confirmed yet: it stands over what the site had (nothing of the
+    /// character is sent meanwhile) and is told again until the site has it. Kept, so a game closed before
+    /// then doesn't let the site's old answer undo it.
+    /// </summary>
+    public bool Pending { get; set; }
 }
 
 /// <summary>
 /// The plugin asks you on each character it hasn't been told about whether to send its data to the site,
 /// and sends nothing for it until you say yes. Your answer is kept here (per character, by its key) and on
 /// the site (which turns away a character you said no to, whatever plugin asks); the site's word wins,
-/// since you can change it there too (Settings → Glamour Studio → Characters). Game-free, tested.
+/// since you can change it there too (Settings → Glamour Studio → Characters), once it has your latest
+/// answer here (until then, yours stands). Game-free, tested.
 /// </summary>
 public static class Consent
 {

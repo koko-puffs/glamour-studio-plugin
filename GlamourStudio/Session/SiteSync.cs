@@ -30,7 +30,8 @@ public sealed class SiteSync : IDisposable
 
     private readonly Configuration config;
     private readonly WardrobeReader wardrobe;
-    private readonly HttpClient http = new() { Timeout = Timeout.InfiniteTimeSpan };
+    // (Connections let go of after ten minutes, so a change of the site's address is picked up.)
+    private readonly HttpClient http = new(new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(10) }) { Timeout = Timeout.InfiniteTimeSpan };
     private readonly CancellationTokenSource stopping = new();
     private readonly ConcurrentQueue<Action> answers = new();
 
@@ -41,6 +42,12 @@ public sealed class SiteSync : IDisposable
 
     /// <summary>Sent looks done with here, kept off the list until a read of it no longer has them.</summary>
     private readonly HashSet<string> doneWith = new();
+
+    /// <summary>Sent looks done with whose telling the site failed: told again after the next read of the list.</summary>
+    private readonly HashSet<string> removeAgain = new();
+
+    /// <summary>Goes up with each read of what you can wear: only the latest one's answer is taken.</summary>
+    private int wearableAsked;
 
     /// <summary>The wardrobe's version last sent (nothing's worked out again until it moves).</summary>
     private int versionSent = -1;
@@ -60,8 +67,15 @@ public sealed class SiteSync : IDisposable
     private DateTime nextTell;
     private string? charactersFor;
 
-    /// <summary>Characters whose answer is on its way to the site (not told twice at once).</summary>
-    private readonly HashSet<string> telling = new();
+    /// <summary>Characters whose answer is on its way to the site, and the answer sent (not told twice at once).</summary>
+    private readonly Dictionary<string, bool> telling = new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// When each character was last answered here, or its answer confirmed by the site (a count, not a time):
+    /// a read of the characters begun before then is older than your answer, and doesn't undo it.
+    /// </summary>
+    private readonly Dictionary<string, int> touched = new(StringComparer.Ordinal);
+    private int touches;
 
     /// <summary>Characters you said "Not now" for, this session: not asked again until the plugin loads again.</summary>
     private readonly HashSet<string> notNow = new();
@@ -128,6 +142,7 @@ public sealed class SiteSync : IDisposable
         Syncing = false;
         LibraryBusy = false;
         doneWith.Clear();
+        removeAgain.Clear();
         TokenRefused = false;
         Library = Library.Empty;
         LibraryAt = null;
@@ -175,6 +190,14 @@ public sealed class SiteSync : IDisposable
         }
     }
 
+    /// <summary>The site said the token's no good to another of the plugin's calls (a shot's): link again.</summary>
+    public void TokenWasRefused()
+    {
+        if (TokenRefused) return;
+        TokenRefused = true;
+        Version++;
+    }
+
     /// <summary>"Not now": not asked about this character again until the plugin loads again (nothing's sent meanwhile).</summary>
     public void NotNow(string key)
     {
@@ -184,7 +207,9 @@ public sealed class SiteSync : IDisposable
 
     /// <summary>
     /// Your answer for a character: kept here at once, and told to the site (yes: its name and world go with
-    /// it, and its closet follows; no: the site lets go of what it had of it).
+    /// it, and its closet follows; no: the site lets go of what it had of it). Until the site confirms it,
+    /// your answer stands over what the site had: nothing of the character is sent meanwhile, and it's told
+    /// again until the site hears it.
     /// </summary>
     public void Answer(string key, string name, string world, bool send)
     {
@@ -193,43 +218,77 @@ public sealed class SiteSync : IDisposable
         if (world.Length > 0) k.World = world;
         k.Send = send;
         k.AnsweredAt = DateTime.UtcNow;
+        k.Pending = true;
         config.Save();
+        // What the site had is the old answer: let go of, so the step is to tell it (nothing's sent meanwhile).
+        siteChoices?.Remove(key);
+        Touch(key);
         notNow.Remove(key);
         Version++;
         Tell(key, send);
     }
 
-    /// <summary>Tells the site your answer for a character (once at a time each).</summary>
+    private void Touch(string key) => touched[key] = ++touches;
+
+    /// <summary>Tells the site your answer for a character (once at a time each; a newer answer is told when it's back).</summary>
     private void Tell(string key, bool send)
     {
-        if (!Linked || !telling.Add(key)) return;
+        if (!Linked || telling.ContainsKey(key)) return;
+        telling[key] = send;
+        var gen = generation;
         var k = config.Characters.TryGetValue(key, out var known) ? known : null;
         var me = wardrobe.Current?.Key == key ? wardrobe.Current : null;
         var name = me?.Name is { Length: > 0 } n ? n : k?.Name ?? string.Empty;
         var world = me?.World is { Length: > 0 } w ? w : k?.World ?? string.Empty;
-        Run(SiteLink.CharacterAsync(http, config.SiteToken, key, name, world, send, stopping.Token), r =>
+        Run((t, c) => SiteLink.CharacterAsync(http, t, key, name, world, send, c), r =>
         {
             telling.Remove(key);
-            if (r.Ok)
+            var mine = config.Characters.TryGetValue(key, out var kc) ? kc : null;
+            // Answered otherwise while it was on its way: this reply is for the old answer, and the new one is told.
+            if (mine?.Send is { } want && want != send)
             {
-                siteChoices ??= new Dictionary<string, SendChoice>(StringComparer.Ordinal);
-                siteChoices[key] = r.Value;
-                if (r.Value == SendChoice.Yes && wardrobe.Current?.Key == key)
-                {
-                    // Its closet goes now, and its plans and what it can wear are read.
-                    versionSent = -1;
-                    lastSent = string.Empty;
-                    nextAutoSync = nextPlans = nextWearable = DateTime.MinValue;
-                    plansFor = null;
-                }
+                Tell(key, want);
+                return;
             }
-            else
+            if (!r.Ok)
             {
                 TokenRefused |= r.TokenRefused;
                 // Tried again in a minute.
                 nextTell = DateTime.UtcNow + TimeSpan.FromMinutes(1);
+                return;
             }
-        }, () => telling.Remove(key));
+            if (r.Value != (send ? SendChoice.Yes : SendChoice.No) && r.Value != SendChoice.No)
+            {
+                // The site didn't take the answer (it still has another): your answer stands, nothing's sent, and it's told again later.
+                Services.Log.Warning($"Glamour Studio: the site kept \"{Consent.Key(r.Value)}\" for a character told \"{(send ? "yes" : "no")}\"");
+                nextTell = DateTime.UtcNow + TimeSpan.FromMinutes(15);
+                return;
+            }
+            // The site has it now (or said no to a yes: so it is here too).
+            siteChoices ??= new Dictionary<string, SendChoice>(StringComparer.Ordinal);
+            siteChoices[key] = r.Value;
+            Touch(key);
+            var sends = r.Value == SendChoice.Yes;
+            if (mine != null && (mine.Pending || mine.Send != sends))
+            {
+                mine.Pending = false;
+                mine.Send = sends;
+                config.Save();
+            }
+            if (sends && wardrobe.Current?.Key == key)
+            {
+                // Its closet goes now, and its plans and what it can wear are read.
+                versionSent = -1;
+                lastSent = string.Empty;
+                nextAutoSync = nextPlans = nextWearable = DateTime.MinValue;
+                plansFor = null;
+            }
+        }, () =>
+        {
+            if (gen != generation) return;
+            telling.Remove(key);
+            nextTell = DateTime.UtcNow + TimeSpan.FromMinutes(1);
+        });
     }
 
     /// <summary>What the site does with each of your characters (read when linking, changing character, and now and then).</summary>
@@ -237,19 +296,36 @@ public sealed class SiteSync : IDisposable
     {
         if (!Linked) return;
         nextCharacters = DateTime.UtcNow + (windowOpen ? CharactersOpen : CharactersClosed);
-        Run(SiteLink.CharactersAsync(http, config.SiteToken, stopping.Token), r =>
+        var asked = touches;
+        Run((t, c) => SiteLink.CharactersAsync(http, t, c), r =>
         {
             if (!r.Ok)
             {
                 TokenRefused |= r.TokenRefused;
+                // A passing trouble: read again in a minute (nothing's sent or asked until it is).
+                if (r.Hint is "offline" or "wait" or "server")
+                    nextCharacters = Min(nextCharacters, DateTime.UtcNow + TimeSpan.FromMinutes(1));
                 return;
             }
-            siteChoices = r.Value!;
-            // The site's word wins: what you changed there is your answer here too.
+            var read = r.Value!;
+            // Your answer the site hasn't confirmed, or one answered or confirmed since this was read: it stands,
+            // not what was read (the site's old answer).
+            var kept = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var (key, k) in config.Characters)
+                if (k.Pending) kept.Add(key);
+            foreach (var (key, at) in touched)
+                if (at > asked) kept.Add(key);
+            foreach (var key in kept)
+            {
+                if (siteChoices != null && siteChoices.TryGetValue(key, out var was)) read[key] = was;
+                else read.Remove(key);
+            }
+            siteChoices = read;
+            // Else the site's word wins: what you changed there is your answer here too.
             var changed = false;
             foreach (var (key, choice) in siteChoices)
             {
-                if (choice == SendChoice.Ask || !config.Characters.TryGetValue(key, out var k)) continue;
+                if (choice == SendChoice.Ask || kept.Contains(key) || !config.Characters.TryGetValue(key, out var k)) continue;
                 var send = choice == SendChoice.Yes;
                 if (k.Send == send) continue;
                 k.Send = send;
@@ -258,6 +334,8 @@ public sealed class SiteSync : IDisposable
             if (changed) config.Save();
         });
     }
+
+    private static DateTime Min(DateTime a, DateTime b) => a < b ? a : b;
 
     /// <summary>The window opened: what's sent from the site is looked for at once.</summary>
     public void Wake() => nextInbox = DateTime.MinValue;
@@ -290,11 +368,19 @@ public sealed class SiteSync : IDisposable
             RefreshCharacters(windowOpen);
         }
         // An answer given here the site doesn't know yet (given while unlinked, or a call that failed): told.
-        if (current != null && now >= nextTell)
+        if (now >= nextTell)
         {
-            var step = StepFor(current);
-            if (step == ConsentStep.TellYes) Tell(current.Key, true);
-            else if (step == ConsentStep.TellNo) Tell(current.Key, false);
+            if (current != null)
+            {
+                var step = StepFor(current);
+                if (step == ConsentStep.TellYes) Tell(current.Key, true);
+                else if (step == ConsentStep.TellNo) Tell(current.Key, false);
+            }
+            // Any character's the site hasn't confirmed (answered in Settings for another, say).
+            foreach (var (key, k) in config.Characters)
+            {
+                if (k.Pending && k.Send is { } send && !telling.ContainsKey(key)) Tell(key, send);
+            }
         }
 
         if (windowOpen && now >= nextLibrary && !LibraryBusy) RefreshLibrary();
@@ -345,7 +431,7 @@ public sealed class SiteSync : IDisposable
         var (closet, read) = Wardrobe.Closet(new[] { current }, current.Key);
         var character = config.SendPlates ? current : null;
         var version = wardrobe.Version;
-        var fingerprint = Wardrobe.Fingerprint(closet, read, character);
+        var fingerprint = Wardrobe.Fingerprint(closet, read, character, current.Key);
         if (auto && fingerprint == lastSent)
         {
             versionSent = version;
@@ -362,8 +448,7 @@ public sealed class SiteSync : IDisposable
         Syncing = true;
         SyncProblem = null;
         Version++;
-        var token = config.SiteToken;
-        Run(SiteLink.SyncAsync(http, token, args, stopping.Token), r =>
+        Run((t, c) => SiteLink.SyncAsync(http, t, args, c), r =>
         {
             Syncing = false;
             if (r.Ok)
@@ -421,7 +506,7 @@ public sealed class SiteSync : IDisposable
     {
         var key = wardrobe.Current?.Key;
         if (!Sends(wardrobe.Current) || key == null) return;
-        Run(SiteLink.PlansAsync(http, config.SiteToken, key, stopping.Token), r =>
+        Run((t, c) => SiteLink.PlansAsync(http, t, key, c), r =>
         {
             if (r.Ok)
             {
@@ -441,10 +526,14 @@ public sealed class SiteSync : IDisposable
         // As the character you're on, when the site takes it; else with every character's pieces together.
         var me = wardrobe.Current;
         var character = Sends(me) ? me!.Key : null;
-        Run(SiteLink.WearableAsync(http, config.SiteToken, character, stopping.Token), r =>
+        var key = me?.Key;
+        var asked = ++wearableAsked;
+        Run((t, c) => SiteLink.WearableAsync(http, t, character, c), r =>
         {
-            if (r.Ok) Wearable = r.Value!;
-            else TokenRefused |= r.TokenRefused;
+            if (!r.Ok) TokenRefused |= r.TokenRefused;
+            // Only the latest read's, and only while you're on the character it was read for (one for the
+            // character before can come back after a change).
+            else if (asked == wearableAsked && wardrobe.Current?.Key == key) Wearable = r.Value!;
         });
     }
 
@@ -455,7 +544,7 @@ public sealed class SiteSync : IDisposable
         nextLibrary = DateTime.UtcNow + LibraryEvery;
         Version++;
         RefreshPlans();
-        Run(SiteLink.LooksAsync(http, config.SiteToken, stopping.Token), r =>
+        Run((t, c) => SiteLink.LooksAsync(http, t, c), r =>
         {
             LibraryBusy = false;
             if (r.Ok)
@@ -468,7 +557,14 @@ public sealed class SiteSync : IDisposable
             {
                 LibraryProblem = r.Why;
                 TokenRefused |= r.TokenRefused;
-                nextLibrary = DateTime.UtcNow + TimeSpan.FromMinutes(1);
+                // Read again soon only for a passing trouble: each read counts against the token's calls an hour,
+                // so one that would fail the same way waits its usual ten minutes (a quarter hour when there were too many).
+                nextLibrary = DateTime.UtcNow + (r.Hint switch
+                {
+                    "offline" or "wait" or "server" => TimeSpan.FromMinutes(1),
+                    "rate" => TimeSpan.FromMinutes(15),
+                    _ => LibraryEvery,
+                });
             }
         });
     }
@@ -487,13 +583,21 @@ public sealed class SiteSync : IDisposable
     public void RefreshInbox()
     {
         if (!Linked) return;
-        Run(SiteLink.InboxAsync(http, config.SiteToken, stopping.Token), r =>
+        Run((t, c) => SiteLink.InboxAsync(http, t, c), r =>
         {
             if (r.Ok)
             {
                 // One done with here stays off, until the site's list no longer has it.
-                doneWith.IntersectWith(r.Value!.Select(s => s.Id));
+                var ids = r.Value!.Select(s => s.Id).ToList();
+                doneWith.IntersectWith(ids);
                 Inbox = r.Value!.Where(s => !doneWith.Contains(s.Id)).ToList();
+                // One the site wasn't told of (the call failed): told again, while its list still has it.
+                removeAgain.IntersectWith(ids);
+                foreach (var id in removeAgain.ToList())
+                {
+                    removeAgain.Remove(id);
+                    TellDone(id);
+                }
             }
             else TokenRefused |= r.TokenRefused;
         });
@@ -506,7 +610,21 @@ public sealed class SiteSync : IDisposable
         Inbox = Inbox.Where(s => s.Id != sentId).ToList();
         Version++;
         if (!Linked) return;
-        Run(SiteLink.InboxRemoveAsync(http, config.SiteToken, sentId, stopping.Token), _ => { });
+        TellDone(sentId);
+    }
+
+    /// <summary>Tells the site a sent look's done with; should that fail, it's told again after the next read of the list.</summary>
+    private void TellDone(string sentId)
+    {
+        var gen = generation;
+        Run((t, c) => SiteLink.InboxRemoveAsync(http, t, sentId, c), r =>
+        {
+            TokenRefused |= r.TokenRefused;
+            if (!r.Ok && !r.TokenRefused) removeAgain.Add(sentId);
+        }, () =>
+        {
+            if (gen == generation) removeAgain.Add(sentId);
+        });
     }
 
     /// <summary>Keeps an outfit as a new private look of yours; <paramref name="done"/> hears how it went (framework thread).</summary>
@@ -517,7 +635,8 @@ public sealed class SiteSync : IDisposable
             done(new SiteReply<SavedLook>(null, "Link your account first (Settings → Account).", "token"));
             return;
         }
-        Run(SiteLink.SaveLookAsync(http, config.SiteToken, name, body, pieces, stopping.Token), r =>
+        var kept = pieces.ToDictionary(p => p.Key, p => p.Value);
+        Run((t, c) => SiteLink.SaveLookAsync(http, t, name, body, kept, c), r =>
         {
             TokenRefused |= r.TokenRefused;
             // The new look is yours now: your looks are read again.
@@ -537,13 +656,14 @@ public sealed class SiteSync : IDisposable
             done(new SiteReply<int>(0, "Link your account first (Settings → Account).", "token"));
             return;
         }
-        Run(SiteLink.WishAddAsync(http, config.SiteToken, pieces, stopping.Token), r =>
+        var asked = pieces.ToList();
+        Run((t, c) => SiteLink.WishAddAsync(http, t, asked, c), r =>
         {
             TokenRefused |= r.TokenRefused;
             if (r.Ok)
             {
                 var wishes = new HashSet<uint>(Library.Wishes);
-                foreach (var p in pieces) wishes.Add(LookJson.BaseId(p.Item));
+                foreach (var p in asked) wishes.Add(LookJson.BaseId(p.Item));
                 Library = Library with { Wishes = wishes };
                 Version++;
                 nextLibrary = DateTime.MinValue;
@@ -574,7 +694,8 @@ public sealed class SiteSync : IDisposable
             Library = Library with { Wishes = back };
             Version++;
         }
-        Run(SiteLink.WishRemoveAsync(http, config.SiteToken, items, stopping.Token), r =>
+        var taken = items.ToList();
+        Run((t, c) => SiteLink.WishRemoveAsync(http, t, taken, c), r =>
         {
             TokenRefused |= r.TokenRefused;
             if (!r.Ok) Undo();
@@ -595,7 +716,7 @@ public sealed class SiteSync : IDisposable
             done(new SiteReply<string>(null, "Link your account first (Settings → Account).", "token"));
             return;
         }
-        Run(SiteLink.LookPutAsync(http, config.SiteToken, lookId, slot, piece, stopping.Token), r =>
+        Run((t, c) => SiteLink.LookPutAsync(http, t, lookId, slot, piece, c), r =>
         {
             TokenRefused |= r.TokenRefused;
             if (r.Ok) nextLibrary = DateTime.MinValue;
@@ -603,11 +724,18 @@ public sealed class SiteSync : IDisposable
         }, () => done(new SiteReply<string>(null, "It didn't go through (the link changed, or the call failed). Try again.")));
     }
 
+    /// <summary>
+    /// Makes a call with the token and the stop read here (framework thread), on a worker: its own work before
+    /// it waits on the site (the body written, a read of your wardrobe's ~200 KB; the connection found) stays
+    /// off the framework thread. Its answer comes back to <see cref="Tick"/>.
+    /// </summary>
     /// <param name="dropped">Told when the answer isn't taken (the link changed meanwhile, or the call threw), so nothing waits on it for good.</param>
-    private void Run<T>(Task<T> call, Action<T> then, Action? dropped = null)
+    private void Run<T>(Func<string, CancellationToken, Task<T>> call, Action<T> then, Action? dropped = null)
     {
         var made = generation;
-        call.ContinueWith(t =>
+        var token = config.SiteToken;
+        var cancel = stopping.Token;
+        Task.Run(() => call(token, cancel)).ContinueWith(t =>
         {
             if (t.IsCompletedSuccessfully)
                 answers.Enqueue(() =>

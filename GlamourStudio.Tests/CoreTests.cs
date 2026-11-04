@@ -180,6 +180,17 @@ public class WardrobeTests
     }
 
     [Fact]
+    public void TheFingerprintSaysWhoseItIsWithPlatesOff()
+    {
+        var a = Character("dddddddddddddddddddddd", (Place.Dresser, new uint[] { 1 }));
+        var b = Character("ffffffffffffffffffffff", (Place.Dresser, new uint[] { 1 }));
+        var (pa, ra) = Wardrobe.Closet(new[] { a });
+        var (pb, rb) = Wardrobe.Closet(new[] { b });
+        Assert.NotEqual(Wardrobe.Fingerprint(pa, ra, null, a.Key), Wardrobe.Fingerprint(pb, rb, null, b.Key));
+        Assert.Equal(Wardrobe.Fingerprint(pa, ra, null, a.Key), Wardrobe.Fingerprint(pb, rb, null, a.Key));
+    }
+
+    [Fact]
     public void RetainersCountTogether()
     {
         var c = new CharacterWardrobe();

@@ -56,6 +56,12 @@ public sealed class Shots : IDisposable
 
     private static readonly float[] Qualities = { 0.9f, 0.84f, 0.78f, 0.72f, 0.65f, 0.58f, 0.5f };
 
+    /// <summary>The longest the picture's making may take (the textures' work is asked to stop then).</summary>
+    private static readonly TimeSpan MakeTimeout = TimeSpan.FromSeconds(20);
+
+    /// <summary>When a making that never ends (a texture's task that never completes) is given up on here.</summary>
+    private static readonly TimeSpan MakeGiveUp = TimeSpan.FromSeconds(25);
+
     private readonly HttpClient http;
     private readonly Func<string> token;
     private readonly CancellationTokenSource stop = new();
@@ -77,6 +83,9 @@ public sealed class Shots : IDisposable
     /// <summary>When the frame was asked for: one that never comes is given up on (and the HUD shown again).</summary>
     private DateTime grabAt;
 
+    /// <summary>When the picture's making began.</summary>
+    private DateTime makingAt;
+
     public Shots(HttpClient http, Func<string> token)
     {
         this.http = http;
@@ -88,6 +97,9 @@ public sealed class Shots : IDisposable
     /// the site after the shot, which shows it on the shot only while you show that character on your shots.
     /// </summary>
     public Func<string?>? WhoWore { get; set; }
+
+    /// <summary>Told when the site says the token's no good to a shot (framework thread): link again.</summary>
+    public Action? TokenRefused { get; set; }
 
     /// <summary>The shot taken, until it's sent and closed, or discarded.</summary>
     public Shot? Taken { get; private set; }
@@ -176,6 +188,15 @@ public sealed class Shots : IDisposable
             Failed("The game's picture never came. Try again.");
             return;
         }
+        if (making is { IsCompleted: false } && Capturing && DateTime.UtcNow - makingAt > MakeGiveUp)
+        {
+            // The making never ended: given up on, so another shot can be taken (should it end after all,
+            // its picture is let go of then: Made sees another generation).
+            making = null;
+            generation++;
+            Failed("Making the picture took too long. Try again.");
+            return;
+        }
         if (grab is not { IsCompleted: true } t || grabFor is not { } f) return;
         grab = null;
         grabFor = null;
@@ -189,6 +210,7 @@ public sealed class Shots : IDisposable
         var wrap = Own(t.Result);
         // (The token taken here, on the framework thread: after Dispose the source can't be asked.)
         var cancel = stop.Token;
+        makingAt = DateTime.UtcNow;
         making = Task.Run(async () =>
         {
             var made = await Make(wrap, cancel).ConfigureAwait(false);
@@ -244,11 +266,15 @@ public sealed class Shots : IDisposable
     /// <summary>
     /// On a worker: the grabbed frame made 2560 at most on its long side, written as a JPEG at the first
     /// quality that's small enough (1920 if none at 2560 is), and a preview. The frame and the sized
-    /// picture are let go of here whatever happens; the preview is the shot's.
+    /// picture are let go of here whatever happens; the preview is the shot's. Asked to stop after
+    /// <see cref="MakeTimeout"/>.
     /// </summary>
-    private async Task<MadeShot> Make(IDalamudTextureWrap grabbed, CancellationToken cancel)
+    private async Task<MadeShot> Make(IDalamudTextureWrap grabbed, CancellationToken stopping)
     {
         IDalamudTextureWrap? sized = null;
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(stopping);
+        timeout.CancelAfter(MakeTimeout);
+        var cancel = timeout.Token;
         try
         {
             if (JpegCodec() is not { } codec) return new MadeShot(null, 0, 0, null, "This PC can't write JPEG pictures.");
@@ -262,6 +288,8 @@ public sealed class Shots : IDisposable
                 if (tried == fit) break;
                 tried = fit;
                 Release(sized);
+                // (Not let go of twice, should the next one throw.)
+                sized = null;
                 sized = Own(await Services.Textures.CreateFromExistingTextureAsync(grabbed,
                     new TextureModificationArgs { NewWidth = fit.Width, NewHeight = fit.Height, MakeOpaque = true, DxgiFormat = format },
                     leaveWrapOpen: true, "Glamour Studio shot (sized)", cancel).ConfigureAwait(false));
@@ -282,6 +310,10 @@ public sealed class Shots : IDisposable
                 new TextureModificationArgs { NewWidth = Math.Max(1, (int)(sized.Width * scale)), NewHeight = Math.Max(1, (int)(sized.Height * scale)), DxgiFormat = format },
                 leaveWrapOpen: true, "Glamour Studio shot (preview)", cancel).ConfigureAwait(false));
             return new MadeShot(jpeg, sized.Width, sized.Height, thumb, null);
+        }
+        catch (OperationCanceledException) when (!stopping.IsCancellationRequested)
+        {
+            return new MadeShot(null, 0, 0, null, "Making the picture took too long. Try again.");
         }
         catch (OperationCanceledException)
         {
@@ -313,9 +345,29 @@ public sealed class Shots : IDisposable
         var cancel = stop.Token;
         Task.Run(async () =>
         {
-            var r = await SiteLink.ShotAsync(http, t, s.LookId, caption, jpeg, cancel).ConfigureAwait(false);
+            SiteReply<ShotSent> r;
+            try
+            {
+                r = await SiteLink.ShotAsync(http, t, s.LookId, caption, jpeg, cancel).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                // (The call doesn't throw: should it, the shot isn't left "being sent" for good.)
+                Services.Log.Error(ex, "Glamour Studio couldn't send the shot");
+                r = new SiteReply<ShotSent>(null, "Couldn't send the shot (see /xllog). Look on the look's page before sending it again.");
+            }
             // Which character wore it (nothing's said if this one doesn't go through: the shot's there either way).
-            if (r.Ok && who != null) await SiteLink.ShotCharacterAsync(http, t, r.Value!.Id, who, cancel).ConfigureAwait(false);
+            if (r.Ok && who != null)
+            {
+                try
+                {
+                    await SiteLink.ShotCharacterAsync(http, t, r.Value!.Id, who, cancel).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    Services.Log.Warning(ex, "Glamour Studio couldn't say which character wore the shot");
+                }
+            }
             _ = Services.Framework.RunOnFrameworkThread(() =>
             {
                 s.Sending = false;
@@ -326,6 +378,7 @@ public sealed class Shots : IDisposable
                     s.Note = ($"On “{r.Value!.LookName}”'s Worn in game.", false);
                 }
                 else s.Note = (r.Why ?? "The site said no.", true);
+                if (r.TokenRefused) TokenRefused?.Invoke();
                 done(r);
             });
         });
@@ -398,6 +451,16 @@ public sealed class Shots : IDisposable
     {
         stop.Cancel();
         ShowHudAgain();
+        // A frame grabbed (or still coming) that Tick hasn't taken in: let go of when it's here.
+        if (grab is { } g)
+        {
+            g.ContinueWith(x =>
+            {
+                if (x.IsCompletedSuccessfully) x.Result.Dispose();
+            }, TaskScheduler.Default);
+            grab = null;
+            grabFor = null;
+        }
         lock (textures)
         {
             disposed = true;
