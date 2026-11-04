@@ -55,6 +55,7 @@ public sealed class Plugin : IDalamudPlugin
             window = new MainWindow(config, data, wardrobe, sync, fonts, shots, recorder);
             // A shot says which character wore it, when the site takes that character.
             shots.WhoWore = () => sync.Sends(wardrobe.Current) ? wardrobe.Current!.Key : null;
+            shots.TokenRefused = sync.TokenWasRefused;
             // The site's calls, as SITE lines in a recording (any thread; no token, no body).
             Core.SiteLink.Trace = Recorder.Raw;
             windows.AddWindow(window);
