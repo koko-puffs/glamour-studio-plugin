@@ -26,27 +26,152 @@ public sealed partial class MainWindow
     /// <summary>The last plate filled, and with which look.</summary>
     private (string LookId, FillResult Result, PlatePlan Plan)? lastFill;
 
+    /// <summary>The name of <see cref="lastFill"/>'s look.</summary>
+    private string lastFillName = string.Empty;
+
+    /// <summary>The filled plate's pieces, read a moment after filling it (null until then), and when it was filled.</summary>
+    private IReadOnlyDictionary<Slot, Piece>? fillPieces;
+
+    private DateTime fillAt;
+
+    /// <summary>When the plate editor was first seen off the filled plate (null while it's on it), and whether it had changes not saved then.</summary>
+    private DateTime? fillLeftAt;
+
+    private bool fillLeftUnsaved;
+
+    /// <summary>The plates' read last checked against the fill.</summary>
+    private DateTime? fillReadChecked;
+
+    /// <summary>The plate editor as it was the last frame drawn (the plate, and whether it had changes).</summary>
+    private int editorWas;
+
+    private bool editorWasChanged;
+
+    /// <summary>
+    /// Whether the plate last filled still has what went on: changed by hand in the editor since, or
+    /// left with the changes not saved (the game throws them away), or saved otherwise since, it hasn't,
+    /// and what was filled is let go (with its Wear plate N).
+    /// </summary>
+    private void CheckFill()
+    {
+        var wasPlate = editorWas;
+        var wasChanged = editorWasChanged;
+        editorWas = editorPlate;
+        editorWasChanged = editorChanges;
+        if (lastFill is not { } lf) return;
+        var plate = lf.Result.Plate;
+        var now = DateTime.UtcNow;
+        if (editorPlate == plate)
+        {
+            fillLeftAt = null;
+            var on = EditorPieces(plate);
+            // What went on, read a moment after (the game has shown it by then).
+            if (fillPieces == null)
+            {
+                if (now - fillAt > TimeSpan.FromMilliseconds(300)) fillPieces = on;
+            }
+            else if (!SameItems(on, fillPieces)) lastFill = null;
+            return;
+        }
+        if (fillLeftAt == null)
+        {
+            fillLeftAt = now;
+            fillLeftUnsaved = wasPlate == plate && wasChanged;
+            fillReadChecked = null;
+        }
+        var left = fillLeftAt.Value;
+        // The plates as saved, read since (a second after leaving: a Save just before has gone in): the fill stands if the plate has it.
+        var me = wardrobe.Current;
+        if (fillPieces != null && me?.PlatesReadAt is { } readAt && readAt > left + TimeSpan.FromSeconds(1))
+        {
+            if (readAt == fillReadChecked) return;
+            fillReadChecked = readAt;
+            var stands = true;
+            foreach (var p in me.Plates)
+                if (p.Plate == plate && !SameItems(p.Pieces, fillPieces))
+                    stands = false;
+            if (stands) fillLeftUnsaved = false;
+            else lastFill = null;
+        }
+        // No read of them since: left with changes not saved, the fill's gone.
+        else if (fillLeftUnsaved && now - left > TimeSpan.FromSeconds(6)) lastFill = null;
+    }
+
+    /// <summary>Two plates' pieces the same, slot by slot (the dyes aside: dyeing it after doesn't undo the fill).</summary>
+    private static bool SameItems(IReadOnlyDictionary<Slot, Piece> a, IReadOnlyDictionary<Slot, Piece> b)
+    {
+        if (a.Count != b.Count) return false;
+        foreach (var (slot, piece) in a)
+            if (!b.TryGetValue(slot, out var other) || LookJson.BaseId(other.Item) != LookJson.BaseId(piece.Item))
+                return false;
+        return true;
+    }
+
     private void OpenLook(Look look, SentLook? sent, Screen from)
     {
         openLook = look;
         openSent = sent;
+        openLookSync = sync.Version;
+        openLookListed = InLibrary(look.Id) != null;
         if (from != Screen.Look && from != Screen.Settings) lookFrom = from;
         screen = Screen.Look;
         IsOpen = true;
     }
 
-    private (IReadOnlyDictionary<Slot, Piece> Pieces, int Wardrobe, bool Armoire, bool Clear, bool Dye, IReadOnlyDictionary<byte, int> Bag) planFor;
-    private PlatePlan? plan;
+    /// <summary>The site's version the open look was last looked for at.</summary>
+    private int openLookSync = -1;
+
+    /// <summary>Whether the open look was among your looks or the ones you love when last looked for.</summary>
+    private bool openLookListed;
+
+    private Look? InLibrary(string id) =>
+        sync.Library.Mine.FirstOrDefault(l => l.Id == id) ?? sync.Library.Loved.FirstOrDefault(l => l.Id == id);
+
+    /// <summary>
+    /// The open look as the site has it now, after each read: the new copy wherever it is (your looks,
+    /// the ones you love, Wear now, the ones sent to you, your plans). Gone from your looks once
+    /// they've been read again (deleted on the site, or loved no more), the look closes; one opened
+    /// from elsewhere (sent to you, say, then done with) stays as it was.
+    /// </summary>
+    private void CheckOpenLook()
+    {
+        if (openLook == null || openLookSync == sync.Version) return;
+        openLookSync = sync.Version;
+        var id = openLook.Id;
+        var listed = InLibrary(id);
+        var now = listed
+                  ?? sync.Wearable.FirstOrDefault(l => l.Id == id)
+                  ?? sync.Inbox.FirstOrDefault(s => s.Look.Id == id)?.Look
+                  ?? sync.Plans.FirstOrDefault(p => p.Look.Id == id)?.Look;
+        if (now != null)
+        {
+            openLook = now;
+            openLookListed = listed != null;
+            return;
+        }
+        if (!openLookListed || sync.LibraryAt == null || sync.LibraryBusy) return;
+        if (screen == Screen.Look) Notify(openLook.Mine ? "That look isn't on the site any more" : "That look isn't one you love any more");
+        openLook = null;
+        openSent = null;
+    }
+
+    /// <summary>What <see cref="plans"/> were worked out for: the wardrobe and the settings.</summary>
+    private (int Wardrobe, bool Armoire, bool Clear, bool Dye, IReadOnlyDictionary<byte, int>? Bag) plansFor;
+
+    /// <summary>Each look's plan, by its pieces (the main window and the panel beside the game's ask for different looks in a frame).</summary>
+    private readonly Dictionary<IReadOnlyDictionary<Slot, Piece>, PlatePlan> plans = new(ReferenceEqualityComparer.Instance);
 
     /// <summary>The plan for a look, worked out again only when the wardrobe or the settings changed.</summary>
     private PlatePlan PlanCached(Look look)
     {
-        var key = (look.Pieces, wardrobe.Version, wardrobe.ArmoireLive, config.ClearBare, config.DyeFromBags, wardrobe.BagDyes);
-        if (plan == null || key != planFor)
+        var key = (wardrobe.Version, wardrobe.ArmoireLive, config.ClearBare, config.DyeFromBags, (IReadOnlyDictionary<byte, int>?)wardrobe.BagDyes);
+        // (Kept small: looks read again from the site are new copies, and the old ones' plans would stay.)
+        if (key != plansFor || plans.Count > 32)
         {
-            planFor = key;
-            plan = PlanFor(look.Pieces);
+            plansFor = key;
+            plans.Clear();
         }
+        if (!plans.TryGetValue(look.Pieces, out var plan)) plans[look.Pieces] = plan = PlanFor(look.Pieces);
         return plan;
     }
 
@@ -227,7 +352,8 @@ public sealed partial class MainWindow
             };
             if (step is { DyeFromBags: true }) where += " · dyed from your bags";
             else if (step is { DyeLeft: true }) (where, whereColor) = (where + " · dye it in the editor", Palette.RoseText);
-            tip = $"{name}\n{line}\n{WhereChip(w, sync.Library.Wishes.Contains(LookJson.BaseId(piece.Item))).Tip}";
+            // (Only for the slot under the mouse: twelve of them a frame otherwise.)
+            if (hover) tip = $"{name}\n{line}\n{WhereChip(w, sync.Library.Wishes.Contains(LookJson.BaseId(piece.Item))).Tip}";
         }
         else
         {
@@ -281,7 +407,9 @@ public sealed partial class MainWindow
         var plate = editorPlate;
         var filled = lastFill is { } lf && lf.LookId == look.Id ? lf : ((string, FillResult, PlatePlan)?)null;
         // What was just filled stays (with Wear plate N) after the plate editor closes; a different plate open fills afresh.
-        if (filled is { } f && (plate == 0 || f.Item2.Plate == plate))
+        // (Left with changes not saved, it waits for the plates read again to say whether Save went in.)
+        var doubtful = fillLeftAt != null && fillLeftUnsaved;
+        if (filled is { } f && (plate == 0 || f.Item2.Plate == plate) && !doubtful)
         {
             DrawFilled(f.Item2, f.Item3);
             return;
@@ -396,7 +524,14 @@ public sealed partial class MainWindow
         recorder.Note($"FILL plate {result.Plate} with “{look.Name}” ({look.Id}): set {result.Set}, cleared {result.Cleared}, dyed {result.Dyed}"
                       + (result.Problems.Count > 0 ? $"; problems: {string.Join(" | ", result.Problems)}" : string.Empty));
         // Nothing went on (the editor closed meanwhile): nothing to show as filled.
-        if (result.Plate > 0 && result.Set + result.Cleared > 0) lastFill = (look.Id, result, plan);
+        if (result.Plate > 0 && result.Set + result.Cleared > 0)
+        {
+            lastFill = (look.Id, result, plan);
+            lastFillName = look.Name;
+            fillPieces = null;
+            fillAt = DateTime.UtcNow;
+            fillLeftAt = null;
+        }
         Notify(result.Ok ? $"Plate {result.Plate}: done. Press Save in the game's window." : result.Problems[0]);
         // A look sent from the site is done with once it's on a plate (only that look: Home's planned fill isn't it).
         if (openSent != null && openSent.Look.Id == look.Id && result.Set > 0)

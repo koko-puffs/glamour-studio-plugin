@@ -88,7 +88,6 @@ public sealed partial class MainWindow
         var plannedOn = planned != null && Plates.Same(current, planned.Pieces);
         var plan = planned != null && !plannedOn ? PlanCached(planned) : null;
         var filled = lastFill is { } lf && lf.Result.Plate == plate ? lf : ((string LookId, FillResult Result, PlatePlan Plan)?)null;
-        var filledLook = filled is { } fl ? sync.Library.Mine.Concat(sync.Library.Loved).Concat(sync.Inbox.Select(s => s.Look)).FirstOrDefault(l => l.Id == fl.LookId) : null;
 
         Kit.BeginPanel("##editor", 20, 22, 20, Palette.RoseWash, Palette.RoseEdge);
         var at = Kit.At;
@@ -101,27 +100,15 @@ public sealed partial class MainWindow
         var bx = at.X + w;
         var buttons = new List<Action<Vector2>>();
         var widths = new List<float>();
-        if (filled is { } f)
+        if (filled is { })
         {
-            var wear = $"Wear plate {plate}";
-            var ww = Kit.ButtonWidth(wear, BtnSize.Lg, Icon.Shirt, Btn.Primary);
-            widths.Add(ww);
-            buttons.Add(p =>
-            {
-                var blocked = Gearsets.Blocked(true);
-                if (Kit.Button("##hero-wear", p, wear, Btn.Primary, BtnSize.Lg, Icon.Shirt, 0, editorChanges || blocked != null,
-                        editorChanges ? "Press Save in the game's window first" : blocked ?? "Puts the plate on your current gearset, as /gearset change does (in a sanctuary, on a job its gear fits)"))
-                    Later(() =>
-                    {
-                        if (PlateEditor.Wear(plate) is { } why) Notify(why);
-                    });
-            });
+            // (No Wear plate N here: the game won't change gearset with Glamour Plates open at a dresser, so the words say how.)
             const string again = "Fill it again";
             var aw = Kit.ButtonWidth(again, BtnSize.Sm, null, Btn.Quiet);
-            widths.Insert(0, aw);
-            buttons.Insert(0, p =>
+            widths.Add(aw);
+            buttons.Add(p =>
             {
-                if (Kit.Button("##hero-again", new Vector2(p.X, p.Y + (lgH - Kit.ButtonHeight(BtnSize.Sm)) / 2), again, Btn.Quiet, BtnSize.Sm))
+                if (Kit.Button("##hero-again", p, again, Btn.Quiet, BtnSize.Sm))
                     lastFill = null;
             });
         }
@@ -177,9 +164,12 @@ public sealed partial class MainWindow
         if (filled is { } ff)
         {
             Say("Filled with ");
-            Bold(filledLook?.Name ?? "the look");
+            Bold(lastFillName.Length > 0 ? lastFillName : "the look");
             Say($": {Words.Filled(plate, ff.Plan, ff.Result.Set).Replace($"Plate {plate} has ", string.Empty, StringComparison.Ordinal)}");
             if (ff.Result.Problems.Count > 0) Say(" " + string.Join(" ", ff.Result.Problems));
+            Say(editorChanges
+                ? $" Press Save, then close Glamour Plates and the dresser to wear it (Wear plate {plate} in Plates)."
+                : $" Saved: close Glamour Plates and the dresser, then Wear plate {plate} in Plates.");
         }
         else if (planned != null && plannedOn)
         {
@@ -202,30 +192,27 @@ public sealed partial class MainWindow
             Say(".");
         }
         else Say($"It has {Words.Count(current.Count, "piece")}. Pick a look below to put it on instead.");
-        if (editorChanges) Say(" Not saved yet.");
+        if (editorChanges && filled == null) Say(" Not saved yet.");
         y += Txt.Flow(new Vector2(tx, y), tw, runs, 19.5f, out _);
         Kit.Reserve(at, w, MathF.Max(MathF.Max(S(44), lgH), y - at.Y));
 
         // The twelve slots: now, and after when there's a plan to fill it with.
         Kit.Gap(18);
         var row = Kit.At;
+        var strips = Strips(current, plan);
         if (plan != null)
         {
             var colW = (w - S(36) - S(24)) / 2;
-            var dyes = plan.BagDyes.Values.Sum();
-            SlotStrip(new Vector2(row.X, row.Y), colW, $"On it now · {Words.Count(current.Count, "piece")}", Palette.Dim, Slots.PlateOrder.Select(s => current.TryGetValue(s, out var p) ? (Piece?)p : null).ToList(), null);
+            SlotStrip(new Vector2(row.X, row.Y), colW, strips.NowLabel, Palette.Dim, strips.Now, null);
             var ax = row.X + colW + S(12);
             var stripH = StripHeight(colW);
             Icons.Draw(dl, Icon.ArrowRight, new Vector2(ax + (S(36) - S(20)) / 2, row.Y + (stripH - S(20)) / 2), S(20), Palette.Rose);
-            var after = AfterPieces(current, plan);
-            var afterCount = after.Count(p => p != null);
-            var label = $"After · {Words.Count(afterCount, "piece")}" + (dyes > 0 ? $" · {Words.Count(dyes, "dye")} from your bags" : string.Empty);
-            SlotStrip(new Vector2(ax + S(36) + S(12), row.Y), colW, label, Palette.RoseText, after, plan);
+            SlotStrip(new Vector2(ax + S(36) + S(12), row.Y), colW, strips.AfterLabel, Palette.RoseText, strips.After!, strips.Missing);
             Kit.Reserve(row, w, stripH);
         }
         else
         {
-            SlotStrip(row, w, $"On it now · {Words.Count(current.Count, "piece")}", Palette.Dim, Slots.PlateOrder.Select(s => current.TryGetValue(s, out var p) ? (Piece?)p : null).ToList(), null);
+            SlotStrip(row, w, strips.NowLabel, Palette.Dim, strips.Now, null);
             Kit.Reserve(row, w, StripHeight(w));
         }
         Kit.Gap(18);
@@ -233,6 +220,28 @@ public sealed partial class MainWindow
         Txt.Line(dl, nat, Txt.Fit("Nothing's saved until you press Save in the game's window.", Face.Sans, 12, w), Face.Sans, 12, Palette.Muted);
         Kit.Reserve(nat, w, Txt.Natural(Face.Sans, 12));
         Kit.EndPanel();
+    }
+
+    private (Dictionary<Slot, Piece>? Current, PlatePlan? Plan, (string NowLabel, List<Piece?> Now, string AfterLabel, List<Piece?>? After, bool[]? Missing) Strips) strips;
+
+    /// <summary>The hero's two strips (their labels, pieces and the slots kept for want of a piece), worked out again only when the plate's read again or the plan changes.</summary>
+    private (string NowLabel, List<Piece?> Now, string AfterLabel, List<Piece?>? After, bool[]? Missing) Strips(Dictionary<Slot, Piece> current, PlatePlan? plan)
+    {
+        if (ReferenceEquals(strips.Current, current) && ReferenceEquals(strips.Plan, plan)) return strips.Strips;
+        var now = Slots.PlateOrder.Select(s => current.TryGetValue(s, out var p) ? (Piece?)p : null).ToList();
+        var nowLabel = $"On it now · {Words.Count(current.Count, "piece")}";
+        List<Piece?>? after = null;
+        bool[]? missing = null;
+        var afterLabel = string.Empty;
+        if (plan != null)
+        {
+            after = AfterPieces(current, plan);
+            missing = Slots.PlateOrder.Select(slot => plan.Steps.FirstOrDefault(s => s.Slot == slot)?.Kind == StepKind.Missing).ToArray();
+            var dyes = plan.BagDyes.Values.Sum();
+            afterLabel = $"After · {Words.Count(after.Count(p => p != null), "piece")}" + (dyes > 0 ? $" · {Words.Count(dyes, "dye")} from your bags" : string.Empty);
+        }
+        strips = (current, plan, (nowLabel, now, afterLabel, after, missing));
+        return strips.Strips;
     }
 
     /// <summary>The plate's slots after filling it: what goes on, what's emptied, what's kept.</summary>
@@ -259,7 +268,8 @@ public sealed partial class MainWindow
     private static float StripHeight(float width) => Txt.Natural(Face.Mono, 11) + S(8) + S(30);
 
     /// <summary>A label and twelve slot tiles in the plate's order (the empty ones dim; a missing piece dashed).</summary>
-    private void SlotStrip(Vector2 pos, float width, string label, System.Numerics.Vector4 labelColor, IReadOnlyList<Piece?> pieces, PlatePlan? plan)
+    /// <param name="missingAt">Each tile's slot kept for want of the look's piece (in the plate's order), or null.</param>
+    private void SlotStrip(Vector2 pos, float width, string label, System.Numerics.Vector4 labelColor, IReadOnlyList<Piece?> pieces, IReadOnlyList<bool>? missingAt)
     {
         Kit.Sub(pos, label, labelColor, width);
         var y = pos.Y + Txt.Natural(Face.Mono, 11) + S(8);
@@ -270,7 +280,7 @@ public sealed partial class MainWindow
         {
             var p = new Vector2(pos.X + (tile + S(4)) * i, y);
             var slot = Slots.PlateOrder[i];
-            var missing = plan?.Steps.FirstOrDefault(s => s.Slot == slot)?.Kind == StepKind.Missing;
+            var missing = missingAt != null && missingAt[i];
             var max = p + new Vector2(tile, th);
             if (pieces[i] is { } piece)
             {
@@ -315,12 +325,23 @@ public sealed partial class MainWindow
         var tw = at.X + w - bw - S(16) - tx;
         var y = at.Y;
         y += Kit.Eyebrow(new Vector2(tx, y), "At a glamour dresser", null, tw) + S(4);
-        var planned = Enumerable.Range(1, Plates.Count).Count(p => sync.PlanFor(p) != null);
+        var planned = PlannedCount();
         var line = "Open Glamour Plates (every inn room has a glamour dresser) and pick a plate: it shows here with the look planned for it, ready to fill."
                    + (planned > 0 ? $" You've planned {Words.Count(planned, "plate")} on the site." : string.Empty);
         y += Txt.Flow(new Vector2(tx, y), tw, new[] { new Run(line, Face.Sans, 13, Palette.Soft) }, 19.5f, out _);
         Kit.Reserve(at, w, MathF.Max(S(44), y - at.Y));
         Kit.EndPanel();
+    }
+
+    private (int Sync, string? Key, int Count) plannedCount = (-1, null, 0);
+
+    /// <summary>How many of your plates have a look planned on the site, counted again only when the plans or the character change.</summary>
+    private int PlannedCount()
+    {
+        var key = wardrobe.Current?.Key;
+        if (plannedCount.Sync != sync.Version || plannedCount.Key != key)
+            plannedCount = (sync.Version, key, Enumerable.Range(1, Plates.Count).Count(p => sync.PlanFor(p) != null));
+        return plannedCount.Count;
     }
 
     // ---------------------------------------------------------------------------------------------

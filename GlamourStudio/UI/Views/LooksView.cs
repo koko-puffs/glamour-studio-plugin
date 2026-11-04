@@ -102,7 +102,7 @@ public sealed partial class MainWindow
             for (var i = 0; i < looks.Count; i++)
             {
                 var look = looks[i];
-                if (LooksRow(i, look, ReferenceEquals(look, picked))) pickedLook = look.Id;
+                if (LooksRow(look, ReferenceEquals(look, picked))) pickedLook = look.Id;
                 Kit.Gap(2);
             }
             Kit.EndScrollCard();
@@ -229,7 +229,7 @@ public sealed partial class MainWindow
     }
 
     /// <summary>A look's row in the list: its pieces' icons, name, a line and how ready it is; the picked one in the rose. True when pressed.</summary>
-    private bool LooksRow(int index, Look look, bool on)
+    private bool LooksRow(Look look, bool on)
     {
         var at = Kit.At;
         var w = Kit.Width;
@@ -239,7 +239,8 @@ public sealed partial class MainWindow
             Kit.Reserve(at, w, h);
             return false;
         }
-        var (clicked, hovered, _) = Kit.Hit("##lr" + index, at, new Vector2(w, h));
+        // By the look's id, not its place: a list read again mid-click doesn't press another look.
+        var (clicked, hovered, _) = Kit.Hit("##lr" + look.Id, at, new Vector2(w, h));
         var dl = Kit.Dl;
         if (on)
         {

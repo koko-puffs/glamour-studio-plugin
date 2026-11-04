@@ -55,6 +55,7 @@ public sealed partial class MainWindow : Window
         this.fonts = fonts;
         this.shots = shots;
         this.recorder = recorder;
+        linkedToken = config.SiteToken;
         Txt.Fonts = fonts;
 
         Size = new Vector2(1120, 760);
@@ -99,6 +100,8 @@ public sealed partial class MainWindow : Window
     public override void OnClose()
     {
         settingsTab = SettingsTab.General;
+        // A question left open goes with the window (its answer was for what was on screen then).
+        confirm = null;
     }
 
     public override void PreDraw()
@@ -136,6 +139,10 @@ public sealed partial class MainWindow : Window
         editorPlate = PlateEditor.SelectedPlate;
         editorChanges = editorPlate > 0 && PlateEditor.HasChanges;
         CheckCharacter();
+        CheckOpenLook();
+        var drawing = screen;
+        var failed = false;
+        var noteAt = Vector2.Zero;
         Theme.PushInside();
         try
         {
@@ -145,6 +152,7 @@ public sealed partial class MainWindow : Window
                 try
                 {
                     if (screen == Screen.Look && openLook == null) screen = lookFrom == Screen.Look ? Screen.Looks : lookFrom;
+                    drawing = screen;
                     var win = ImGui.GetWindowPos();
                     var size = ImGui.GetWindowSize();
                     var top = ImGui.GetCursorScreenPos().Y;
@@ -155,6 +163,7 @@ public sealed partial class MainWindow : Window
                     Kit.Dl.AddLine(new Vector2(win.X + 1, bodyTop - 0.5f), new Vector2(win.X + size.X - 1, bodyTop - 0.5f), Palette.U32(Palette.Divider), 1f);
                     var body = new Vector2(win.X, bodyTop);
                     var bodySize = new Vector2(size.X, win.Y + size.Y - bodyTop);
+                    noteAt = body + new Vector2(S(SideCss), S(20));
                     switch (screen)
                     {
                         case Screen.Settings:
@@ -190,9 +199,17 @@ public sealed partial class MainWindow : Window
                             break;
                     }
                 }
+                catch (Exception ex)
+                {
+                    // Said once (not every frame it fails again), and a note in its place.
+                    failed = true;
+                    if (failures.Count < 64 && failures.Add($"{drawing}|{ex.GetType().FullName}|{ex.Message}"))
+                        Services.Log.Error(ex, "Glamour Studio's {Screen} screen failed", drawing);
+                }
                 finally
                 {
                     Frame.Unwind();
+                    if (failed) DrawFailed(noteAt);
                     Frame.DrawToast();
                     Kit.Blocked = false;
                     DrawConfirm();
@@ -202,22 +219,60 @@ public sealed partial class MainWindow : Window
         finally
         {
             Theme.Pop();
+            // What was pressed is done even on a frame that failed.
+            RunLater();
         }
+    }
 
-        RunLater();
+    /// <summary>The screens' failures already in the log (by screen, kind and message).</summary>
+    private readonly HashSet<string> failures = new();
+
+    /// <summary>A screen that failed: a short note where it would be.</summary>
+    private static void DrawFailed(Vector2 at)
+    {
+        Palette.Opacity = 1f;
+        if (at == Vector2.Zero) at = ImGui.GetWindowPos() + new Vector2(S(SideCss), S(HeaderCss) + S(20));
+        const string text = "This screen failed (see /xllog)";
+        var size = Txt.Measure(text, Face.Sans, 13);
+        var dl = Kit.Dl;
+        dl.AddRectFilled(at, at + size + new Vector2(S(16) * 2, S(10) * 2), Palette.U32(Palette.Card), S(10));
+        dl.AddRect(at, at + size + new Vector2(S(16) * 2, S(10) * 2), Palette.U32(Palette.Danger), S(10), ImDrawFlags.None, 1f);
+        Txt.Draw(dl, at + new Vector2(S(16), S(10)), text, Face.Sans, 13, Palette.Danger);
     }
 
     /// <summary>Another character: what was worked out for the last one goes.</summary>
     private void CheckCharacter()
     {
-        if (wardrobe.Current?.Key == drawnFor) return;
-        drawnFor = wardrobe.Current?.Key;
-        lastFill = null;
-        cleanup = null;
-        examined = null;
+        CheckLink();
+        if (wardrobe.Current?.Key != drawnFor)
+        {
+            drawnFor = wardrobe.Current?.Key;
+            lastFill = null;
+            cleanup = null;
+            examined = null;
+            pickedLook = null;
+            companionPick = null;
+            storeQueue.Clear();
+            // A question asked for the last character isn't this one's.
+            confirm = null;
+        }
+        CheckFill();
+    }
+
+    /// <summary>The token the window last drew for.</summary>
+    private string linkedToken;
+
+    /// <summary>Linked again (another account, or none): the last account's looks and what was kept to it go.</summary>
+    private void CheckLink()
+    {
+        if (string.Equals(config.SiteToken, linkedToken, StringComparison.Ordinal)) return;
+        linkedToken = config.SiteToken;
+        openLook = null;
+        openSent = null;
         pickedLook = null;
         companionPick = null;
-        storeQueue.Clear();
+        keptFrom.Clear();
+        keeping.Clear();
     }
 
     /// <summary>What was pressed this frame, done now that the frame's drawing is finished.</summary>
@@ -392,7 +447,7 @@ public sealed partial class MainWindow : Window
         var cardTop = MathF.Max(Kit.At.Y + S(12), bottom - cardH);
         var ct = new Vector2(x, cardTop);
         var name = me?.Name is { Length: > 0 } n ? n : "Not logged in";
-        var initials = string.Concat(name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(p => char.ToUpperInvariant(p[0])));
+        var initials = InitialsOf(name);
         var (line, dot) = CharacterLine();
         if (compact)
         {
@@ -425,6 +480,16 @@ public sealed partial class MainWindow : Window
         }
         Kit.Reserve(new Vector2(x, cardTop), w, cardH);
         Kit.EndPane();
+    }
+
+    private (string Name, string Initials) initials = (string.Empty, string.Empty);
+
+    /// <summary>A name's initials (the first two words'), worked out again only when the name changes.</summary>
+    private string InitialsOf(string name)
+    {
+        if (name != initials.Name)
+            initials = (name, string.Concat(name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(p => char.ToUpperInvariant(p[0]))));
+        return initials.Initials;
     }
 
     /// <summary>A rail item's count: your looks, plates with something on them of 20, pieces you have, the dresser's places used of 800.</summary>
