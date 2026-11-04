@@ -245,14 +245,17 @@ public static unsafe class FittingRoom
     {
         var agent = AgentTryon.Instance();
         if (agent == null) return false;
+        // As many drawn as wanted: the same ring on both hands is two (one drawn isn't both).
+        var needed = wants.Count(x => x.Item == w.Item && (!dyes || (x.Dye1 == w.Dye1 && x.Dye2 == w.Dye2)));
+        var drawn = 0;
         foreach (ref var it in agent->CharaView.Items)
         {
             var shown = it.GlamourItemId != 0 ? it.GlamourItemId : it.ItemId;
             if (shown == 0 || LookJson.BaseId(shown) != w.Item) continue;
             var (d1, d2) = it.GlamourItemId != 0 ? (it.GlamourStain0Id, it.GlamourStain1Id) : (it.Stain0Id, it.Stain1Id);
-            if (!dyes || (d1 == w.Dye1 && d2 == w.Dye2)) return true;
+            if (!dyes || (d1 == w.Dye1 && d2 == w.Dye2)) drawn++;
         }
-        return false;
+        return drawn >= Math.Max(1, needed);
     }
 
     /// <summary>What the fitting room's list holds now, by slot (empty when it isn't open).</summary>

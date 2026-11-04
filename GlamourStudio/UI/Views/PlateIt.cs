@@ -26,6 +26,9 @@ public sealed partial class MainWindow
         public PlateItStep Step { get; set; }
         public bool Asked { get; set; }
         public DateTime Until { get; set; }
+
+        /// <summary>When the editor's open long enough for its plate to be read (unsaved changes, the plate picked).</summary>
+        public DateTime ReadyAt { get; set; }
     }
 
     private PlateItJob? plateIt;
@@ -39,6 +42,11 @@ public sealed partial class MainWindow
     /// <summary>Starts putting <paramref name="look"/> on <paramref name="plate"/>.</summary>
     private void StartPlateIt(Look look, int plate)
     {
+        if (AutoBusy)
+        {
+            Notify("Wait for Make room for me to finish first");
+            return;
+        }
         if (PlateEditor.IsOpen && PlateEditor.SelectedPlate != plate && PlateEditor.HasChanges)
         {
             Notify($"Plate {PlateEditor.SelectedPlate} has changes not saved: save them, or put it back, first");
@@ -71,7 +79,15 @@ public sealed partial class MainWindow
                 {
                     job.Step = PlateItStep.Picking;
                     job.Asked = false;
+                    // (A moment before its plate is read: on its first frames the editor's slots may not be in yet.)
+                    job.ReadyAt = now + TimeSpan.FromMilliseconds(300);
                     job.Until = now + TimeSpan.FromSeconds(3);
+                    break;
+                }
+                // The dresser closed before Glamour Plates opened (a moment's grace: opening it may hide the dresser).
+                if (job.Asked && !GameWindows.IsShown("MiragePrismPrismBox") && now > job.Until - TimeSpan.FromSeconds(4.5))
+                {
+                    Fail("The glamour dresser closed");
                     break;
                 }
                 if (!job.Asked)
@@ -91,6 +107,7 @@ public sealed partial class MainWindow
                     Fail("Glamour Plates closed");
                     break;
                 }
+                if (now < job.ReadyAt) break;
                 if (PlateEditor.SelectedPlate == job.Plate)
                 {
                     // A moment for the plate's slots to come in before they're read.

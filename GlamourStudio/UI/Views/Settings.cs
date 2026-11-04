@@ -255,7 +255,9 @@ public sealed partial class MainWindow
                 var text = markDraft;
                 if (Kit.Field("##mark-text", p, fw, ref text, "e.g. 2. Fill plate 3 from the armoire", Icon.Bookmark, 160)) markDraft = text;
                 var enter = ImGui.IsItemDeactivated() && (ImGui.IsKeyPressed(ImGuiKey.Enter) || ImGui.IsKeyPressed(ImGuiKey.KeypadEnter));
-                if (Kit.Button("##mark-btn", new Vector2(p.X + fw + S(8), p.Y + (S(36) - Kit.ButtonHeight(BtnSize.Sm)) / 2), mark, Btn.Primary, BtnSize.Sm, Icon.Bookmark) || enter)
+                // (An empty mark isn't written.)
+                if ((Kit.Button("##mark-btn", new Vector2(p.X + fw + S(8), p.Y + (S(36) - Kit.ButtonHeight(BtnSize.Sm)) / 2), mark, Btn.Primary, BtnSize.Sm, Icon.Bookmark) || enter)
+                    && markDraft.Trim().Length > 0)
                 {
                     var what = markDraft;
                     markDraft = string.Empty;

@@ -55,7 +55,9 @@ public sealed unsafe class WardrobeReader
     // The windows that show a place: the game sends a place when one is opened, and until then its
     // containers can say they're loaded while empty (or still hold another character's).
     private static readonly string[] SaddlebagWindows = { "InventoryBuddy", "InventoryBuddy2" };
-    private static readonly string[] DresserWindows = { "MiragePrismPrismBox", "MiragePrismMiragePlate" };
+    // (Not Glamour Plates: opened from the Character window it doesn't fetch the dresser, and what
+    // the game still holds may be another character's; at a dresser, the dresser was open first.)
+    private static readonly string[] DresserWindows = { "MiragePrismPrismBox" };
     private static readonly string[] ArmoireWindows = { "Cabinet" };
     private static readonly string[] PlateWindows = { "MiragePrismMiragePlate" };
 
@@ -96,6 +98,15 @@ public sealed unsafe class WardrobeReader
         {
             Services.Log.Warning(ex, "Glamour Studio couldn't read wardrobe.json: your wardrobe is read again as you open it");
             store = new Wardrobe();
+            // Kept aside, not overwritten by the next save (a newer version's file, say, can be read again by it).
+            try
+            {
+                if (File.Exists(path)) File.Move(path, $"{path}.unread-{DateTime.UtcNow:yyyyMMddHHmmss}", true);
+            }
+            catch (Exception moveEx)
+            {
+                Services.Log.Debug(moveEx, "Glamour Studio couldn't set the unread wardrobe.json aside");
+            }
         }
     }
 
@@ -372,6 +383,9 @@ public sealed unsafe class WardrobeReader
     private byte[]? humanCmp;
     private bool humanCmpTried;
 
+    /// <summary>The characters whose colours were worked out this session (stored ones may be from an older version, or from a read that failed).</summary>
+    private readonly HashSet<string> coloursDone = new();
+
     /// <summary>How you look now (your customize bytes and the colours they pick), when it changed.</summary>
     private bool ReadAppearance(CharacterWardrobe me)
     {
@@ -387,7 +401,8 @@ public sealed unsafe class WardrobeReader
             return false;
         }
         if (now.Length < Appearance.Length || now[0] == 0) return false;
-        if (me.Customize != null && me.Customize.AsSpan().SequenceEqual(now) && me.Colours != null) return false;
+        var same = me.Customize != null && me.Customize.AsSpan().SequenceEqual(now);
+        if (same && me.Colours != null && coloursDone.Contains(me.Key)) return false;
         if (!humanCmpTried)
         {
             humanCmpTried = true;
@@ -400,16 +415,24 @@ public sealed unsafe class WardrobeReader
                 Services.Log.Debug(ex, "Glamour Studio couldn't read the character creator's colours");
             }
         }
+        var colours = Appearance.Colours(now, humanCmp);
+        coloursDone.Add(me.Key);
+        var changed = !same || me.Colours == null || me.Colours.Count != colours.Count
+                      || colours.Any(kv => !me.Colours.TryGetValue(kv.Key, out var v) || v != kv.Value);
         me.Customize = now;
-        me.Colours = Appearance.Colours(now, humanCmp);
-        return true;
+        me.Colours = colours;
+        return changed;
     }
 
     /// <summary>The dresser, once the game has it (opened this session): each piece with its dyes, outfit sets as their pieces.</summary>
     private bool ReadDresser(CharacterWardrobe me, DateTime at)
     {
         var mm = MirageManager.Instance();
-        if (mm == null || !mm->PrismBoxLoaded) return false;
+        if (mm == null || !mm->PrismBoxLoaded)
+        {
+            DresserLive = false;
+            return false;
+        }
         DresserLive = true;
         var pieces = new List<DresserPiece>();
         var ids = mm->PrismBoxItemIds;
@@ -451,7 +474,12 @@ public sealed unsafe class WardrobeReader
     private bool ReadArmoire(CharacterWardrobe me, DateTime at)
     {
         var ui = UIState.Instance();
-        if (ui == null || !ui->Cabinet.IsCabinetLoaded()) return false;
+        if (ui == null || !ui->Cabinet.IsCabinetLoaded())
+        {
+            if (ArmoireLive) ArmoireNow = new Dictionary<uint, uint>();
+            ArmoireLive = false;
+            return false;
+        }
         ArmoireLive = true;
         var now = new Dictionary<uint, uint>();
         foreach (var (row, item) in data.CabinetRows)

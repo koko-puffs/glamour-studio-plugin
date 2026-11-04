@@ -66,14 +66,24 @@ public sealed partial class MainWindow
         return (plan, dupes);
     }
 
-    /// <summary>Why gathering sets can't start now, or null.</summary>
+    /// <summary>
+    /// The first time, one set to try it on: the one with the fewest pieces (should the game not take
+    /// it, little's moved), the same one named in the question and stored.
+    /// </summary>
+    private static OutfitJob TrialJob(AutoRoomPlan plan) => plan.Jobs.OrderBy(j => j.Pieces.Count).ThenBy(j => j.SetItem).First();
+
+    /// <summary>Why gathering sets can't start now, or null (the first time, for the one set it tries).</summary>
     private string? AutoRoomBlocked(AutoRoomPlan plan, (int Prisms, int FreeBag) have)
     {
         if (AutoBusy) return "Already at work";
+        if (plateIt != null || PlateEditor.IsOpen) return "Close Glamour Plates first";
         if (plan.Jobs.Count == 0) return "No set has loose pieces to gather";
         if (!GameWindows.IsShown("MiragePrismPrismBox") || !wardrobe.DresserLive) return "Open your glamour dresser first";
-        if (have.Prisms < plan.Prisms) return $"It needs {Words.Count(plan.Prisms, "glamour prism")}: you have {have.Prisms}";
-        if (have.FreeBag < plan.MostAtOnce) return $"It needs {Words.Count(plan.MostAtOnce, "free bag place")} at once: you have {have.FreeBag}";
+        var trial = config.OutfitStoreWorked ? null : TrialJob(plan);
+        var prisms = trial?.Pieces.Count ?? plan.Prisms;
+        var atOnce = trial?.Pieces.Count ?? plan.MostAtOnce;
+        if (have.Prisms < prisms) return $"It needs {Words.Count(prisms, "glamour prism")}: you have {have.Prisms}";
+        if (have.FreeBag < atOnce) return $"It needs {Words.Count(atOnce, "free bag place")} at once: you have {have.FreeBag}";
         return null;
     }
 
@@ -81,6 +91,7 @@ public sealed partial class MainWindow
     private string? DupesBlocked(List<DresserPiece> dupes, (int Prisms, int FreeBag) have)
     {
         if (AutoBusy) return "Already at work";
+        if (plateIt != null || PlateEditor.IsOpen) return "Close Glamour Plates first";
         if (dupes.Count == 0) return "No duplicates in your dresser";
         if (!GameWindows.IsShown("MiragePrismPrismBox") || !wardrobe.DresserLive) return "Open your glamour dresser first";
         if (have.FreeBag == 0) return "Your bags are full";
@@ -122,7 +133,8 @@ public sealed partial class MainWindow
             return;
         }
         // Until it has worked here once, one set: should the game not take it, little's moved.
-        var jobs = config.OutfitStoreWorked ? plan.Jobs : plan.Jobs.Take(1).ToList();
+        var jobs = config.OutfitStoreWorked ? plan.Jobs : new List<OutfitJob> { TrialJob(plan) };
+        autoRoomLast = null;
         recorder.Note($"MAKE ROOM for me: {jobs.Count} of {plan.Jobs.Count} sets, frees {plan.Frees}{(config.OutfitStoreWorked ? string.Empty : " (trying one)")}");
         var started = OutfitStorer.Start(jobs, data, (words, ok) =>
         {
@@ -138,8 +150,7 @@ public sealed partial class MainWindow
             }
             Notify(ok ? $"Made room: {words}" : words);
         });
-        if (!started) return;
-        autoRoomLast = null;
+        if (!started || !OutfitStorer.Busy) return;
         Notify(jobs.Count == 1 && !config.OutfitStoreWorked ? "Trying one set first…" : $"Storing {Words.Count(jobs.Count, "set")}…");
     }
 
@@ -156,6 +167,7 @@ public sealed partial class MainWindow
             return;
         }
         recorder.Note($"TAKE OUT duplicates: {dupes.Count}");
+        autoRoomLast = null;
         var started = DresserTaker.Start(dupes, data, (words, ok) =>
         {
             autoRoomLast = (words, ok);
@@ -163,8 +175,7 @@ public sealed partial class MainWindow
             wardrobe.Tick(now: true);
             Notify(words);
         });
-        if (!started) return;
-        autoRoomLast = null;
+        if (!started || !DresserTaker.Busy) return;
         Notify($"Taking out {Words.Count(dupes.Count, "duplicate")}…");
     }
 
@@ -199,8 +210,8 @@ public sealed partial class MainWindow
             setsBlocked ?? AutoRoomWords(plan, have), setsBlocked != null,
             plan.Jobs.Count == 0 ? "Store the sets for me" : config.OutfitStoreWorked ? $"Store {Words.Count(plan.Jobs.Count, "set")} for me" : "Try it on one set", Icon.Package,
             () => Ask(config.OutfitStoreWorked ? "Store the sets for you?" : "Try it on one set?",
-                (config.OutfitStoreWorked ? AutoRoomWords(plan, have) : $"The first time, it stores one set ({data.ItemName(plan.Jobs[0].SetItem)}), so you can check it worked before it does the other {plan.Jobs.Count - 1}. Its pieces already in your bags go in with it.")
-                + " Keep the dresser open while it works; it stops at the first thing that doesn't go.",
+                (config.OutfitStoreWorked ? AutoRoomWords(plan, have) : $"The first time, it stores one set ({data.ItemName(TrialJob(plan).SetItem)}), so you can check it worked before it does the other {plan.Jobs.Count - 1}. Its pieces already in your bags go in with it.")
+                + " Keep the dresser open while it works; a set the game doesn't take is left (its pieces in your bags) and it goes on.",
                 config.OutfitStoreWorked ? "Store them" : "Try it", "Not now", StartAutoRoom));
         Kit.Gap(12);
         Kit.Divider(Kit.Left, Kit.Left + w, Kit.At.Y);

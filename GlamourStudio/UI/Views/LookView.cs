@@ -326,7 +326,7 @@ public sealed partial class MainWindow
             var pat = Kit.At;
             var pw = Kit.Width;
             var psize = compact ? BtnSize.Md : BtnSize.Lg;
-            if (Kit.Button("##put-on-a", pat, "Put on a plate…", Btn.Primary, psize, Icon.Layers, pw, plateIt != null,
+            if (Kit.Button("##put-on-a", pat, "Put on a plate…", Btn.Primary, psize, Icon.Layers, pw, plateIt != null || AutoBusy,
                     "Pick a plate: the plugin opens Glamour Plates, picks it and fills it. Nothing's saved until you press Save there."))
                 OpenPlateItMenu("##lv-plate-it", look);
             Kit.Reserve(pat, pw, Kit.ButtonHeight(psize));

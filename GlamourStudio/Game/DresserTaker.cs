@@ -41,7 +41,7 @@ public static unsafe class DresserTaker
     /// <summary>Pieces taken out so far (this run), and left to take.</summary>
     public static int Done { get; private set; }
 
-    public static int Left => queue.Count + (phase == Phase.Waiting ? 1 : 0);
+    public static int Left => queue.Count + (phase == Phase.Waiting || tries > 0 ? 1 : 0);
 
     /// <summary>Starts taking <paramref name="todo"/> out; false when this or the outfit storer is at work.</summary>
     public static bool Start(IEnumerable<DresserPiece> todo, GameData gameData, Action<string, bool> onEnd)
@@ -65,6 +65,8 @@ public static unsafe class DresserTaker
     public static void Stop(string why = "Stopped", bool now = false)
     {
         if (!Busy) return;
+        // Closing the plugin: at once, and nobody's told (its windows are gone).
+        if (now) report = null;
         if (now || phase == Phase.Taking) Finish(why, false);
         else stopAsked = true;
     }
@@ -77,10 +79,20 @@ public static unsafe class DresserTaker
             Finish("The glamour dresser closed", false);
             return;
         }
+        if (phase == Phase.Taking && Services.Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.InCombat])
+        {
+            Finish("You're in combat", false);
+            return;
+        }
         var mgr = MirageManager.Instance();
         var inv = InventoryManager.Instance();
-        if (mgr == null || inv == null || !mgr->PrismBoxLoaded) return;
         var now = DateTime.UtcNow;
+        if (mgr == null || inv == null || !mgr->PrismBoxLoaded)
+        {
+            // The dresser's data gone while a piece was waited on: its deadline still ends it.
+            if (now > deadline + TimeSpan.FromSeconds(5)) Finish("The dresser's data went away (did you change zone?)", false);
+            return;
+        }
         switch (phase)
         {
             case Phase.Taking:
@@ -114,6 +126,7 @@ public static unsafe class DresserTaker
                     {
                         skipped.Add(data.ItemName(id));
                         Recorder.Log($"  set {current.Item} at {current.Index}: left ({(setAt < 0 ? "gone" : "the last copy")})");
+                        tries = 0;
                         break;
                     }
                     if (inv->GetEmptySlotsInBag() < holds)
@@ -150,12 +163,14 @@ public static unsafe class DresserTaker
                     // Gone, or the last copy now (taking it would leave none): left.
                     skipped.Add(data!.ItemName(current.Item));
                     Recorder.Log($"  {current.Item} at {current.Index}: left ({(at < 0 ? "gone" : "the last copy")})");
+                    tries = 0;
                     break;
                 }
                 if (data!.Item(current.Item)?.Unique == true && DresserPlaces.Holding(id))
                 {
                     skipped.Add(data.ItemName(current.Item));
                     Recorder.Log($"  {current.Item}: left (Unique, you hold one)");
+                    tries = 0;
                     break;
                 }
                 before = DresserPlaces.InBags(id);

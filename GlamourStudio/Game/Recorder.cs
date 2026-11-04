@@ -292,6 +292,8 @@ public sealed unsafe class Recorder : IDisposable
         Add("Hooks: " + string.Join("; ", hookReport));
         callbackHook?.Enable();
         foreach (var h in agentHooks.Values) h.Enable();
+        // Set first: should a registration below throw, Stop still takes off the ones made.
+        listening = true;
         Services.AddonLifecycle.RegisterListener(AddonEvent.PostSetup, OnOpen);
         Services.AddonLifecycle.RegisterListener(AddonEvent.PreFinalize, OnClose);
         Services.AddonLifecycle.RegisterListener(AddonEvent.PostRefresh, GlamourWindows, OnRefresh);
@@ -302,7 +304,6 @@ public sealed unsafe class Recorder : IDisposable
         Services.Chat.LogMessage += OnLogMessage;
         Services.ClientState.Login += OnLogin;
         Services.ClientState.Logout += OnLogout;
-        listening = true;
         Add("Write a MARK before each step (Settings → Making a report, or /gstudio mark <what you'll do>), do it by hand, then stop and copy or save.");
         WriteAllState("START");
         // The header and the start's state are kept when old lines go.

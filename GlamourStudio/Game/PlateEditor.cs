@@ -153,6 +153,10 @@ public static unsafe class PlateEditor
         var problems = new List<string>();
         var agent = Agent();
         if (!IsOpen || agent == null) return new FillResult(0, 0, 0, 0, new[] { "The plate editor closed." });
+        // Not while pieces are leaving the dresser: its places close up, and a slot set from one
+        // would point at another piece.
+        if (OutfitStorer.Busy || DresserTaker.Busy) return new FillResult(0, 0, 0, 0, new[] { "Wait for Make room for me to finish first." });
+        var mirage = MirageManager.Instance();
         var data = agent->Data;
         var plate = (int)data->SelectedMiragePlateIndex + 1;
         var keep = data->SelectedItemIndex;
@@ -168,6 +172,14 @@ public static unsafe class PlateEditor
                     switch (step.Kind)
                     {
                         case StepKind.Set when step.Want is { } want:
+                            // The dresser place read still holds the piece (else another piece would go on).
+                            // (A set's piece is at its set's place: that place holds the set, not the piece.)
+                            if (step.Source == PlateSource.Dresser && !step.InSet && mirage != null
+                                && (step.SourceId >= (uint)mirage->PrismBoxItemIds.Length || LookJson.BaseId(mirage->PrismBoxItemIds[(int)step.SourceId]) != LookJson.BaseId(step.Item != 0 ? step.Item : want.Item)))
+                            {
+                                problems.Add($"{Slots.Word(step.Slot)}: the dresser changed since it was read. Fill it again.");
+                                break;
+                            }
                             data->SelectedItemIndex = (uint)index;
                             agent->SetSelectedItemData(step.Source == PlateSource.Dresser ? ItemSource.PrismBox : ItemSource.Cabinet,
                                 step.SourceId, step.Item != 0 ? step.Item : want.Item, step.Has1, step.Has2);
@@ -312,8 +324,8 @@ public static unsafe class PlateEditor
             }
             if (PickedPlate != want.Plate) return;
             applyAfterPick = null;
-            Fire(15, 0);
-            Recorder.Log($"APPLY plate {want.Plate} in the plate window: applied [i:15, u:0]");
+            var fired = Fire(15, 0);
+            Recorder.Log($"APPLY plate {want.Plate} in the plate window: {(fired ? "applied [i:15, u:0]" : "the window isn't shown, not applied")}");
         }
         catch (Exception ex)
         {

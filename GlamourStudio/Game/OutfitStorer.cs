@@ -111,7 +111,11 @@ public static unsafe class OutfitStorer
         stopAsked = false;
         stopAfterStore = null;
         Recorder.Log($"OUTFITS start: {jobs.Count} sets, {jobs.Sum(j => j.Pieces.Count)} pieces");
-        Next();
+        // The first set on the next frame (Between): an end at once is then told after Start returns,
+        // never before (the caller would cover it with "Storing…").
+        job = null;
+        phase = Phase.Between;
+        deadline = DateTime.MinValue;
         return true;
     }
 
@@ -119,7 +123,11 @@ public static unsafe class OutfitStorer
     public static void Stop(string why = "Stopped", bool now = false)
     {
         if (!Busy) return;
-        if (now || phase is Phase.Restoring or Phase.Between) Finish(why, false);
+        // At once only between sets (nothing of a set out of the dresser); while a set's under way,
+        // the pieces that came go in as the set first (Restoring and the waits read stopAsked).
+        // Closing the plugin: at once, and nobody's told (its windows are gone).
+        if (now) report = null;
+        if (now || phase == Phase.Between) Finish(why, false);
         else
         {
             stopAsked = true;
@@ -158,8 +166,14 @@ public static unsafe class OutfitStorer
             return;
         }
         var mgr = MirageManager.Instance();
-        if (mgr == null || !mgr->PrismBoxLoaded) return;
         var now = DateTime.UtcNow;
+        if (mgr == null || !mgr->PrismBoxLoaded)
+        {
+            // The dresser's data gone (a zone change, logging out) while a step was waited on: its
+            // deadline still ends it, else it would wait for good.
+            if (now > deadline + TimeSpan.FromSeconds(5)) Finish("The dresser's data went away (did you change zone?)", false);
+            return;
+        }
         switch (phase)
         {
             case Phase.Restoring:
@@ -240,7 +254,9 @@ public static unsafe class OutfitStorer
                 if (emptied || arrived)
                 {
                     if (!emptied) Recorder.Log("  the set's in the dresser, its places in your bags not yet emptied");
-                    var freed = job!.StoredAt >= 0 ? storing.Count : Math.Max(0, storing.Count - 1);
+                    // (Places freed: the pieces that came from the dresser; those already in your bags held none.)
+                    var fromDresser = storing.Count(s => s.Piece.Index >= 0);
+                    var freed = job!.StoredAt >= 0 ? fromDresser : Math.Max(0, fromDresser - 1);
                     SetsDone++;
                     PlacesFreed += freed;
                     failedInARow = 0;
@@ -364,6 +380,7 @@ public static unsafe class OutfitStorer
         }
         var columns = data!.SetPieces(job.SetItem);
         var sending = new List<(int Column, DresserPiece Piece, InventoryType Type, int Slot)>();
+        var lost = new List<int>();
         for (var k = 0; k < restored.Count; k++)
         {
             var (piece, type, slot) = restored[k];
@@ -372,7 +389,13 @@ public static unsafe class OutfitStorer
             if (DresserPlaces.SlotItem(type, slot) != id)
             {
                 var others = DresserPlaces.InBags(id, job.Hq).Where(p => sending.All(s => s.Type != p.Type || s.Slot != p.Slot)).ToList();
-                if (others.Count == 0) continue;
+                if (others.Count == 0)
+                {
+                    // Not in your bags any more (moved out, sold): nothing to store, nor to say is left there.
+                    Recorder.Log($"  {piece.Item} isn't in your bags any more: left out");
+                    lost.Add(k);
+                    continue;
+                }
                 (type, slot) = others[0];
                 restored[k] = (piece, type, slot);
             }
@@ -382,6 +405,7 @@ public static unsafe class OutfitStorer
             if (storedAt >= 0 && mgr->IsSetSlotUnlocked((uint)storedAt, column)) continue;
             sending.Add((column, piece, type, slot));
         }
+        for (var k = lost.Count - 1; k >= 0; k--) restored.RemoveAt(lost[k]);
         // The pieces sent go first to last in the set's order, from the first place on, with no gaps
         // (as the outfit window sends them, and other plugins do): a whole set's pieces are at their
         // place in its list, but a set sent with a gap (Gleaner's Attire's three pieces at 1 to 3, a
@@ -456,7 +480,11 @@ public static unsafe class OutfitStorer
             job = jobs.Dequeue();
             var mgr = MirageManager.Instance();
             var inv = InventoryManager.Instance();
-            if (mgr == null || inv == null) break;
+            if (mgr == null || inv == null)
+            {
+                Finish("The game isn't ready", false);
+                return;
+            }
             var ready = new List<DresserPiece>();
             var notes = new List<string>();
             foreach (var p in job.Pieces)
@@ -590,7 +618,12 @@ public static unsafe class DresserPlaces
     {
         var n = mgr->PrismBoxItemIds.Length;
         if (readAt >= 0 && readAt < n && mgr->PrismBoxItemIds[readAt] == setItem) return readAt;
-        for (var i = 0; i < n; i++)
+        // Down from where it was read first (places close up downwards as earlier ones leave), so a
+        // second copy of the set is found before the first; then up.
+        for (var i = Math.Min(readAt, n - 1); i >= 0; i--)
+            if (mgr->PrismBoxItemIds[i] == setItem)
+                return i;
+        for (var i = Math.Max(readAt + 1, 0); i < n; i++)
             if (mgr->PrismBoxItemIds[i] == setItem)
                 return i;
         return -1;

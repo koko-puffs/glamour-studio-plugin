@@ -168,6 +168,8 @@ public static unsafe class GameWindows
     /// <summary>The set being stored (its own item, 0 when it can't be told) and its pieces: each item and the bag it's put from (Invalid: not picked).</summary>
     public sealed record OutfitSetNow(uint SetItem, IReadOnlyList<(uint Item, InventoryType Where)> Pieces);
 
+    private static (long Key, uint Set)? outfitSetCache;
+
     /// <summary>
     /// The outfit set window's set. Its agent's "source" is the piece it was opened from (or 0, adding
     /// to a set stored already: a recording saw both), so the set is the one its pieces belong to.
@@ -189,7 +191,18 @@ public static unsafe class GameWindows
                 list.Add((LookJson.BaseId(it.ItemId), it.InventoryType));
             }
             if (list.Count == 0) return null;
-            var set = list.Select(p => data.SetOf(p.Item1)).FirstOrDefault(s => s != 0);
+            // The set holding every piece listed (a piece can be in more than one set), else the first
+            // piece's; looked for once while the window lists the same pieces (it's read every frame).
+            var key = list.Aggregate(17L, (h, p) => h * 31 + p.Item1);
+            uint set;
+            if (outfitSetCache is { } c && c.Key == key) set = c.Set;
+            else
+            {
+                var ids = list.Select(p => p.Item1).ToHashSet();
+                set = data.AllSets.Where(kv => ids.All(i => kv.Value.Any(x => LookJson.BaseId(x) == i))).Select(kv => kv.Key).FirstOrDefault();
+                if (set == 0) set = list.Select(p => data.SetOf(p.Item1)).FirstOrDefault(s => s != 0);
+                outfitSetCache = (key, set);
+            }
             if (set == 0 && d->SourceItemId != 0) set = data.SetOf(d->SourceItemId);
             return new OutfitSetNow(set, list);
         }
@@ -241,6 +254,7 @@ public static unsafe class GameWindows
                 count++;
             }
             if (count == 1) return only;
+            if (a->AtkValues == null) return 0;
             for (var i = 0; i < a->AtkValuesCount; i++)
             {
                 ref var v = ref a->AtkValues[i];
@@ -335,7 +349,7 @@ public static unsafe class GameWindows
     public static HashSet<uint> InShop(AtkUnitBase* a, IReadOnlySet<uint> wanted)
     {
         var found = new HashSet<uint>();
-        if (a == null || wanted.Count == 0) return found;
+        if (a == null || a->AtkValues == null || wanted.Count == 0) return found;
         try
         {
             for (var i = 0; i < a->AtkValuesCount; i++)

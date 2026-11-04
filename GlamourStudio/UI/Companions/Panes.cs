@@ -86,7 +86,7 @@ public sealed partial class MainWindow
         {
             var fromArmoire = look.Pieces.Values.Count(p => Where(p.Item) == Place.Armoire);
             var chip = fromArmoire == 0 ? $"All {look.Count} here" : $"{fromArmoire} from the armoire";
-            if (LookPaneRow($"##c-plate-{look.Id}", look, null, chip, fromArmoire == 0 ? ChipKind.Ok : ChipKind.Plain, "Plate it", plateIt != null,
+            if (LookPaneRow($"##c-plate-{look.Id}", look, null, chip, fromArmoire == 0 ? ChipKind.Ok : ChipKind.Plain, "Plate it", plateIt != null || AutoBusy,
                     "Pick a plate: the plugin opens Glamour Plates, picks that plate and fills it. You press Save in the game's window.", ReferenceEquals(companionPick, look)))
                 OpenPlateItMenu("##c-plate-it", look);
         }

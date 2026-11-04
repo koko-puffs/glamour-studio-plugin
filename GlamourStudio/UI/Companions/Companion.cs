@@ -153,12 +153,21 @@ public sealed partial class MainWindow
         try
         {
             StoreNext();
-            TickPlateIt();
         }
         catch (Exception ex)
         {
             storeQueue.Clear();
             Services.Log.Warning(ex, "Glamour Studio couldn't store a piece in the armoire");
+        }
+        try
+        {
+            TickPlateIt();
+        }
+        catch (Exception ex)
+        {
+            // Dropped, so it never throws every frame (and Plate it's buttons come back).
+            plateIt = null;
+            Services.Log.Warning(ex, "Glamour Studio couldn't put a look on a plate");
         }
         if (!config.Companions || CompanionsAway())
         {
