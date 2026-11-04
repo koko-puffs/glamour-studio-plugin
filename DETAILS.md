@@ -542,6 +542,14 @@ about it until the plugin loads again (Send now in Closet asks again). A line in
 chose. Not linked, nothing's asked (nothing could be sent); on linking it is. The header's pill and the
 rail's line say "This character isn't sent yet: say yes or no" or "isn't sent to the site".
 
+**An answer you give stands until the site has it** (0.6.15). Answering (the question, or Settings →
+Account) puts the character in `Pending` (kept in the settings, so closing the game meanwhile changes
+nothing): the site's old answer is set aside, so nothing of that character is sent while the new one
+is on its way, and it's told again until the site confirms it (a failed telling is retried; Settings
+shows "telling the site"). A reading of the characters that started before your answer, or comes
+while it's pending, never overrides it; answering twice quickly tells the site the latest. Should the
+site answer no to a yes, no is taken (the safe way round).
+
 A sync the site refuses for a character you said no to there (hint `refused`) isn't shown as a
 problem: the character's answer here becomes no. Older plugins (0.4.x and before) never ask: the site
 keeps what they send of a character no one's answered for (private), and refuses one that's no, with
@@ -573,6 +581,44 @@ this one too, within a few minutes of a release.
 The workflows need Settings → Actions → General → Workflow permissions → Read and write.
 
 ## Release notes
+
+### 0.6.15
+
+A deep review of the whole plugin, by area, with every finding checked against the code, then the
+fixes reviewed again for regressions.
+
+- **Your answer about a character stands until the site has it**: a "No" could be undone by the
+  site's older "yes" (a failed telling was never retried, and a reading in flight could flip it back),
+  and the character kept being sent. Now nothing of it is sent until the site confirms your answer.
+- **Make room for me**: the run's real ending is no longer covered by "Storing N sets…" when it ends
+  at once; Stop always stores what came of a set first; a run can't hang when the dresser's data goes
+  away mid-step (a zone change); the first try is the smallest set, named the same in the question,
+  and its prisms and bag places are checked for that set alone; places freed no longer count pieces
+  that were already in your bags; Make room and Plate it can't run at once.
+- **Take out duplicates**: no longer re-checks one skipped piece every frame after a refusal; it
+  stops in combat; the second copy of a set is the one taken out when places close up.
+- **High-quality and outfit sets**: the outfit set window's set is the one holding every listed piece.
+- **Plates**: filling stops if the dresser changed since it was read (a slot would take another
+  piece); a fill no longer shows as on the plate once the plate was thrown away or changed by hand;
+  the Home hero's Wear button (always greyed out at the dresser) is a sentence saying what to do.
+- **Panels**: a look picked in a panel that's also the plate's plan reads as the plan; a plate that
+  keeps slots a look leaves bare counts as on it when "Empty the slots" is off; the armoire's Store
+  all keeps its spacing and tries a refused piece again, then says which didn't go; the fitting room
+  names the fullest matching look; "20+" ready when there are more; a pane that fails is logged once.
+- **The window**: an open look follows the site's reads (updated, or closed if it's gone); unlinking
+  leaves it; a screen that fails says so instead of going blank; an open question goes when the
+  window closes or the character changes.
+- **Reading**: the dresser is read only from the dresser (not from Glamour Plates opened at the
+  Character window, which could show another character's); a wardrobe.json that can't be read is set
+  aside, not overwritten; your character's colours are worked out once a session again.
+- **Shots**: never stuck "sending" or "taking" (timeouts), no texture released twice or leaked.
+- **The site**: gentler retries (a counted call no longer every minute after a failure); answers for
+  a character you've left are dropped; a failed "done with" is tried again; calls are built off the
+  game's thread.
+- **Speed**: text measuring, fitting, spaced capitals, paragraphs and dashed edges are cached; Sans 10
+  and Syne 13 are loaded (they drew at 11 and 15); missing game icons aren't asked for every frame;
+  the panels' armoire, fitting room and retainer lists, plans and plate menu are cached; long lists
+  skip rows out of sight; a recording's size is capped.
 
 ### 0.6.14
 
