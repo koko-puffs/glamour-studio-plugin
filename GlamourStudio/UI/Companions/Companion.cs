@@ -72,6 +72,18 @@ public sealed partial class MainWindow
     /// <summary>The plate <see cref="companionPick"/> is for (0: the next one picked).</summary>
     private int companionPickPlate;
 
+    /// <summary>
+    /// The look picked, as the site has it now: the plans and your looks are new objects after each
+    /// refresh, so it's found again by its id (the plan for the plate first), and an edit made on the
+    /// site shows. The look as it was picked when it's in neither (one sent to you, say).
+    /// </summary>
+    private Look? PickedLook(Look? planned)
+    {
+        if (companionPick is not { } pick) return null;
+        if (planned != null && planned.Id == pick.Id) return planned;
+        return PaneLooks().FirstOrDefault(l => l.Id == pick.Id) ?? pick;
+    }
+
     /// <summary>What the panels show, for a recording.</summary>
     internal string CompanionState() =>
         !config.Companions ? "panels off"
@@ -86,6 +98,17 @@ public sealed partial class MainWindow
     private Pane? lastPane;
     private WindowRect lastRect;
     private string? shopName;
+
+    /// <summary>The game window's state the panel shows, read once a frame (only for the panel shown).</summary>
+    private GameWindows.OutfitSetNow? paneOutfitSet;
+
+    private uint paneDyed;
+    private (ulong Id, string Name)? paneRetainer;
+
+    /// <summary>The last failure of a panel, and when it was logged (one that keeps failing is logged once a minute, not every frame).</summary>
+    private string? paneError;
+
+    private DateTime paneErrorAt;
 
     /// <summary>Whether the plates panel is on (then the main window doesn't open with the plate editor).</summary>
     /// <summary>Whether a panel's shown beside a game window (the site's looks are kept fresh meanwhile, as with the window open).</summary>
@@ -191,6 +214,10 @@ public sealed partial class MainWindow
         if (target.Pane is not (Pane.Plates or Pane.Dresser)) companionPick = null;
         lastPane = target.Pane;
         lastRect = target.Rect;
+        // What its title and body read of the game's window, once this frame.
+        paneOutfitSet = target.Pane == Pane.OutfitSet ? GameWindows.OutfitSet(data) : null;
+        paneDyed = target.Pane == Pane.Dye ? GameWindows.DyedItem(data) : 0;
+        paneRetainer = target.Pane == Pane.Retainer ? GameWindows.RetainerOpen() : null;
 
         Kit.ResetFrame();
         Frame.ResetFrame();
@@ -218,7 +245,15 @@ public sealed partial class MainWindow
         }
         catch (Exception ex)
         {
-            Services.Log.Warning(ex, "Glamour Studio's panel beside the game window failed");
+            // A pane that keeps failing fails every frame: the same failure is logged once a minute.
+            var what = ex.ToString();
+            var now = DateTime.UtcNow;
+            if (what != paneError || now - paneErrorAt > TimeSpan.FromMinutes(1))
+            {
+                paneError = what;
+                paneErrorAt = now;
+                Services.Log.Warning(ex, "Glamour Studio's panel beside the game window failed");
+            }
         }
         RunLater();
     }
@@ -380,13 +415,13 @@ public sealed partial class MainWindow
     {
         Pane.Plates => editorPlate > 0 ? $"Plate {editorPlate}" : "Glamour Plates",
         Pane.PlatesApply => "Your plates, by look",
-        Pane.OutfitSet => GameWindows.OutfitSet(data) is { SetItem: > 0 } set ? data.ItemName(set.SetItem) : "Storing an outfit set",
-        Pane.Dye => GameWindows.DyedItem(data) is > 0 and var item ? data.ItemName(item) : "Dyeing",
+        Pane.OutfitSet => paneOutfitSet is { SetItem: > 0 } set ? data.ItemName(set.SetItem) : "Storing an outfit set",
+        Pane.Dye => paneDyed is > 0 and var item ? data.ItemName(item) : "Dyeing",
         Pane.FittingRoom => "Trying on",
         Pane.Armoire => "At the armoire",
         Pane.Dresser => "At the dresser",
         Pane.Examine => examined is { Name.Length: > 0 } ex ? $"{ex.Name}'s outfit" : "Their outfit",
-        Pane.Retainer => GameWindows.RetainerOpen() is { } r && r.Name.Length > 0 ? $"On {r.Name}" : "A retainer's bags",
+        Pane.Retainer => paneRetainer is { } r && r.Name.Length > 0 ? $"On {r.Name}" : "A retainer's bags",
         Pane.Market => "Shopping list",
         _ => "Shopping list",
     };
@@ -399,7 +434,7 @@ public sealed partial class MainWindow
             var me = wardrobe.Current;
             return pane switch
             {
-                Pane.Dresser when Linked => ReadyLooks(0, null).Count is > 0 and var n ? n.ToString() : null,
+                Pane.Dresser when Linked => ReadyLooks(0, null).Count is > 0 and var n ? ReadyCount(n) : null,
                 Pane.Plates when editorPlate > 0 => editorPlate.ToString(),
                 Pane.Market or Pane.Shop when Linked => sync.Library.Wishes.Count is > 0 and var w ? w.ToString() : null,
                 Pane.Retainer when me != null => RetainerForLooks().Count is > 0 and var r ? r.ToString() : null,
@@ -417,7 +452,7 @@ public sealed partial class MainWindow
     {
         switch (pane)
         {
-            case Pane.Plates when (companionPick ?? sync.PlanFor(editorPlate)) is { } look:
+            case Pane.Plates when (PickedLook(sync.PlanFor(editorPlate)) ?? sync.PlanFor(editorPlate)) is { } look:
                 OpenLook(look, null, Screen.Plates);
                 break;
             case Pane.Plates or Pane.PlatesApply:
@@ -640,7 +675,7 @@ public sealed partial class MainWindow
     /// <summary>The looks the panels look through: yours, then the ones you love.</summary>
     private IEnumerable<Look> PaneLooks() => sync.Library.Mine.Concat(sync.Library.Loved);
 
-    /// <summary>The plate a look is on now (its pieces on it as they are), or 0.</summary>
+    /// <summary>The plate a look is on now (its pieces on it as they are), or 0. One that's the look exactly first.</summary>
     private int PlateWith(Look look)
     {
         var me = wardrobe.Current;
@@ -648,14 +683,20 @@ public sealed partial class MainWindow
         foreach (var p in me.Plates)
             if (p.Pieces.Count > 0 && OnPlate(look.Pieces, p.Pieces))
                 return p.Plate;
+        // With the slots a look leaves bare kept (Settings), a plate filled with it keeps what it had there.
+        if (!config.ClearBare)
+            foreach (var p in me.Plates)
+                if (p.Pieces.Count > 0 && OnPlate(look.Pieces, p.Pieces, true))
+                    return p.Plate;
         return 0;
     }
 
     /// <summary>
     /// A look on a plate: each of its pieces there with its dyes, and nothing else but a weapon it
-    /// doesn't have (a plate keeps the weapon a look leaves out).
+    /// doesn't have (a plate keeps the weapon a look leaves out). With <paramref name="allowExtra"/>,
+    /// anything else too: filling a plate keeps what the look leaves bare when Settings says so.
     /// </summary>
-    private static bool OnPlate(IReadOnlyDictionary<Slot, Piece> look, IReadOnlyDictionary<Slot, Piece> plate)
+    private static bool OnPlate(IReadOnlyDictionary<Slot, Piece> look, IReadOnlyDictionary<Slot, Piece> plate, bool allowExtra = false)
     {
         if (look.Count == 0) return false;
         foreach (var (slot, want) in look)
@@ -663,7 +704,7 @@ public sealed partial class MainWindow
             if (!plate.TryGetValue(slot, out var has) || LookJson.BaseId(has.Item) != LookJson.BaseId(want.Item) || has.Dye1 != want.Dye1 || has.Dye2 != want.Dye2)
                 return false;
         }
-        return plate.Keys.All(s => look.ContainsKey(s) || Slots.IsWeapon(s));
+        return allowExtra || plate.Keys.All(s => look.ContainsKey(s) || Slots.IsWeapon(s));
     }
 
     /// <summary>A look's pieces as the bottles and pieces to put on a list: the missing ones.</summary>

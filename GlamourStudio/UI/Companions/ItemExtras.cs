@@ -19,12 +19,14 @@ namespace GlamourStudio.UI;
 /// </summary>
 public sealed partial class MainWindow
 {
-    private (uint Item, int Sync, int Wardrobe, List<string> Lines)? tooltipCache;
+    private (uint Item, int Sync, int Wardrobe, (bool, bool) Live, List<string> Lines)? tooltipCache;
 
     /// <summary>What a tooltip says of a piece (nothing when none of your looks, plates or list has it).</summary>
     private List<string> TooltipFor(uint item)
     {
-        if (tooltipCache is { } c && c.Item == item && c.Sync == sync.Version && c.Wardrobe == wardrobe.Version) return c.Lines;
+        // (Where a piece is changes with the dresser and armoire read live, too.)
+        var live = (wardrobe.DresserLive, wardrobe.ArmoireLive);
+        if (tooltipCache is { } c && c.Item == item && c.Sync == sync.Version && c.Wardrobe == wardrobe.Version && c.Live == live) return c.Lines;
         var lines = new List<string>();
         var looks = PaneLooks().Where(l => l.Pieces.Values.Any(p => LookJson.BaseId(p.Item) == item)).Select(l => l.Name).Distinct().ToList();
         var me = wardrobe.Current;
@@ -48,7 +50,7 @@ public sealed partial class MainWindow
                     lines.Add("It's in your armoire");
                     break;
             }
-        tooltipCache = (item, sync.Version, wardrobe.Version, lines);
+        tooltipCache = (item, sync.Version, wardrobe.Version, live, lines);
         return lines;
     }
 
@@ -203,13 +205,9 @@ public sealed partial class MainWindow
             items.Add(new MenuItem
             {
                 Name = "Store it in the armoire",
-                OnClicked = _ =>
-                {
-                    var ok = Armoire.Store(row);
-                    recorder.Note($"ARMOIRE STORE row {row} ({name}) from the right-click menu: the game {(ok ? "took the ask" : "said no")}");
-                    if (ok) wardrobe.Tick(now: true);
-                    Services.Chat.Print(ok ? $"Glamour Studio: {name} is in the armoire." : $"Glamour Studio: the armoire didn't take {name}.");
-                },
+                // In line with the panel's Store and Store all (the game says no to a store while it's
+                // settling the last), and how it went is said in chat.
+                OnClicked = _ => QueueStore(row, name, Chat),
             });
         return items;
     }

@@ -143,6 +143,17 @@ public sealed partial class MainWindow
         }
     }
 
+    private (int Sync, int Wardrobe, string LookId, bool Extra, string[] Lines)? plateLines;
+
+    /// <summary>What each plate has on, for the menu: worked out again only when your looks, the wardrobe or the look change.</summary>
+    private string PlateLineCached(int plate, Look look)
+    {
+        var extra = !config.ClearBare;
+        if (plateLines is not { } c || c.Sync != sync.Version || c.Wardrobe != wardrobe.Version || c.LookId != look.Id || c.Extra != extra)
+            plateLines = c = (sync.Version, wardrobe.Version, look.Id, extra, Enumerable.Range(1, Plates.Count).Select(n => PlateLine(n, look)).ToArray());
+        return plate >= 1 && plate <= c.Lines.Length ? c.Lines[plate - 1] : PlateLine(plate, look);
+    }
+
     /// <summary>What a plate has on, in a few words, for the menu.</summary>
     private string PlateLine(int plate, Look look)
     {
@@ -152,7 +163,7 @@ public sealed partial class MainWindow
         string what;
         if (!read) what = string.Empty;
         else if (pieces == null || pieces.Count == 0) what = " · empty";
-        else if (OnPlate(look.Pieces, pieces)) what = " · this look";
+        else if (OnPlate(look.Pieces, pieces, !config.ClearBare)) what = " · this look";
         else
         {
             var on = PaneLooks().Concat(sync.Inbox.Select(s => s.Look)).FirstOrDefault(l => OnPlate(l.Pieces, pieces));
@@ -183,7 +194,7 @@ public sealed partial class MainWindow
         foreach (var n in order)
         {
             var plate = n;
-            if (Kit.MenuItem($"{id}-{plate}", PlateLine(plate, look), empty.Contains(plate) ? Icon.Layers : null, S(300)))
+            if (Kit.MenuItem($"{id}-{plate}", PlateLineCached(plate, look), empty.Contains(plate) ? Icon.Layers : null, S(300)))
             {
                 ImGui.CloseCurrentPopup();
                 var l = look;

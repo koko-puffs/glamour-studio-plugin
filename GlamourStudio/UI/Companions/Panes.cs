@@ -79,19 +79,20 @@ public sealed partial class MainWindow
             return;
         }
         var ready = ReadyLooks(0, null);
-        PaneHeading("Ready for a plate", Words.Count(ready.Count, "look"));
+        PaneHeading("Ready for a plate", $"{ReadyCount(ready.Count)} {(ready.Count == 1 ? "look" : "looks")}");
         if (ready.Count == 0) PaneNote("None of your looks has every piece in the dresser or armoire yet.");
         var shown = companionMore ? ready : ready.Take(4).ToList();
         foreach (var look in shown)
         {
+            if (SkipUnseen(S(48))) continue;
             var fromArmoire = look.Pieces.Values.Count(p => Where(p.Item) == Place.Armoire);
             var chip = fromArmoire == 0 ? $"All {look.Count} here" : $"{fromArmoire} from the armoire";
             if (LookPaneRow($"##c-plate-{look.Id}", look, null, chip, fromArmoire == 0 ? ChipKind.Ok : ChipKind.Plain, "Plate it", plateIt != null || AutoBusy,
-                    "Pick a plate: the plugin opens Glamour Plates, picks that plate and fills it. You press Save in the game's window.", ReferenceEquals(companionPick, look)))
+                    "Pick a plate: the plugin opens Glamour Plates, picks that plate and fills it. You press Save in the game's window.", companionPick?.Id == look.Id))
                 OpenPlateItMenu("##c-plate-it", look);
         }
         DrawPlateItMenu("##c-plate-it");
-        if (!companionMore && ready.Count > 4) MoreLink("##c-more-ready", ready.Count - 4);
+        if (!companionMore && ready.Count > 4) MoreLink("##c-more-ready", ready.Count - 4, ready.Count >= ReadyCap);
         Kit.Gap(16);
 
         var bring = BringToDresser();
@@ -103,6 +104,7 @@ public sealed partial class MainWindow
         }
         foreach (var (item, _, look) in companionMore ? bring : bring.Take(6))
         {
+            if (SkipUnseen(S(40))) continue;
             var (chip, kind) = WhereChipOf(item);
             PieceRow($"##c-bring-{item}", item, null, null, $"for {look}", chip, kind);
         }
@@ -112,11 +114,31 @@ public sealed partial class MainWindow
     }
 
     /// <summary>"and N more" under a list cut short: pressed, the panel's lists show in full.</summary>
-    private void MoreLink(string id, int more)
+    /// <param name="atLeast">The list itself was cut short (there may be more than it holds): "N+".</param>
+    private void MoreLink(string id, int more, bool atLeast = false)
     {
         var at = Kit.At;
-        if (Kit.Link(id, at, $"and {more} more", 12)) Later(() => companionMore = true);
+        if (Kit.Link(id, at, $"and {more}{(atLeast ? "+" : string.Empty)} more", 12)) Later(() => companionMore = true);
         Kit.Reserve(at, Kit.Width, Txt.Natural(Face.Sans, 12) + S(4));
+    }
+
+    /// <summary>How many looks <see cref="ReadyLooks"/> holds at most (it stops looking there).</summary>
+    private const int ReadyCap = 20;
+
+    /// <summary>How many looks are ready, "20+" when the list stopped at its most.</summary>
+    private static string ReadyCount(int n) => n >= ReadyCap ? $"{n.ToString(En)}+" : n.ToString(En);
+
+    /// <summary>
+    /// For a row of <paramref name="h"/> at the cursor in a long list: when it's scrolled out of
+    /// sight, its room is taken and true returned, so it isn't laid out for nothing.
+    /// </summary>
+    private static bool SkipUnseen(float h)
+    {
+        var at = Kit.At;
+        var w = Kit.Width;
+        if (ImGui.IsRectVisible(at, at + new Vector2(w, h))) return false;
+        Kit.Reserve(at, w, h);
+        return true;
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -134,7 +156,7 @@ public sealed partial class MainWindow
         // on whichever plate you pick, until it fills one.
         if (companionPick != null && companionPickPlate != 0 && companionPickPlate != plate) companionPick = null;
         var planned = sync.PlanFor(plate);
-        var look = companionPick ?? planned;
+        var look = PickedLook(planned) ?? planned;
         var current = EditorPieces(plate);
         if (look == null)
         {
@@ -142,7 +164,8 @@ public sealed partial class MainWindow
             return;
         }
 
-        var on = OnPlate(look.Pieces, current);
+        // (With the slots a look leaves bare kept, Fill leaves what the plate had there.)
+        var on = OnPlate(look.Pieces, current, !config.ClearBare);
         // The look: where it came from, its name (opens it in the plugin), on the plate or not yet.
         {
             var fill = on ? Palette.SuccessWash : Palette.RoseWash;
@@ -160,7 +183,7 @@ public sealed partial class MainWindow
             var lh = Txt.Natural(Face.Sans, 11);
             var nh = Txt.Natural(Face.SansSemibold, 13);
             var ty = at.Y + (m - lh - nh) / 2;
-            var from = ReferenceEquals(look, planned) ? "Planned on the site" : "Picked here";
+            var from = planned != null && look.Id == planned.Id ? "Planned on the site" : "Picked here";
             Txt.Draw(Kit.Dl, new Vector2(x, ty), from, Face.Sans, 11, Palette.Muted);
             if (Kit.Link("##c-plan-open", new Vector2(x, ty + lh), Txt.Fit(look.Name, Face.SansSemibold, 13, tw), 13, Face.SansSemibold))
             {
@@ -170,7 +193,7 @@ public sealed partial class MainWindow
             Kit.Reserve(at, w, m);
             Kit.EndPanel();
         }
-        if (companionPick != null && planned != null && !ReferenceEquals(companionPick, planned))
+        if (companionPick != null && planned != null && companionPick.Id != planned.Id)
         {
             Kit.Gap(6);
             var at = Kit.At;
@@ -245,10 +268,11 @@ public sealed partial class MainWindow
                 on ? "It's on the plate already" : can ? "Fills the plate in the game's window. Nothing's saved until you press Save there." : "None of its pieces is in your dresser or armoire"))
         {
             var l = look;
+            var lp = thePlan;
             Later(() =>
             {
                 if (companionPick != null) companionPickPlate = plate;
-                Fill(l, PlanCached(l));
+                Fill(l, lp);
             });
         }
         var ox = row.X + Kit.ButtonWidth(label, BtnSize.Sm, Icon.Layers, Btn.Primary) + S(6);
@@ -400,12 +424,29 @@ public sealed partial class MainWindow
     // ---------------------------------------------------------------------------------------------
     // The armoire: your looks' pieces in it, what from your bags it takes, what could move there.
 
-    /// <summary>Armoire rows waiting to be stored one by one (Store all), and when the last went.</summary>
-    private readonly Queue<(uint Row, string Name)> storeQueue = new();
+    /// <summary>
+    /// Armoire rows waiting to be stored one by one (a row's Store, Store all, the right-click menu),
+    /// and when the last went. Say: where to say how it went (a toast when null, else a line in chat).
+    /// </summary>
+    private readonly Queue<(uint Row, string Name, Action<string>? Say)> storeQueue = new();
 
     private DateTime lastStored;
 
-    /// <summary>Stores the next of Store all's pieces, half a second after the last (from the panel's frame).</summary>
+    /// <summary>The row the game last said no to, and how many times (a count for another row starts again).</summary>
+    private (uint Row, int Times) storeRefused;
+
+    /// <summary>Puts a piece in line to be stored (once), and stores it now if nothing's before it.</summary>
+    private void QueueStore(uint row, string name, Action<string>? say = null)
+    {
+        if (storeQueue.All(q => q.Row != row)) storeQueue.Enqueue((row, name, say));
+        StoreNext();
+    }
+
+    /// <summary>
+    /// Stores the next piece in line, half a second after the last (every frame). It stays at the head
+    /// until the game takes it: the game says no while it's settling the last one, so it's asked again,
+    /// and given up on (and said so) after three noes.
+    /// </summary>
     private void StoreNext()
     {
         if (storeQueue.Count == 0 || DateTime.UtcNow - lastStored < TimeSpan.FromSeconds(0.6)) return;
@@ -414,15 +455,67 @@ public sealed partial class MainWindow
             storeQueue.Clear();
             return;
         }
-        var (row, name) = storeQueue.Dequeue();
+        var (row, name, say) = storeQueue.Peek();
         lastStored = DateTime.UtcNow;
-        var ok = Armoire.Store(row);
-        recorder.Note($"ARMOIRE STORE row {row} ({name}) from the panel: the game {(ok ? "took the ask" : "said no")}");
-        if (ok) storing[row] = DateTime.UtcNow;
+        // In there already (stored by hand meanwhile): nothing to ask.
+        if (wardrobe.ArmoireNow.Values.Contains(row))
+            storeQueue.Dequeue();
+        else
+        {
+            var ok = Armoire.Store(row);
+            recorder.Note($"ARMOIRE STORE row {row} ({name}): the game {(ok ? "took the ask" : "said no")}");
+            if (ok)
+            {
+                storing[row] = DateTime.UtcNow;
+                storeQueue.Dequeue();
+                storeRefused = default;
+                say?.Invoke($"{name} is in the armoire.");
+            }
+            else
+            {
+                storeRefused = (row, storeRefused.Row == row ? storeRefused.Times + 1 : 1);
+                if (storeRefused.Times >= 3)
+                {
+                    storeQueue.Dequeue();
+                    storeRefused = default;
+                    (say ?? Notify)($"The armoire didn't take {name}");
+                }
+            }
+        }
         if (storeQueue.Count == 0) wardrobe.Tick(now: true);
     }
 
     private bool armoireWhich;
+
+    private (int Wardrobe, int Sync, bool Live, IReadOnlyDictionary<uint, uint> Now, Dictionary<uint, string> LookItems, List<uint> InArmoire,
+        List<(uint Item, uint Row)> Bags, List<uint> FromDresser)? armoireCache;
+
+    /// <summary>
+    /// What the armoire panel lists: your looks' pieces (with a look that has each), those in the
+    /// armoire, what from your bags it takes, what in the dresser it would. Worked out again only when
+    /// the wardrobe, your looks or the armoire as read changed (what you wear is in the wardrobe).
+    /// </summary>
+    private (Dictionary<uint, string> LookItems, List<uint> InArmoire, List<(uint Item, uint Row)> Bags, List<uint> FromDresser) ArmoireLists(CharacterWardrobe me)
+    {
+        var armoireNow = wardrobe.ArmoireNow;
+        if (armoireCache is { } c && c.Wardrobe == wardrobe.Version && c.Sync == sync.Version && c.Live == wardrobe.ArmoireLive && ReferenceEquals(c.Now, armoireNow))
+            return (c.LookItems, c.InArmoire, c.Bags, c.FromDresser);
+        var lookItems = new Dictionary<uint, string>();
+        foreach (var l in PaneLooks())
+            foreach (var p in l.Pieces.Values)
+                lookItems.TryAdd(LookJson.BaseId(p.Item), l.Name);
+        var inArmoire = armoireNow.Keys.Where(lookItems.ContainsKey).ToList();
+        var bags = (me.Get(Place.Inventory)?.Items ?? new HashSet<uint>()).Concat(me.Get(Place.Armoury)?.Items ?? new HashSet<uint>())
+            .Select(LookJson.BaseId).Distinct()
+            .Select(i => (Item: i, Row: data.CabinetOf(i)))
+            .Where(x => x.Row is { } r && !armoireNow.ContainsKey(x.Item) && !Armoire.IsWorn(x.Item))
+            .Select(x => (x.Item, Row: x.Row!.Value))
+            .ToList();
+        var fromDresser = me.Dresser.Where(d => !d.InSet).Select(d => LookJson.BaseId(d.Item)).Distinct()
+            .Where(i => data.CabinetOf(i) != null && !armoireNow.ContainsKey(i)).ToList();
+        armoireCache = (wardrobe.Version, sync.Version, wardrobe.ArmoireLive, armoireNow, lookItems, inArmoire, bags, fromDresser);
+        return (lookItems, inArmoire, bags, fromDresser);
+    }
 
     private void PaneArmoire()
     {
@@ -432,42 +525,31 @@ public sealed partial class MainWindow
             PaneNote("Log in with a character to see your armoire here.");
             return;
         }
-        var lookItems = new Dictionary<uint, string>();
-        foreach (var l in PaneLooks())
-            foreach (var p in l.Pieces.Values)
-                lookItems.TryAdd(LookJson.BaseId(p.Item), l.Name);
-        var inArmoire = wardrobe.ArmoireNow.Keys.Where(lookItems.ContainsKey).ToList();
+        var (lookItems, inArmoire, bags, fromDresser) = ArmoireLists(me);
+        var armoireOpen = Armoire.IsOpen;
         PaneHeading("Your looks' pieces in here", Words.Count(inArmoire.Count, "piece"));
         if (!Linked) PaneNote("Link your account (Settings → Account) to see which of your looks' pieces are here.");
         else if (inArmoire.Count == 0) PaneNote("None of your looks' pieces is in the armoire.");
         foreach (var item in (companionMore ? inArmoire : inArmoire.Take(4)))
-            PieceRow($"##c-arm-{item}", item, null, null, lookItems[item], null, ChipKind.Plain);
+            if (!SkipUnseen(S(40)))
+                PieceRow($"##c-arm-{item}", item, null, null, lookItems[item], null, ChipKind.Plain);
         if (!companionMore && inArmoire.Count > 4) MoreLink("##c-more-arm", inArmoire.Count - 4);
         if (inArmoire.Count > 0) PaneNote("Plates take these straight from the armoire: no need to move them.");
         Kit.Gap(16);
 
         // From your bags and armoury chest, what the armoire takes.
-        var bags = (me.Get(Place.Inventory)?.Items ?? new HashSet<uint>()).Concat(me.Get(Place.Armoury)?.Items ?? new HashSet<uint>())
-            .Select(LookJson.BaseId).Distinct()
-            .Select(i => (Item: i, Row: data.CabinetOf(i)))
-            .Where(x => x.Row is { } r && !wardrobe.ArmoireNow.ContainsKey(x.Item) && !Armoire.IsWorn(x.Item))
-            .Select(x => (x.Item, Row: x.Row!.Value))
-            .ToList();
         PaneHeading("The armoire takes these", Words.Count(bags.Count, "piece"));
         PaneNote(bags.Count == 0 ? "Nothing in your bags or armoury chest that the armoire takes." : "From your bags and armoury chest.");
         Kit.Gap(4);
         var now = DateTime.UtcNow;
         foreach (var (item, row) in companionMore ? bags : bags.Take(6))
         {
+            if (SkipUnseen(S(32))) continue;
             var asked = storing.TryGetValue(row, out var t) && now - t < TimeSpan.FromSeconds(5) || storeQueue.Any(q => q.Row == row);
             var name = data.ItemName(item);
-            if (PieceRow($"##c-store-{item}", item, null, null, null, null, ChipKind.Plain, asked ? "Storing…" : "Store", asked || !Armoire.IsOpen))
-                Later(() =>
-                {
-                    storeQueue.Enqueue((row, name));
-                    lastStored = DateTime.MinValue;
-                    StoreNext();
-                });
+            // (Not while Store all goes: one at a time, half a second apart.)
+            if (PieceRow($"##c-store-{item}", item, null, null, null, null, ChipKind.Plain, asked ? "Storing…" : "Store", asked || !armoireOpen || storeQueue.Count > 0))
+                Later(() => QueueStore(row, name));
         }
         if (!companionMore && bags.Count > 6) MoreLink("##c-more-bags", bags.Count - 6);
         if (bags.Count > 1)
@@ -475,16 +557,16 @@ public sealed partial class MainWindow
             Kit.Gap(8);
             var at = Kit.At;
             var label = $"Store all {bags.Count}";
-            if (Kit.Button("##c-store-all", at, label, Btn.Primary, BtnSize.Sm, Icon.Archive, 0, storeQueue.Count > 0 || !Armoire.IsOpen,
+            if (Kit.Button("##c-store-all", at, label, Btn.Primary, BtnSize.Sm, Icon.Archive, 0, storeQueue.Count > 0 || !armoireOpen,
                     "One by one, half a second apart"))
             {
                 var all = bags.Select(b => (b.Row, data.ItemName(b.Item))).ToList();
                 Later(() =>
                 {
-                    foreach (var b in all)
-                        if (storeQueue.All(q => q.Row != b.Row))
-                            storeQueue.Enqueue(b);
-                    lastStored = DateTime.MinValue;
+                    // (The first goes half a second after the last store, as the rest do.)
+                    foreach (var (row, name) in all)
+                        if (storeQueue.All(q => q.Row != row))
+                            storeQueue.Enqueue((row, name, null));
                     Notify($"Storing {Words.Count(all.Count, "piece")}…");
                 });
             }
@@ -493,8 +575,6 @@ public sealed partial class MainWindow
         Kit.Gap(16);
 
         // In the dresser, pieces the armoire would take.
-        var fromDresser = me.Dresser.Where(d => !d.InSet).Select(d => LookJson.BaseId(d.Item)).Distinct()
-            .Where(i => data.CabinetOf(i) != null && !wardrobe.ArmoireNow.ContainsKey(i)).ToList();
         if (fromDresser.Count > 0)
         {
             Kit.BeginPanel("##c-from-dresser", 10, 12, 10, Palette.Card, Palette.Line, 12);
@@ -518,7 +598,7 @@ public sealed partial class MainWindow
 
     private void PaneOutfitSet()
     {
-        var set = GameWindows.OutfitSet(data);
+        var set = paneOutfitSet;
         if (set == null)
         {
             PaneNote("Pick an outfit set in the game's window.");
@@ -528,7 +608,8 @@ public sealed partial class MainWindow
         var pieces = set.SetItem != 0 ? data.SetPieces(set.SetItem).Select(p => LookJson.BaseId(p.Item)).ToList() : new List<uint>();
         if (pieces.Count == 0) pieces = set.Pieces.Select(p => p.Item).ToList();
         var loose = me?.Dresser.Count(d => !d.InSet && pieces.Contains(LookJson.BaseId(d.Item))) ?? 0;
-        var stored = me?.Dresser.Any(d => LookJson.BaseId(d.SetItem) == set.SetItem) == true;
+        // Stored already: a set in the dresser of this very id (a high-quality copy's id is a million more, a set of its own).
+        var stored = set.SetItem != 0 && me?.Dresser.Any(d => d.InSet && d.SetItem == set.SetItem) == true;
         var frees = stored ? loose : Math.Max(0, loose - 1);
         var users = PaneLooks().Where(l => l.Pieces.Values.Any(p => pieces.Contains(LookJson.BaseId(p.Item)))).ToList();
 
@@ -578,15 +659,43 @@ public sealed partial class MainWindow
     private bool tryReady;
     private string? triedId;
 
-    /// <summary>The look the fitting room shows (the one tried on from the plugin, or one of yours that matches), or null.</summary>
-    private Look? FittingLook()
+    private (int Sync, string? Tried, Dictionary<Slot, Piece> Shown, Look? Look)? fittingCache;
+
+    /// <summary>
+    /// The look the fitting room shows (the one tried on from the plugin, or the one of yours that
+    /// matches most pieces: a hat of a look isn't the whole outfit), or null. Worked out again only
+    /// when what's shown or your looks changed.
+    /// </summary>
+    private Look? FittingLook(IReadOnlyDictionary<Slot, Piece>? shownNow = null)
     {
-        var shown = FittingRoom.Shown(data);
+        var shown = shownNow ?? FittingRoom.Shown(data);
         if (shown.Count == 0) return null;
-        if (triedId != null && PaneLooks().FirstOrDefault(l => l.Id == triedId) is { } tried
-            && tried.Pieces.Values.All(p => shown.Values.Any(s => LookJson.BaseId(s.Item) == LookJson.BaseId(p.Item))))
-            return tried;
-        return PaneLooks().FirstOrDefault(l => l.Count > 0 && l.Pieces.Values.All(p => shown.Values.Any(s => LookJson.BaseId(s.Item) == LookJson.BaseId(p.Item))));
+        if (fittingCache is { } c && c.Sync == sync.Version && c.Tried == triedId && c.Shown.Count == shown.Count
+            && shown.All(kv => c.Shown.TryGetValue(kv.Key, out var p) && p == kv.Value))
+            return c.Look;
+        var ids = shown.Values.Select(s => LookJson.BaseId(s.Item)).ToHashSet();
+        bool AllShown(Look l) => l.Pieces.Values.All(p => ids.Contains(LookJson.BaseId(p.Item)));
+        Look? found = null;
+        if (triedId != null && PaneLooks().FirstOrDefault(l => l.Id == triedId) is { } tried && AllShown(tried))
+            found = tried;
+        else
+            foreach (var l in PaneLooks())
+                if (l.Count > (found?.Count ?? 0) && AllShown(l))
+                    found = l;
+        fittingCache = (sync.Version, triedId, new Dictionary<Slot, Piece>(shown), found);
+        return found;
+    }
+
+    private (int Sync, int Wardrobe, bool Ready, (bool, bool) Live, List<Look> List)? tryListCache;
+
+    /// <summary>The looks the fitting room steps through (the ready ones only, when picked), worked out again when they or the wardrobe change.</summary>
+    private List<Look> TryList()
+    {
+        var live = (wardrobe.DresserLive, wardrobe.ArmoireLive);
+        if (tryListCache is { } c && c.Sync == sync.Version && c.Wardrobe == wardrobe.Version && c.Ready == tryReady && c.Live == live) return c.List;
+        var list = PaneLooks().Where(l => l.Count > 0 && (!tryReady || ReadinessOf(l).PlateReady)).ToList();
+        tryListCache = (sync.Version, wardrobe.Version, tryReady, live, list);
+        return list;
     }
 
     private void TryOnLook(Look look)
@@ -599,7 +708,7 @@ public sealed partial class MainWindow
 
     private void PaneFittingRoom()
     {
-        var list = PaneLooks().Where(l => l.Count > 0 && (!tryReady || ReadinessOf(l).PlateReady)).ToList();
+        var list = TryList();
         var seg = Kit.SegmentedPress("##c-try-seg", Kit.At, new[] { "All looks", "Ready for a plate" }, tryReady ? 1 : 0, 0, Kit.Width);
         if (seg >= 0)
             Later(() =>
@@ -610,8 +719,8 @@ public sealed partial class MainWindow
         Kit.Reserve(Kit.At, Kit.Width, S(40));
         Kit.Gap(12);
 
-        var look = FittingLook();
         var shown = FittingRoom.Shown(data);
+        var look = FittingLook(shown);
         if (look != null && list.FindIndex(l => l.Id == look.Id) is >= 0 and var idx) tryIndex = idx;
         // The arrows: the look before or after, put on in the fitting room.
         {
@@ -840,65 +949,101 @@ public sealed partial class MainWindow
 
     private bool retainerWhich;
 
-    /// <summary>The open retainer's pieces your looks use and that aren't where a plate takes them from (with a look that has each).</summary>
-    private List<(uint Item, string Look)> RetainerForLooks()
+    private sealed class RetainerLists
     {
-        var list = new List<(uint, string)>();
+        public required int Wardrobe { get; init; }
+        public required int Sync { get; init; }
+        public required ulong Retainer { get; init; }
+        public required (bool, bool) Live { get; init; }
+
+        /// <summary>Its pieces your looks use and that aren't where a plate takes them from (with a look that has each).</summary>
+        public required List<(uint Item, string Look)> ForLooks { get; init; }
+
+        /// <summary>Its glamour no look uses that the armoire takes, and how much glamour no look uses.</summary>
+        public required List<uint> Armoire { get; init; }
+
+        public required int Glamour { get; init; }
+
+        /// <summary>For each of your other retainers read: how many of its pieces your looks use (worked out as they're shown).</summary>
+        public Dictionary<string, int> Others { get; } = new();
+    }
+
+    private RetainerLists? retainerCache;
+
+    /// <summary>
+    /// What the retainer panel lists for the retainer open (null when none is, or it isn't read yet),
+    /// worked out again only when the wardrobe, your looks or the retainer changed.
+    /// </summary>
+    private RetainerLists? RetainerFor((ulong Id, string Name)? open)
+    {
         var me = wardrobe.Current;
-        if (me == null || GameWindows.RetainerOpen() is not { } r || !me.Retainers.TryGetValue(r.Id.ToString(En), out var read)) return list;
+        if (me == null || open is not { } r || !me.Retainers.TryGetValue(r.Id.ToString(En), out var read)) return null;
+        var live = (wardrobe.DresserLive, wardrobe.ArmoireLive);
+        if (retainerCache is { } c && c.Wardrobe == wardrobe.Version && c.Sync == sync.Version && c.Retainer == r.Id && c.Live == live) return c;
         var lookItems = LookItems();
+        var forLooks = new List<(uint, string)>();
         foreach (var raw in read.Items)
         {
             var id = LookJson.BaseId(raw);
-            if (lookItems.TryGetValue(id, out var look) && Where(id) is not (Place.Dresser or Place.Armoire)) list.Add((id, look));
+            if (lookItems.TryGetValue(id, out var look) && Where(id) is not (Place.Dresser or Place.Armoire)) forLooks.Add((id, look));
         }
-        return list;
+        var armoire = read.Items.Select(LookJson.BaseId).Distinct()
+            .Where(i => !lookItems.ContainsKey(i) && data.CabinetOf(i) != null && !wardrobe.ArmoireNow.ContainsKey(i) && me.Get(Place.Armoire)?.Items.Contains(i) != true)
+            .ToList();
+        var glamour = read.Items.Select(LookJson.BaseId).Distinct().Count(i => !lookItems.ContainsKey(i));
+        return retainerCache = new RetainerLists
+        {
+            Wardrobe = wardrobe.Version, Sync = sync.Version, Retainer = r.Id, Live = live,
+            ForLooks = forLooks, Armoire = armoire, Glamour = glamour,
+        };
     }
 
-    private (int Sync, Dictionary<uint, string> Items)? lookItemsCache;
+    /// <summary>The open retainer's pieces your looks use and that aren't where a plate takes them from (with a look that has each).</summary>
+    private List<(uint Item, string Look)> RetainerForLooks() => RetainerFor(paneRetainer)?.ForLooks ?? new List<(uint, string)>();
 
-    /// <summary>Every piece in your looks (and the ones planned for your plates), with a look that has it.</summary>
+    private (int Sync, string? Character, Dictionary<uint, string> Items)? lookItemsCache;
+
+    /// <summary>Every piece in your looks (and the ones planned for your plates: the character's), with a look that has it.</summary>
     private Dictionary<uint, string> LookItems()
     {
-        if (lookItemsCache is { } c && c.Sync == sync.Version) return c.Items;
+        var character = wardrobe.Current?.Key;
+        if (lookItemsCache is { } c && c.Sync == sync.Version && c.Character == character) return c.Items;
         var map = new Dictionary<uint, string>();
         var plans = Enumerable.Range(1, Plates.Count).Select(sync.PlanFor).OfType<Look>();
         foreach (var l in plans.Concat(PaneLooks()))
             foreach (var p in l.Pieces.Values)
                 map.TryAdd(LookJson.BaseId(p.Item), l.Name);
-        lookItemsCache = (sync.Version, map);
+        lookItemsCache = (sync.Version, character, map);
         return map;
     }
 
     private void PaneRetainer()
     {
         var me = wardrobe.Current;
-        var open = GameWindows.RetainerOpen();
+        var open = paneRetainer;
         if (me == null || open is not { } r)
         {
             PaneNote("Reading the retainer's bags…");
             return;
         }
-        if (!me.Retainers.TryGetValue(r.Id.ToString(En), out var read))
+        if (RetainerFor(open) is not { } lists)
         {
             PaneNote("Reading the retainer's bags… (each page is read as it loads)");
             return;
         }
-        var forLooks = RetainerForLooks();
+        var forLooks = lists.ForLooks;
         PaneHeading("Your looks use these", Words.Count(forLooks.Count, "piece"));
         if (!Linked) PaneNote("Link your account (Settings → Account) to see which of your looks' pieces are here.");
         else if (forLooks.Count == 0) PaneNote("None of your looks' pieces is on this retainer (or you have them in the dresser already).");
         foreach (var (item, look) in companionMore ? forLooks : forLooks.Take(6))
-            PieceRow($"##c-ret-{item}", item, null, null, look, null, ChipKind.Plain);
+            if (!SkipUnseen(S(40)))
+                PieceRow($"##c-ret-{item}", item, null, null, look, null, ChipKind.Plain);
         if (!companionMore && forLooks.Count > 6) MoreLink("##c-more-ret", forLooks.Count - 6);
         if (forLooks.Count > 0) PaneNote("Take them and put them in the dresser to plate those looks.");
         Kit.Gap(16);
 
-        var lookItems = LookItems();
-        var armoire = read.Items.Select(LookJson.BaseId).Distinct()
-            .Where(i => !lookItems.ContainsKey(i) && data.CabinetOf(i) != null && !wardrobe.ArmoireNow.ContainsKey(i) && me.Get(Place.Armoire)?.Items.Contains(i) != true)
-            .ToList();
-        var glamour = read.Items.Select(LookJson.BaseId).Distinct().Count(i => !lookItems.ContainsKey(i));
+        var armoire = lists.Armoire;
+        var glamour = lists.Glamour;
         PaneHeading("Glamour no look uses", Words.Count(glamour, "piece"));
         if (armoire.Count > 0)
         {
@@ -929,10 +1074,15 @@ public sealed partial class MainWindow
         {
             string text;
             var kind = ChipKind.Plain;
-            if (!me.Retainers.TryGetValue(id.ToString(En), out var their)) text = $"{name} · not read yet";
+            var key = id.ToString(En);
+            if (!me.Retainers.TryGetValue(key, out var their)) text = $"{name} · not read yet";
             else
             {
-                var n = their.Items.Select(LookJson.BaseId).Distinct().Count(i => lookItems.ContainsKey(i) && Where(i) is not (Place.Dresser or Place.Armoire));
+                if (!lists.Others.TryGetValue(key, out var n))
+                {
+                    var lookItems = LookItems();
+                    lists.Others[key] = n = their.Items.Select(LookJson.BaseId).Distinct().Count(i => lookItems.ContainsKey(i) && Where(i) is not (Place.Dresser or Place.Armoire));
+                }
                 text = n > 0 ? $"{name} · {n} for your looks" : $"{name} · none";
                 if (n > 0) kind = ChipKind.Rose;
             }
