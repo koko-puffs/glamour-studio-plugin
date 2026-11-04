@@ -23,12 +23,12 @@
     "LoadPriority": 0,
     "IconUrl": "https://raw.githubusercontent.com/koko-puffs/glamour-studio-plugin/main/GlamourStudio/images/icon.png",
     "AcceptsFeedback": true,
-    "AssemblyVersion": "0.6.14.0",
-    "TestingAssemblyVersion": "0.6.14.0",
-    "DownloadLinkInstall": "https://github.com/koko-puffs/glamour-studio-plugin/releases/download/v0.6.14/GlamourStudio.zip",
-    "DownloadLinkUpdate": "https://github.com/koko-puffs/glamour-studio-plugin/releases/download/v0.6.14/GlamourStudio.zip",
-    "DownloadLinkTesting": "https://github.com/koko-puffs/glamour-studio-plugin/releases/download/v0.6.14/GlamourStudio.zip",
-    "LastUpdate": 1793756646,
+    "AssemblyVersion": "0.6.15.0",
+    "TestingAssemblyVersion": "0.6.15.0",
+    "DownloadLinkInstall": "https://github.com/koko-puffs/glamour-studio-plugin/releases/download/v0.6.15/GlamourStudio.zip",
+    "DownloadLinkUpdate": "https://github.com/koko-puffs/glamour-studio-plugin/releases/download/v0.6.15/GlamourStudio.zip",
+    "DownloadLinkTesting": "https://github.com/koko-puffs/glamour-studio-plugin/releases/download/v0.6.15/GlamourStudio.zip",
+    "LastUpdate": 1793771246,
     "IsHide": false,
     "IsTestingExclusive": false
   }
