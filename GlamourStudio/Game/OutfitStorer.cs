@@ -176,7 +176,7 @@ public static unsafe class OutfitStorer
         {
             // The dresser's data gone (a zone change, logging out) while a step was waited on: its
             // deadline still ends it, else it would wait for good.
-            if (now > deadline + TimeSpan.FromSeconds(5)) Finish("The dresser's data went away (did you change zone?)", false);
+            if (waiting && now > deadline + TimeSpan.FromSeconds(5)) Finish("The dresser's data went away (did you change zone?)", false);
             return;
         }
         switch (phase)

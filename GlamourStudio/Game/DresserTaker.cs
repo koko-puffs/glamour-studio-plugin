@@ -90,7 +90,7 @@ public static unsafe class DresserTaker
         if (mgr == null || inv == null || !mgr->PrismBoxLoaded)
         {
             // The dresser's data gone while a piece was waited on: its deadline still ends it.
-            if (now > deadline + TimeSpan.FromSeconds(5)) Finish("The dresser's data went away (did you change zone?)", false);
+            if (phase == Phase.Waiting && now > deadline + TimeSpan.FromSeconds(5)) Finish("The dresser's data went away (did you change zone?)", false);
             return;
         }
         switch (phase)
