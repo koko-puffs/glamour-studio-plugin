@@ -103,7 +103,8 @@ public static unsafe class DresserTaker
                     Finish("Stopped", false);
                     break;
                 }
-                if (queue.Count == 0)
+                // (Not while the last one's being asked again after a refusal: it's still to come.)
+                if (queue.Count == 0 && tries == 0)
                 {
                     Finish($"{Words.Count(Done, "duplicate")} taken out to your bags", true);
                     break;
@@ -227,6 +228,7 @@ public static unsafe class DresserTaker
 
     private static void Finish(string words, bool allWent)
     {
+        tries = 0;
         if (skipped.Count > 0) words += $". Left in the dresser: {Words.List(skipped.Distinct().Take(6))}{(skipped.Count > 6 ? " and more" : string.Empty)}";
         if (!allWent && Done > 0) words += $". Taken out before that: {Done}";
         Recorder.Log($"TAKE OUT end: {words}");

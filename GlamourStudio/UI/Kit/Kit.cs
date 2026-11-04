@@ -355,6 +355,9 @@ public static partial class Kit
         var x = pos.X + S(1) + S(3);
         var result = -1;
         ImGui.PushID(id);
+        // (Popped whatever happens: a throw inside would leave the ID stack unbalanced.)
+        try
+        {
         for (var i = 0; i < items.Count; i++)
         {
             var w = Txt.Measure(items[i], Face.SansMedium, 13).X + pad * 2;
@@ -375,7 +378,11 @@ public static partial class Kit
             FocusRing(p + new Vector2(S(4)), p + size - new Vector2(S(4)), size.Y / 2 - S(4));
             x += w + S(2);
         }
-        ImGui.PopID();
+        }
+        finally
+        {
+            ImGui.PopID();
+        }
         return result;
     }
 
@@ -527,6 +534,8 @@ public static partial class Kit
         dl.AddRect(pos + new Vector2(0.5f), pos + new Vector2(w, h) - new Vector2(0.5f), Palette.U32(Palette.LineStrong), h / 2, ImDrawFlags.None, 1f);
         var result = 0;
         ImGui.PushID(id);
+        try
+        {
         for (var side = 0; side < 2; side++)
         {
             var down = side == 0;
@@ -543,7 +552,11 @@ public static partial class Kit
             Palette.Opacity = old;
             FocusRing(p + new Vector2(S(4)), p + new Vector2(h - S(4)), h / 2 - S(4));
         }
-        ImGui.PopID();
+        }
+        finally
+        {
+            ImGui.PopID();
+        }
         Txt.Line(dl, new Vector2(pos.X + h + (valueW - tw) / 2, pos.Y), value, Face.Mono, 13, Palette.Ink, 36);
         return result;
     }

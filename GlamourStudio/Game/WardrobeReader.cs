@@ -188,6 +188,9 @@ public sealed unsafe class WardrobeReader
         foreach (var w in SaddlebagWindows.Concat(DresserWindows).Concat(ArmoireWindows).Concat(PlateWindows))
             if (!seenOpen.Contains(w) && IsOpen(w))
                 seenOpen.Add(w);
+        // Glamour Plates opened at the dresser (the dresser's button closes the dresser's window, maybe
+        // before it was seen) counts as the dresser; opened from the Character window it doesn't.
+        if (!seenOpen.Contains("MiragePrismPrismBox") && PlateEditor.IsOpen) seenOpen.Add("MiragePrismPrismBox");
         var changed = false;
 
         var name = Services.PlayerState.CharacterName ?? string.Empty;
@@ -414,6 +417,13 @@ public sealed unsafe class WardrobeReader
             {
                 Services.Log.Debug(ex, "Glamour Studio couldn't read the character creator's colours");
             }
+        }
+        // (Without the creator's palettes, colours worked out now would be none: the stored ones stay.)
+        if (humanCmp == null && me.Colours is { Count: > 0 })
+        {
+            if (me.Customize != null && me.Customize.AsSpan().SequenceEqual(now)) return false;
+            me.Customize = now;
+            return true;
         }
         var colours = Appearance.Colours(now, humanCmp);
         coloursDone.Add(me.Key);

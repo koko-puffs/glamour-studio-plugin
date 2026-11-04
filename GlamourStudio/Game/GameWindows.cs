@@ -201,7 +201,8 @@ public static unsafe class GameWindows
                 var ids = list.Select(p => p.Item1).ToHashSet();
                 set = data.AllSets.Where(kv => ids.All(i => kv.Value.Any(x => LookJson.BaseId(x) == i))).Select(kv => kv.Key).FirstOrDefault();
                 if (set == 0) set = list.Select(p => data.SetOf(p.Item1)).FirstOrDefault(s => s != 0);
-                outfitSetCache = (key, set);
+                // (Not kept while no set's known: the sets may not be read yet.)
+                if (set != 0) outfitSetCache = (key, set);
             }
             if (set == 0 && d->SourceItemId != 0) set = data.SetOf(d->SourceItemId);
             return new OutfitSetNow(set, list);

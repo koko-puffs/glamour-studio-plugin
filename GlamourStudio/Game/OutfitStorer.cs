@@ -186,7 +186,10 @@ public static unsafe class OutfitStorer
                 if (now < deadline) break;
                 if (stopAsked)
                 {
-                    StoreWhatCameOrFinish("Stopped");
+                    // Stored only when something came out of the dresser: pieces that were in your
+                    // bags all along aren't stored (spending prisms) for a run you stopped.
+                    if (restored.Any(r => r.Piece.Index >= 0)) StoreWhatCameOrFinish("Stopped");
+                    else Finish("Stopped", false);
                     break;
                 }
                 var piece = pieces[pieceAt];

@@ -29,6 +29,11 @@ public sealed class GameData
     private Dictionary<uint, uint>? cabinetByItem;
     private Dictionary<uint, uint>? itemByCabinet;
     private Dictionary<uint, (int Column, uint Item)[]>? sets;
+
+    /// <summary>When a sheet that couldn't be read may be read again (they're asked for every frame: not every frame again).</summary>
+    private DateTime stainsRetry, cabinetRetry, setsRetry;
+
+    private static readonly TimeSpan RetryEvery = TimeSpan.FromMinutes(1);
     private Dictionary<uint, List<byte>>? stainsByItem;
 
     /// <summary>An item, or null when the game has none by that id. Its normal-quality id is looked up.</summary>
@@ -53,9 +58,7 @@ public sealed class GameData
         }
         catch (Exception ex)
         {
-            // Not kept: asked again next time.
             Services.Log.Debug(ex, "Glamour Studio couldn't read item {Id}", id);
-            return info;
         }
         items[id] = info;
         return info;
@@ -99,7 +102,7 @@ public sealed class GameData
     /// </summary>
     public IReadOnlyList<byte> StainsOfItem(uint item)
     {
-        if (stainsByItem == null)
+        if (stainsByItem == null && DateTime.UtcNow >= stainsRetry)
         {
             // (Kept only once read whole: a failed read is tried again next time.)
             var built = new Dictionary<uint, List<byte>>();
@@ -120,9 +123,11 @@ public sealed class GameData
             catch (Exception ex)
             {
                 Services.Log.Warning(ex, "Glamour Studio couldn't read the dyes");
+                stainsRetry = DateTime.UtcNow + RetryEvery;
                 return Array.Empty<byte>();
             }
         }
+        if (stainsByItem == null) return Array.Empty<byte>();
         return stainsByItem.TryGetValue(LookJson.BaseId(item), out var l) ? l : Array.Empty<byte>();
     }
 
@@ -148,7 +153,7 @@ public sealed class GameData
 
     private void BuildCabinet()
     {
-        if (cabinetByItem != null) return;
+        if (cabinetByItem != null || DateTime.UtcNow < cabinetRetry) return;
         // (Kept only once read whole; an empty pair meanwhile, so callers never see null.)
         var byItem = new Dictionary<uint, uint>();
         var byCabinet = new Dictionary<uint, uint>();
@@ -167,6 +172,7 @@ public sealed class GameData
         catch (Exception ex)
         {
             Services.Log.Warning(ex, "Glamour Studio couldn't read the armoire's list");
+            cabinetRetry = DateTime.UtcNow + RetryEvery;
             itemByCabinet ??= new Dictionary<uint, uint>();
         }
     }
@@ -245,7 +251,7 @@ public sealed class GameData
     /// <summary>An outfit set's pieces (its column, as the dresser counts them, and the item); empty when it isn't a set.</summary>
     public IReadOnlyList<(int Column, uint Item)> SetPieces(uint setItem)
     {
-        if (sets == null)
+        if (sets == null && DateTime.UtcNow >= setsRetry)
         {
             // (Kept only once read whole: a failed read is tried again next time.)
             var built = new Dictionary<uint, (int, uint)[]>();
@@ -267,9 +273,11 @@ public sealed class GameData
             catch (Exception ex)
             {
                 Services.Log.Warning(ex, "Glamour Studio couldn't read the outfit sets");
+                setsRetry = DateTime.UtcNow + RetryEvery;
                 return Array.Empty<(int, uint)>();
             }
         }
+        if (sets == null) return Array.Empty<(int, uint)>();
         return sets.TryGetValue(LookJson.BaseId(setItem), out var p) ? p : Array.Empty<(int, uint)>();
     }
 
