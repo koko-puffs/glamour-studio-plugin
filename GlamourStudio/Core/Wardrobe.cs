@@ -131,6 +131,12 @@ public sealed class CharacterWardrobe
 
     public DateTime? OutfitReadAt { get; set; }
 
+    /// <summary>How they look (the game's customize bytes), last time the outfit was read (<see cref="Appearance"/>).</summary>
+    public byte[]? Customize { get; set; }
+
+    /// <summary>The colours <see cref="Customize"/> picks from the game's palettes (<see cref="Appearance.Colours"/>).</summary>
+    public Dictionary<string, string>? Colours { get; set; }
+
     /// <summary>The retainers merged into one place, kept until <see cref="RetainersChanged"/>.</summary>
     private PlaceRead? retainers;
 
@@ -222,6 +228,7 @@ public sealed class Wardrobe
             foreach (var plate in character.Plates.OrderBy(p => p.Plate))
                 sb.Append('#').Append(plate.Plate).Append(LookJson.Write(plate.Pieces).ToJsonString());
             sb.Append('|').Append(LookJson.Write(character.Outfit).ToJsonString()).Append(character.Body);
+            sb.Append('|').Append(Appearance.Json(character.Customize, character.Colours)?.ToJsonString());
         }
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(sb.ToString())));
     }
@@ -242,7 +249,11 @@ public sealed class Wardrobe
                     .OrderBy(p => p.Plate)
                     .Select(p => (JsonNode)new JsonObject { ["plate"] = p.Plate, ["pieces"] = LookJson.Write(p.Pieces) }).ToArray());
             if (character.OutfitReadAt != null)
-                args["p_outfit"] = new JsonObject { ["body"] = LookJson.BodyKey(character.Body), ["pieces"] = LookJson.Write(character.Outfit) };
+            {
+                var outfit = new JsonObject { ["body"] = LookJson.BodyKey(character.Body), ["pieces"] = LookJson.Write(character.Outfit) };
+                if (Appearance.Json(character.Customize, character.Colours) is { } look) outfit["appearance"] = look;
+                args["p_outfit"] = outfit;
+            }
         }
         return args;
     }

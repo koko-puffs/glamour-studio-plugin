@@ -649,3 +649,87 @@ public class ConsentTests
         Assert.Equal("A new character on Lich", Consent.Eyebrow("Lich"));
     }
 }
+
+public class AppearanceTests
+{
+    /// <summary>A human.cmp of colours each saying where it is (red, green: its index's two bytes).</summary>
+    private static byte[] Cmp()
+    {
+        var b = new byte[(4608 + 32 * 1280) * 4];
+        for (var i = 0; i < b.Length / 4; i++)
+        {
+            b[i * 4] = (byte)(i >> 8);
+            b[i * 4 + 1] = (byte)i;
+            b[i * 4 + 2] = 0x07;
+            b[i * 4 + 3] = 0xff;
+        }
+        return b;
+    }
+
+    private static string At(int i) => $"#{(byte)(i >> 8):x2}{(byte)i:x2}07";
+
+    private static byte[] Raen()
+    {
+        var c = new byte[26];
+        c[0] = 6; // Au Ra
+        c[1] = 1; // feminine
+        c[3] = 80;
+        c[4] = 11; // Raen
+        c[5] = 2;
+        c[6] = 101;
+        c[7] = 0x80; // highlights on
+        c[8] = 10;
+        c[9] = 3;
+        c[10] = 20;
+        c[11] = 4;
+        c[13] = 5;
+        c[15] = 6;
+        c[19] = 0x80 | 2; // lipstick
+        c[20] = 130; // a light one
+        return c;
+    }
+
+    [Fact]
+    public void ColoursComeFromTheClansAndSharedPalettes()
+    {
+        var o = Appearance.Colours(Raen(), Cmp());
+        var chunk = 4608 + ((11 - 1) * 2 + 1) * 1280;
+        Assert.Equal(At(chunk + 768 + 10), o["skin"]);
+        Assert.Equal(At(chunk + 1024 + 20), o["hair"]);
+        Assert.Equal(At(3), o["eyes"]);
+        Assert.Equal(At(6), o["eyesLeft"]);
+        Assert.Equal(At(5), o["feature"]);
+        Assert.Equal(At(256 + 4), o["highlights"]);
+        Assert.Equal(At(1792 + 2), o["lips"]);
+    }
+
+    [Fact]
+    public void WhatsOffHasNoColour()
+    {
+        var c = Raen();
+        c[7] = 0;
+        c[19] = 2;
+        var o = Appearance.Colours(c, Cmp());
+        Assert.False(o.ContainsKey("highlights"));
+        Assert.False(o.ContainsKey("lips"));
+        Assert.Empty(Appearance.Colours(c, null));
+        Assert.Empty(Appearance.Colours(new byte[3], Cmp()));
+    }
+
+    [Fact]
+    public void ItsSentWithTheOutfit()
+    {
+        Assert.Null(Appearance.Json(null, null));
+        var c = new CharacterWardrobe { Key = "eeeeeeeeeeeeeeeeeeeeee", Name = "A", World = "B", OutfitReadAt = DateTime.UtcNow };
+        var (p, r) = Wardrobe.Closet(new[] { c });
+        Assert.Null(Wardrobe.SyncArgs(p, r, c)["p_outfit"]!["appearance"]);
+        var before = Wardrobe.Fingerprint(p, r, c);
+        c.Customize = Raen();
+        c.Colours = Appearance.Colours(c.Customize, Cmp());
+        var look = Wardrobe.SyncArgs(p, r, c)["p_outfit"]!["appearance"]!;
+        Assert.Equal(26, look["customize"]!.AsArray().Count);
+        Assert.Equal(6, look["customize"]![0]!.GetValue<int>());
+        Assert.Equal(c.Colours["skin"], look["colours"]!["skin"]!.GetValue<string>());
+        Assert.NotEqual(before, Wardrobe.Fingerprint(p, r, c));
+    }
+}

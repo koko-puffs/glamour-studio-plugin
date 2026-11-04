@@ -362,8 +362,46 @@ public sealed unsafe class WardrobeReader
             outfit[slot] = new Piece(shown, item->GetStain(0), item->GetStain(1));
         }
         me.OutfitReadAt = at;
-        if (Plates.Same(outfit, me.Outfit)) return false;
+        var looks = ReadAppearance(me);
+        if (Plates.Same(outfit, me.Outfit)) return looks;
         me.Outfit = outfit;
+        return true;
+    }
+
+    /// <summary>The game's file of the character creator's colours (read once), or null.</summary>
+    private byte[]? humanCmp;
+    private bool humanCmpTried;
+
+    /// <summary>How you look now (your customize bytes and the colours they pick), when it changed.</summary>
+    private bool ReadAppearance(CharacterWardrobe me)
+    {
+        byte[] now;
+        try
+        {
+            if (Services.Objects.LocalPlayer is not { } player) return false;
+            now = player.Customize.ToArray();
+        }
+        catch (Exception ex)
+        {
+            Services.Log.Debug(ex, "Glamour Studio couldn't read how your character looks");
+            return false;
+        }
+        if (now.Length < Appearance.Length || now[0] == 0) return false;
+        if (me.Customize != null && me.Customize.AsSpan().SequenceEqual(now) && me.Colours != null) return false;
+        if (!humanCmpTried)
+        {
+            humanCmpTried = true;
+            try
+            {
+                humanCmp = Services.Data.GetFile(Appearance.HumanCmp)?.Data;
+            }
+            catch (Exception ex)
+            {
+                Services.Log.Debug(ex, "Glamour Studio couldn't read the character creator's colours");
+            }
+        }
+        me.Customize = now;
+        me.Colours = Appearance.Colours(now, humanCmp);
         return true;
     }
 

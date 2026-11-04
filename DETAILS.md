@@ -365,6 +365,7 @@ million).
 | Retainers | `RetainerPage1`–`7` and `RetainerEquippedItems`, by the active retainer's id | a second after a retainer's bags open (so the pages are its own), every page loaded |
 | Plates | `MirageManager.GlamourPlates` (20 plates of 12 slots: item and two stains each) | once you've opened Glamour Plates since logging in, and `GlamourPlatesLoaded` |
 | What you wear | `EquippedItems`: each slot's glamour (`GlamourId`) or the piece, and its stains | always |
+| How you look | your character's 26 customize bytes (`IObjectTable.LocalPlayer.Customize`), and the colours they pick from the game's `chara/xls/charamake/human.cmp` (`Core/Appearance.cs`) | with what you wear (since 0.6.14) |
 
 A place is only taken as read when the game has really sent it: its window seen open since this
 character logged in (the containers can say they're loaded while empty, or still hold the last
@@ -489,7 +490,7 @@ runs them off the framework thread and takes the answers back to it.
 | --- | --- | --- |
 | `gs_plugin_characters` | linking, changing character, every 10 min while the window's open (30 otherwise) | what the site does with each of your characters (key, `ask` / `yes` / `no`) |
 | `gs_plugin_character` | you answer the question, or flip a character's switch in Settings → Account; an answer the site hasn't heard yet (a minute after a failed try) | your answer for a character: yes with its name and world; no with its key alone, and the site lets go of what it had of it |
-| `gs_plugin_sync` | your wardrobe changed and settled for 10 s, at most every 3 min (and only when what's sent changed); Send it now; saying yes; linking. **Only for a character the site takes (`yes`)** | the character you're on (key, name, world), its pieces each where they are, the places read in full, its plates and what it wears |
+| `gs_plugin_sync` | your wardrobe changed and settled for 10 s, at most every 3 min (and only when what's sent changed); Send it now; saying yes; linking. **Only for a character the site takes (`yes`)** | the character you're on (key, name, world), its pieces each where they are, the places read in full, its plates and what it wears, with how it looks (`p_outfit.appearance`: its customize bytes and their colours as `#rrggbb`, for the site's dressing room to draw it as its mannequin) |
 | `gs_plugin_looks` | the window opens, every 10 min while it's open, Refresh | your looks (300), the public ones you love (200), your shopping list's items |
 | `gs_plugin_inbox_list` | as the window opens (any way: the plugin list, `/gstudio`, a panel's arrow), every minute while it's open, every 15 otherwise | the looks sent to the game, each whole, with the plate meant |
 | `gs_plugin_inbox_remove` | a sent look went on a plate | it's off the list |
@@ -572,6 +573,16 @@ this one too, within a few minutes of a release.
 The workflows need Settings → Actions → General → Workflow permissions → Read and write.
 
 ## Release notes
+
+### 0.6.14
+
+- **Your character as the dressing room's mannequin.** With what you're wearing, the plugin now
+  sends how your character looks: its race, clan and sex, height, face, hairstyle, facial
+  features, bust and tail (the game's customize bytes as they are), and its skin, hair,
+  highlight, eye, lip and feature colours read from the game's character creator palettes
+  (`Core/Appearance.cs`; `human.cmp`: the shared palettes first, eyes at 0, highlights at 256,
+  dark lips at 512 and light at 1792, then each clan and sex's skin and hair). The site's dressing
+  room offers it in its Character menu as **Your characters**. Only for a character the site takes.
 
 ### 0.6.13
 
