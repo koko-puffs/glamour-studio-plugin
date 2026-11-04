@@ -46,6 +46,7 @@ public static partial class Kit
 
     public static void EndPane()
     {
+        EndStrays(popup: false);
         var (padBottom, _, _) = Panes.Pop();
         Gap(padBottom);
         PopBox();
@@ -195,7 +196,9 @@ public static partial class Kit
             var iw = SegItemWidth(t, pad);
             var p = new Vector2(x, y);
             var size = new Vector2(iw, S(30));
-            var (clicked, hovered, _) = Hit($"{id}{i}", p, size);
+            ImGui.PushID(id);
+            var (clicked, hovered, _) = Hit(Part(i), p, size);
+            ImGui.PopID();
             if (clicked) result = i;
             var on = i == selected;
             if (on) dl.AddRectFilled(p, p + size, Palette.U32(Palette.Picked), size.Y / 2);
@@ -258,13 +261,11 @@ public static partial class Kit
     /// <summary>A small mono label ("ON IT NOW · 7 PIECES"): DM Mono 11px, .06em, dim (or a colour). Returns its width.</summary>
     public static float Sub(Vector2 pos, string text, Vector4? color = null, float maxWidth = 0)
     {
-        var caps = text.ToUpperInvariant();
-        while (maxWidth > 0 && caps.Length > 1 && Txt.SpacedWidth(caps, Face.Mono, 11, 0.06f) > maxWidth)
-            caps = caps[..^2].TrimEnd() + "…";
+        var caps = Txt.SpacedFit(text, Face.Mono, 11, 0.06f, maxWidth);
         return Txt.Spaced(Dl, pos, caps, Face.Mono, 11, color ?? Palette.Dim, 0.06f);
     }
 
-    public static float SubWidth(string text) => Txt.SpacedWidth(text.ToUpperInvariant(), Face.Mono, 11, 0.06f);
+    public static float SubWidth(string text) => Txt.SpacedWidth(Txt.Upper(text), Face.Mono, 11, 0.06f);
 
     /// <summary>
     /// A heading (15px 600, ink) with a small label on its right, on one row; when the two don't fit

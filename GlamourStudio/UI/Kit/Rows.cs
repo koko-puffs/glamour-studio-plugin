@@ -1,4 +1,3 @@
-using System.Linq;
 using System;
 using System.Collections.Generic;
 using System.Numerics;
@@ -65,7 +64,7 @@ public static partial class Kit
         var restW = rest != null ? Txt.Measure(rest, Face.Sans, 12).X : 0;
         var dl = Dl;
         var lh = Txt.Natural(Face.Mono, 11);
-        Txt.Spaced(dl, new Vector2(at.X, at.Y + (h - lh) / 2), text.ToUpperInvariant(), Face.Mono, 11, Palette.Muted, 0.12f);
+        Txt.Spaced(dl, new Vector2(at.X, at.Y + (h - lh) / 2), Txt.Upper(text), Face.Mono, 11, Palette.Muted, 0.12f);
         if (rest != null)
             Txt.Draw(dl, new Vector2(at.X + w - restW, at.Y), rest, Face.Sans, 12, Palette.Faint);
         Reserve(at, w, h);
@@ -79,7 +78,7 @@ public static partial class Kit
         var h = Txt.Natural(Face.Sans, 12);
         var lw = Txt.Measure(link, Face.SansMedium, 12).X;
         var mh = Txt.Natural(Face.Mono, 11);
-        Txt.Spaced(Dl, new Vector2(at.X, at.Y + (h - mh) / 2), text.ToUpperInvariant(), Face.Mono, 11, Palette.Muted, 0.12f);
+        Txt.Spaced(Dl, new Vector2(at.X, at.Y + (h - mh) / 2), Txt.Upper(text), Face.Mono, 11, Palette.Muted, 0.12f);
         var lh = Txt.Natural(Face.Sans, 12);
         var pos = new Vector2(at.X + w - lw, at.Y + (h - lh) / 2);
         var (clicked, hovered, _) = Hit(id, pos - new Vector2(S(4)), new Vector2(lw, lh) + new Vector2(S(8)));
@@ -105,14 +104,15 @@ public static partial class Kit
         var inner = S(28);
         // Too wide for the room: the counts go first, then the tabs' padding tightens.
         var pad = 14f;
+        var room = Width;
+        var counts = true;
         float Total(IReadOnlyList<TabSpec> ts, float pd)
         {
             var sum = S(4) * 2 + S(3) * (ts.Count - 1);
-            foreach (var t in ts) sum += TabWidth(t, pd);
+            foreach (var t in ts) sum += TabWidth(counts ? t : t with { Count = null }, pd);
             return sum;
         }
-        var room = Width;
-        if (Total(tabs, pad) > room) tabs = tabs.Select(t => t with { Count = null }).ToList();
+        if (Total(tabs, pad) > room) counts = false;
         while (pad > 8 && Total(tabs, pad) > room) pad -= 1;
         var total = Total(tabs, pad);
         var dl = Dl;
@@ -121,11 +121,13 @@ public static partial class Kit
         var x = at.X + S(4);
         for (var i = 0; i < tabs.Count; i++)
         {
-            var tab = tabs[i];
+            var tab = counts ? tabs[i] : tabs[i] with { Count = null };
             var w = TabWidth(tab, pad);
             var p = new Vector2(x, at.Y + S(4));
             var max = p + new Vector2(w, inner);
-            var (clicked, hovered, held) = Hit($"{id}{i}", p, new Vector2(w, inner));
+            ImGui.PushID(id);
+            var (clicked, hovered, held) = Hit(Part(i), p, new Vector2(w, inner));
+            ImGui.PopID();
             if (clicked) result = i;
             var on = i == selected;
             if (on) dl.AddRectFilled(p, max, Palette.U32(Palette.Picked), inner / 2);
@@ -169,7 +171,8 @@ public static partial class Kit
         if (facts.Count == 0) return;
         var at = At;
         var w = Width;
-        var perRow = w < S(360) ? 2 : facts.Count;
+        // Two to a row when narrow, but never more cells than facts (one fact filled half the box).
+        var perRow = w < S(360) ? Math.Min(facts.Count, 2) : facts.Count;
         var rows = (facts.Count + perRow - 1) / perRow;
         var cellW = w / perRow;
         var cellH = S(66);
@@ -186,7 +189,7 @@ public static partial class Kit
             if (row > 0 && col == 0) dl.AddLine(new Vector2(at.X + 1, p.Y + 0.5f), new Vector2(at.X + w - 1, p.Y + 0.5f), Palette.U32(Palette.Line), 1f);
             var f = facts[i];
             var inner = cellW - S(28);
-            Txt.Spaced(dl, p + new Vector2(S(14), S(12)), f.Label.ToUpperInvariant(), Face.Mono, 10, Palette.Muted, 0.12f);
+            Txt.Spaced(dl, p + new Vector2(S(14), S(12)), Txt.Upper(f.Label), Face.Mono, 10, Palette.Muted, 0.12f);
             var vy = p.Y + S(12) + Txt.Natural(Face.Mono, 10) + S(5);
             var vw = Txt.Draw(dl, new Vector2(p.X + S(14), vy), Txt.Fit(f.Value, Face.Display, 20, inner), Face.Display, 20, f.Color ?? Palette.Ink);
             if (f.Note != null && vw + S(6) < inner)

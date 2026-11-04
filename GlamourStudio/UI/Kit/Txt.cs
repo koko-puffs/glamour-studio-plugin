@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 using Dalamud.Bindings.ImGui;
+using Dalamud.Interface.Utility;
 using static GlamourStudio.UI.Theme;
 
 namespace GlamourStudio.UI;
@@ -24,9 +25,63 @@ public static class Txt
 {
     public static Fonts Fonts { get; set; } = null!;
 
+    // ---------------------------------------------------------------------------------------------
+    // What's measured, kept: the same words are measured many times a frame, every frame. Every cache
+    // here is keyed by everything its answer depends on besides the glyphs, and all of them are
+    // emptied together when the glyphs change (Dalamud's global scale, a font rebuild) or one grows
+    // past its bound (a list of ever-new words mustn't grow it for ever).
+
+    private const int CacheBound = 2000;
+
+    private static readonly Dictionary<(string Text, Face Face, int Px), Vector2> Sizes = new();
+    private static readonly Dictionary<(string Text, Face Face, int Px, float Width), string> Fits = new();
+    private static readonly Dictionary<(string Text, Face Face, int Px, float Em), SpacedLayout> SpacedLayouts = new();
+    private static readonly Dictionary<(string Text, Face Face, int Px, float Em, float Width), string> SpacedFits = new();
+    private static readonly Dictionary<string, string> Uppers = new();
+    private static readonly Dictionary<(string Text, Face Face, int Px), RunWords> Words = new();
+
+    private static float stampScale = -1;
+    private static int stampGeneration = -1;
+    private static Fonts? stampFonts;
+
+    /// <summary>Empties every cache when what they were measured with has changed.</summary>
+    private static void Check()
+    {
+        var scale = ImGuiHelpers.GlobalScale;
+        var generation = Fonts.Generation;
+        if (scale == stampScale && generation == stampGeneration && ReferenceEquals(Fonts, stampFonts)) return;
+        stampScale = scale;
+        stampGeneration = generation;
+        stampFonts = Fonts;
+        Sizes.Clear();
+        Fits.Clear();
+        SpacedLayouts.Clear();
+        SpacedFits.Clear();
+        Words.Clear();
+    }
+
+    private static void Keep<TKey, TValue>(Dictionary<TKey, TValue> cache, TKey key, TValue value) where TKey : notnull
+    {
+        if (cache.Count >= CacheBound) cache.Clear();
+        cache[key] = value;
+    }
+
     public static Vector2 Measure(string text, Face face, int px)
     {
-        using (Fonts.Push(face, px)) return ImGui.CalcTextSize(text);
+        Check();
+        if (Sizes.TryGetValue((text, face, px), out var size)) return size;
+        using (Fonts.Push(face, px)) size = ImGui.CalcTextSize(text);
+        Keep(Sizes, (text, face, px), size);
+        return size;
+    }
+
+    /// <summary>The text in capitals (as the spaced labels are), made once rather than every frame.</summary>
+    public static string Upper(string text)
+    {
+        if (Uppers.TryGetValue(text, out var caps)) return caps;
+        caps = text.ToUpperInvariant();
+        Keep(Uppers, text, caps);
+        return caps;
     }
 
     /// <summary>The font's own line (ImGui's font size): CSS "line-height: normal".</summary>
@@ -69,36 +124,76 @@ public static class Txt
     /// <summary>Each of the first 256 characters as a string, made once (spaced capitals are drawn a letter at a time, every frame).</summary>
     private static readonly string[] OneChar = Enumerable.Range(0, 256).Select(c => ((char)c).ToString()).ToArray();
 
+    /// <summary>Spaced text laid out once: each letter as a string, where it starts, and the whole width.</summary>
+    private sealed record SpacedLayout(string[] Glyphs, float[] Xs, float Width);
+
+    private static SpacedLayout LayOutSpaced(string text, Face face, int px, float em)
+    {
+        Check();
+        if (SpacedLayouts.TryGetValue((text, face, px, em), out var layout)) return layout;
+        var glyphs = new string[text.Length];
+        var xs = new float[text.Length];
+        var x = 0f;
+        using (Fonts.Push(face, px))
+        {
+            var spacing = S(px * em);
+            for (var i = 0; i < text.Length; i++)
+            {
+                var ch = text[i];
+                var s = ch < OneChar.Length ? OneChar[ch] : ch.ToString();
+                glyphs[i] = s;
+                xs[i] = x;
+                x += ImGui.CalcTextSize(s).X + spacing;
+            }
+        }
+        layout = new SpacedLayout(glyphs, xs, x);
+        Keep(SpacedLayouts, (text, face, px, em), layout);
+        return layout;
+    }
+
     /// <summary>
     /// Letter-spaced text (CSS letter-spacing, which also follows the last letter): eyebrows at
     /// .18em, stamps at .1em. Returns the width.
     /// </summary>
     public static float Spaced(ImDrawListPtr dl, Vector2 pos, string text, Face face, int px, Vector4 color, float em, bool draw = true)
     {
+        var layout = LayOutSpaced(text, face, px, em);
+        if (!draw) return layout.Width;
         using (Fonts.Push(face, px))
         {
-            var spacing = S(px * em);
-            var x = pos.X;
             var col = Palette.U32(color);
-            foreach (var ch in text)
-            {
-                var s = ch < OneChar.Length ? OneChar[ch] : ch.ToString();
-                if (draw) dl.AddText(Snap(new Vector2(x, pos.Y)), col, s);
-                x += ImGui.CalcTextSize(s).X + spacing;
-            }
-            return x - pos.X;
+            for (var i = 0; i < layout.Glyphs.Length; i++)
+                dl.AddText(Snap(new Vector2(pos.X + layout.Xs[i], pos.Y)), col, layout.Glyphs[i]);
         }
+        return layout.Width;
     }
 
-    public static float SpacedWidth(string text, Face face, int px, float em) =>
-        Spaced(default, Vector2.Zero, text, face, px, Vector4.Zero, em, draw: false);
+    public static float SpacedWidth(string text, Face face, int px, float em) => LayOutSpaced(text, face, px, em).Width;
+
+    /// <summary>
+    /// The text in spaced capitals, cut with "…" (two letters at a time, as the eyebrows always have
+    /// been) until it fits <paramref name="maxWidth"/> (0: whole).
+    /// </summary>
+    public static string SpacedFit(string text, Face face, int px, float em, float maxWidth)
+    {
+        var caps = Upper(text);
+        if (maxWidth <= 0) return caps;
+        Check();
+        if (SpacedFits.TryGetValue((caps, face, px, em, maxWidth), out var cut)) return cut;
+        cut = caps;
+        while (cut.Length > 1 && SpacedWidth(cut, face, px, em) > maxWidth)
+            cut = cut[..^2].TrimEnd() + "…";
+        Keep(SpacedFits, (caps, face, px, em, maxWidth), cut);
+        return cut;
+    }
 
     /// <summary>The text cut to fit a width, with an ellipsis.</summary>
     public static string Fit(string text, Face face, int px, float width)
     {
+        if (Measure(text, face, px).X <= width) return text;
+        if (Fits.TryGetValue((text, face, px, width), out var cut)) return cut;
         using (Fonts.Push(face, px))
         {
-            if (ImGui.CalcTextSize(text).X <= width) return text;
             const string dots = "…";
             var lo = 0;
             var hi = text.Length;
@@ -108,11 +203,56 @@ public static class Txt
                 if (ImGui.CalcTextSize(text[..mid].TrimEnd() + dots).X <= width) lo = mid;
                 else hi = mid - 1;
             }
-            return lo == 0 ? dots : text[..lo].TrimEnd() + dots;
+            cut = lo == 0 ? dots : text[..lo].TrimEnd() + dots;
         }
+        Keep(Fits, (text, face, px, width), cut);
+        return cut;
     }
 
     private readonly record struct Token(string Text, int Run, float Width, float Trailing);
+
+    /// <summary>A run's words, measured once: each word, its width, and the width of the spaces after it.</summary>
+    private sealed record RunWords(string[] Texts, float[] Widths, float[] Trailing);
+
+    private static RunWords WordsOf(string text, Face face, int px)
+    {
+        Check();
+        if (Words.TryGetValue((text, face, px), out var words)) return words;
+        var texts = new List<string>();
+        var widths = new List<float>();
+        var trailing = new List<float>();
+        using (Fonts.Push(face, px))
+        {
+            var space = ImGui.CalcTextSize(" ").X;
+            var i = 0;
+            while (i < text.Length)
+            {
+                var j = i;
+                while (j < text.Length && text[j] != ' ') j++;
+                var word = text[i..j];
+                var spaces = 0;
+                while (j < text.Length && text[j] == ' ')
+                {
+                    spaces++;
+                    j++;
+                }
+                texts.Add(word);
+                widths.Add(word.Length == 0 ? 0 : ImGui.CalcTextSize(word).X);
+                trailing.Add(spaces * space);
+                i = j;
+            }
+        }
+        words = new RunWords(texts.ToArray(), widths.ToArray(), trailing.ToArray());
+        Keep(Words, (text, face, px), words);
+        return words;
+    }
+
+    /// <summary>The words and lines of the paragraph being laid, reused (the window is drawn on one thread, and a paragraph never lays another).</summary>
+    private static readonly List<Token> FlowTokens = new();
+
+    private static readonly List<(int From, int To, float Width)> FlowLines = new();
+
+    private static bool flowing;
 
     /// <summary>
     /// Lays out runs of text wrapped to <paramref name="width"/>, in line boxes <paramref name="lineCss"/>
@@ -122,8 +262,27 @@ public static class Txt
     /// </summary>
     public static float Flow(Vector2 pos, float width, IReadOnlyList<Run> runs, float lineCss, out string? clicked, bool center = false, bool draw = true)
     {
+        // Should one ever lay another part way, it gets lists of its own rather than the shared ones.
+        var nested = flowing;
+        var tokens = nested ? new List<Token>() : FlowTokens;
+        var lines = nested ? new List<(int From, int To, float Width)>() : FlowLines;
+        tokens.Clear();
+        lines.Clear();
+        flowing = true;
+        try
+        {
+            return FlowInto(tokens, lines, pos, width, runs, lineCss, out clicked, center, draw);
+        }
+        finally
+        {
+            flowing = nested;
+        }
+    }
+
+    private static float FlowInto(List<Token> tokens, List<(int From, int To, float Width)> lines, Vector2 pos, float width, IReadOnlyList<Run> runs,
+        float lineCss, out string? clicked, bool center, bool draw)
+    {
         clicked = null;
-        var tokens = new List<Token>();
         for (var r = 0; r < runs.Count; r++)
         {
             var run = runs[r];
@@ -132,30 +291,11 @@ public static class Txt
                 tokens.Add(new Token(string.Empty, r, S(10), S(6)));
                 continue;
             }
-            using (Fonts.Push(run.Face, run.Px))
-            {
-                var space = ImGui.CalcTextSize(" ").X;
-                var text = run.Text;
-                var i = 0;
-                while (i < text.Length)
-                {
-                    var j = i;
-                    while (j < text.Length && text[j] != ' ') j++;
-                    var word = text[i..j];
-                    var spaces = 0;
-                    while (j < text.Length && text[j] == ' ')
-                    {
-                        spaces++;
-                        j++;
-                    }
-                    tokens.Add(new Token(word, r, word.Length == 0 ? 0 : ImGui.CalcTextSize(word).X, spaces * space));
-                    i = j;
-                }
-            }
+            var words = WordsOf(run.Text, run.Face, run.Px);
+            for (var k = 0; k < words.Texts.Length; k++) tokens.Add(new Token(words.Texts[k], r, words.Widths[k], words.Trailing[k]));
         }
 
         // Break into lines.
-        var lines = new List<(int From, int To, float Width)>();
         var from = 0;
         var x = 0f;
         var lineWidth = 0f;
@@ -201,22 +341,36 @@ public static class Txt
 
         var y = pos.Y;
         var linkIndex = 0;
-        foreach (var (a, b, w) in lines)
+        // The face is pushed once for each stretch of words in the same face and size, not for every word.
+        IDisposable? pushed = null;
+        var pushedFace = default(Face);
+        var pushedPx = -1;
+        var size = 0f;
+        try
         {
-            var lx = pos.X + (center ? (width - w) / 2 : 0);
-            for (var t = a; t < b; t++)
+            foreach (var (a, b, w) in lines)
             {
-                var tok = tokens[t];
-                var run = runs[tok.Run];
-                if (run.Swatch is { } rgb)
+                var lx = pos.X + (center ? (width - w) / 2 : 0);
+                for (var t = a; t < b; t++)
                 {
-                    Kit.Swatch(dl, new Vector2(lx + S(5), y + box / 2), rgb == 0xFFFFFFFF ? null : rgb);
-                    lx += tok.Width + tok.Trailing;
-                    continue;
-                }
-                using (Fonts.Push(run.Face, run.Px))
-                {
-                    var size = ImGui.GetFontSize();
+                    var tok = tokens[t];
+                    var run = runs[tok.Run];
+                    if (run.Swatch is { } rgb)
+                    {
+                        Kit.Swatch(dl, new Vector2(lx + S(5), y + box / 2), rgb == 0xFFFFFFFF ? null : rgb);
+                        lx += tok.Width + tok.Trailing;
+                        continue;
+                    }
+                    if (pushed == null || pushedFace != run.Face || pushedPx != run.Px)
+                    {
+                        var last = pushed;
+                        pushed = null;
+                        last?.Dispose();
+                        pushed = Fonts.Push(run.Face, run.Px);
+                        pushedFace = run.Face;
+                        pushedPx = run.Px;
+                        size = ImGui.GetFontSize();
+                    }
                     var top = new Vector2(lx, y + (box - size) / 2);
                     var color = run.Color;
                     if (run.Link != null)
@@ -233,10 +387,14 @@ public static class Txt
                         }
                     }
                     if (tok.Text.Length > 0) dl.AddText(Snap(top), Palette.U32(color), tok.Text);
+                    lx += tok.Width + tok.Trailing;
                 }
-                lx += tok.Width + tok.Trailing;
+                y += box;
             }
-            y += box;
+        }
+        finally
+        {
+            pushed?.Dispose();
         }
         ImGui.SetCursorScreenPos(cursor);
         return lines.Count * box;

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using Dalamud.Game;
 using Dalamud.Interface.ManagedFontAtlas;
 
@@ -54,17 +55,31 @@ public sealed class Fonts : IDisposable
 
     private static readonly (Face Face, int Px)[] Wanted =
     {
-        (Face.Sans, 15), (Face.Sans, 14), (Face.Sans, 13), (Face.Sans, 12), (Face.Sans, 11),
+        (Face.Sans, 15), (Face.Sans, 14), (Face.Sans, 13), (Face.Sans, 12), (Face.Sans, 11), (Face.Sans, 10),
         (Face.SansMedium, 15), (Face.SansMedium, 14), (Face.SansMedium, 13), (Face.SansMedium, 12),
         (Face.SansSemibold, 18), (Face.SansSemibold, 15), (Face.SansSemibold, 14), (Face.SansSemibold, 13), (Face.SansSemibold, 12),
         (Face.SansBold, 14), (Face.SansBold, 13),
         (Face.Display, 30), (Face.Display, 28), (Face.Display, 26), (Face.Display, 24), (Face.Display, 22), (Face.Display, 20),
-        (Face.Display, 19), (Face.Display, 16), (Face.Display, 15),
+        (Face.Display, 19), (Face.Display, 16), (Face.Display, 15), (Face.Display, 13),
         (Face.Mono, 13), (Face.Mono, 12), (Face.Mono, 11), (Face.Mono, 10),
         (Face.MonoMedium, 12), (Face.MonoMedium, 11),
     };
 
     private readonly Dictionary<(Face, int), IFontHandle> handles = new();
+
+    /// <summary>
+    /// A size that isn't loaded, mapped once to the nearest loaded one (looking it up anew sorted the
+    /// loaded sizes on every call). These are the same handles as above, so only those are disposed.
+    /// </summary>
+    private readonly Dictionary<(Face, int), IFontHandle> aliases = new();
+
+    private int generation;
+
+    /// <summary>
+    /// Goes up whenever any face is rebuilt (Dalamud's scale or font settings changed, or a face has
+    /// just finished loading), so what was measured with the old glyphs is measured again.
+    /// </summary>
+    public int Generation => Volatile.Read(ref generation);
 
     public Fonts()
     {
@@ -84,7 +99,10 @@ public sealed class Fonts : IDisposable
             };
             var line = face == Face.Display ? SyneLine : DmLine;
             var dalamudFont = japanese && face is Face.Sans or Face.SansMedium or Face.SansSemibold or Face.SansBold;
-            handles[(face, px)] = Make(atlas, file, px * line, dalamudFont);
+            var handle = Make(atlas, file, px * line, dalamudFont);
+            // Dalamud may say so from another thread.
+            handle.ImFontChanged += (_, _) => Interlocked.Increment(ref generation);
+            handles[(face, px)] = handle;
         }
     }
 
@@ -93,9 +111,11 @@ public sealed class Fonts : IDisposable
 
     public IFontHandle Handle(Face face, int px)
     {
-        if (handles.TryGetValue((face, px), out var h)) return h;
+        if (handles.TryGetValue((face, px), out var h) || aliases.TryGetValue((face, px), out h)) return h;
         var best = handles.Keys.Where(k => k.Item1 == face).OrderBy(k => Math.Abs(k.Item2 - px)).FirstOrDefault();
-        return handles.TryGetValue(best, out h) ? h : handles[(Face.Sans, 14)];
+        h = handles.TryGetValue(best, out var near) ? near : handles[(Face.Sans, 14)];
+        aliases[(face, px)] = h;
+        return h;
     }
 
     private static IFontHandle Make(IFontAtlas atlas, string file, float sizePx, bool dalamudFont) =>
@@ -129,5 +149,6 @@ public sealed class Fonts : IDisposable
     {
         foreach (var h in handles.Values) h.Dispose();
         handles.Clear();
+        aliases.Clear();
     }
 }

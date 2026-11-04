@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 using Dalamud.Bindings.ImGui;
 
@@ -123,15 +124,27 @@ public static partial class Kit
     public static (bool Clicked, bool Hovered, bool Held) Hit(string id, Vector2 pos, Vector2 size, bool disabled = false)
     {
         var keep = ImGui.GetCursorScreenPos();
+        var hit = HitHere(id, pos, size, disabled);
+        ImGui.SetCursorScreenPos(keep);
+        return hit;
+    }
+
+    /// <summary>As <see cref="Hit"/>, but the cursor stays after the button (a menu's rows go one under another).</summary>
+    private static (bool Clicked, bool Hovered, bool Held) HitHere(string id, Vector2 pos, Vector2 size, bool disabled = false)
+    {
         ImGui.SetCursorScreenPos(pos);
         var clicked = ImGui.InvisibleButton(id, Vector2.Max(size, new Vector2(1)));
         var live = !disabled && !Blocked;
         var hovered = live && ImGui.IsItemHovered();
         var held = live && ImGui.IsItemActive();
         if (hovered) ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
-        ImGui.SetCursorScreenPos(keep);
         return (clicked && live, hovered, held);
     }
+
+    /// <summary>The small numbers as strings, made once: the ids of a control's parts (under its own id), drawn every frame.</summary>
+    private static readonly string[] Numbers = Enumerable.Range(0, 64).Select(i => i.ToString(System.Globalization.CultureInfo.InvariantCulture)).ToArray();
+
+    private static string Part(int i) => i >= 0 && i < Numbers.Length ? Numbers[i] : i.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
     /// <summary>The focus ring (white, 2px out, as the site's), when the keyboard is driving and the last item has focus.</summary>
     public static void FocusRing(Vector2 min, Vector2 max, float radius)
@@ -171,7 +184,10 @@ public static partial class Kit
     {
         var (hCss, padCss, px) = Spec(size);
         var h = height > 0 ? height : S(hCss);
-        var w = width > 0 ? width : label.Length == 0 ? h : ButtonWidth(label, size, icon, style);
+        var face = FaceOf(style);
+        // A button that fits its words measures them once, for its width and for where they go.
+        var textW = width <= 0 && label.Length > 0 ? Txt.Measure(label, face, px).X : 0;
+        var w = width > 0 ? width : label.Length == 0 ? h : S(padCss) * 2 + textW + (icon != null ? S(16 + 8) : 0);
         var (clicked, hovered, held) = Hit(id, pos, new Vector2(w, h), disabled);
         if (tip != null && !Blocked && ImGui.IsMouseHoveringRect(pos, pos + new Vector2(w, h)) && ImGui.IsWindowHovered()) Tooltip(tip);
 
@@ -224,12 +240,13 @@ public static partial class Kit
         if (style == Btn.Glass && held) dl.AddRectFilled(pos, max, Palette.U32(Palette.LinePicked), r);
         if (edge.W > 0) dl.AddRect(pos + new Vector2(0.5f), max - new Vector2(0.5f), Palette.U32(edge), r, ImDrawFlags.None, 1f);
 
-        var face = FaceOf(style);
         var iconPx = S(iconCss);
         // A label wider than a button of a set width is cut to fit (1.0.0: it ran past the pill and the window).
         if (width > 0 && label.Length > 0)
+        {
             label = Txt.Fit(label, face, px, MathF.Max(0, w - S(padCss) * 2 - (icon != null ? iconPx + S(8) : 0) + 1));
-        var textW = label.Length > 0 ? Txt.Measure(label, face, px).X : 0;
+            textW = Txt.Measure(label, face, px).X;
+        }
         var content = (icon != null ? iconPx : 0) + (icon != null && label.Length > 0 ? S(8) : 0) + textW;
         var x = pos.X + (w - content) / 2;
         if (icon is { } ic)
@@ -304,11 +321,13 @@ public static partial class Kit
     }
 
     /// <summary>The padding either side of each item's words: 14px, less when the pill must fit a narrower width.</summary>
-    private static float SegmentPad(IReadOnlyList<string> items, float maxWidth)
+    private static float SegmentPad(IReadOnlyList<string> items, float maxWidth) => SegmentPad(items, maxWidth, SegmentedFrame(items));
+
+    private static float SegmentPad(IReadOnlyList<string> items, float maxWidth, float frame)
     {
         var pad = S(14);
         if (maxWidth <= 0 || items.Count == 0) return pad;
-        var full = SegmentedFrame(items) + items.Count * 2 * pad;
+        var full = frame + items.Count * 2 * pad;
         if (full <= maxWidth) return pad;
         return MathF.Max(S(6), pad - (full - maxWidth) / (items.Count * 2));
     }
@@ -328,12 +347,14 @@ public static partial class Kit
         IReadOnlyList<string?>? tips = null)
     {
         var dl = Dl;
-        var pad = SegmentPad(items, maxWidth);
-        var total = SegmentedFrame(items) + items.Count * 2 * pad;
+        var frame = SegmentedFrame(items);
+        var pad = SegmentPad(items, maxWidth, frame);
+        var total = frame + items.Count * 2 * pad;
         var h = S(36);
         dl.AddRect(pos + new Vector2(0.5f), pos + new Vector2(total, h) - new Vector2(0.5f), Palette.U32(Palette.LineStrong), h / 2, ImDrawFlags.None, 1f);
         var x = pos.X + S(1) + S(3);
         var result = -1;
+        ImGui.PushID(id);
         for (var i = 0; i < items.Count; i++)
         {
             var w = Txt.Measure(items[i], Face.SansMedium, 13).X + pad * 2;
@@ -341,7 +362,7 @@ public static partial class Kit
             var size = new Vector2(w, S(28));
             var on = i == selected;
             var disabled = (disabledMask & (1 << i)) != 0;
-            var (clicked, hovered, _) = Hit($"{id}{i}", p, size, disabled);
+            var (clicked, hovered, _) = Hit(Part(i), p, size, disabled);
             if (clicked) result = i;
             if (tips != null && i < tips.Count && tips[i] is { } tip && !Blocked && ImGui.IsWindowHovered() && ImGui.IsMouseHoveringRect(p, p + size))
                 Tooltip(tip);
@@ -354,6 +375,7 @@ public static partial class Kit
             FocusRing(p + new Vector2(S(4)), p + size - new Vector2(S(4)), size.Y / 2 - S(4));
             x += w + S(2);
         }
+        ImGui.PopID();
         return result;
     }
 
@@ -431,19 +453,33 @@ public static partial class Kit
         var r = S(radius);
         dl.AddRectFilled(pos, pos + new Vector2(size), Palette.U32(Palette.Tile), r);
         if (iconId == 0) return;
-        try
+        // An icon the game hasn't got is asked for once, not every frame (asking threw each time).
+        if (!MissingIcons.Contains(iconId))
         {
-            var wrap = Services.Textures.GetFromGameIcon(new Dalamud.Interface.Textures.GameIconLookup(iconId)).GetWrapOrDefault();
-            if (wrap != null)
-                dl.AddImageRounded(wrap.Handle, pos, pos + new Vector2(size), Vector2.Zero, Vector2.One,
-                    Palette.U32(dim ? new Vector4(1, 1, 1, 0.4f) : Vector4.One), r);
-        }
-        catch
-        {
-            // No icon: the tile stays.
+            try
+            {
+                if (Services.Textures.TryGetFromGameIcon(new Dalamud.Interface.Textures.GameIconLookup(iconId), out var texture))
+                {
+                    var wrap = texture.GetWrapOrDefault();
+                    if (wrap != null)
+                        dl.AddImageRounded(wrap.Handle, pos, pos + new Vector2(size), Vector2.Zero, Vector2.One,
+                            Palette.U32(dim ? new Vector4(1, 1, 1, 0.4f) : Vector4.One), r);
+                }
+                else
+                {
+                    if (MissingIcons.Count >= 4096) MissingIcons.Clear();
+                    MissingIcons.Add(iconId);
+                }
+            }
+            catch
+            {
+                // No icon: the tile stays.
+            }
         }
         dl.AddRect(pos + new Vector2(0.5f), pos + new Vector2(size) - new Vector2(0.5f), Palette.U32(Palette.Line), r, ImDrawFlags.None, 1f);
     }
+
+    private static readonly HashSet<uint> MissingIcons = new();
 
     /// <summary>A dye's swatch: a 10px dot in its colour with the 0.34 edge (an empty ring when undyed).</summary>
     public static void Swatch(ImDrawListPtr dl, Vector2 center, uint? rgb)
@@ -485,14 +521,20 @@ public static partial class Kit
     {
         var dl = Dl;
         var h = S(36);
-        var valueW = MathF.Max(S(56), Txt.Measure(value, Face.Mono, 13).X + S(16));
+        var tw = Txt.Measure(value, Face.Mono, 13).X;
+        var valueW = MathF.Max(S(56), tw + S(16));
         var w = h * 2 + valueW;
         dl.AddRect(pos + new Vector2(0.5f), pos + new Vector2(w, h) - new Vector2(0.5f), Palette.U32(Palette.LineStrong), h / 2, ImDrawFlags.None, 1f);
         var result = 0;
-        foreach (var (dir, x, icon, can) in new[] { (-1, pos.X, Icon.Minus, canDown), (1, pos.X + h + valueW, Icon.Plus, canUp) })
+        ImGui.PushID(id);
+        for (var side = 0; side < 2; side++)
         {
-            var p = new Vector2(x, pos.Y);
-            var (clicked, hovered, held) = Hit($"{id}{dir}", p, new Vector2(h), !can);
+            var down = side == 0;
+            var dir = down ? -1 : 1;
+            var icon = down ? Icon.Minus : Icon.Plus;
+            var can = down ? canDown : canUp;
+            var p = new Vector2(down ? pos.X : pos.X + h + valueW, pos.Y);
+            var (clicked, hovered, held) = Hit(down ? "-1" : "1", p, new Vector2(h), !can);
             if (clicked) result = dir;
             var old = Palette.Opacity;
             if (!can) Palette.Opacity = old * 0.4f;
@@ -501,7 +543,7 @@ public static partial class Kit
             Palette.Opacity = old;
             FocusRing(p + new Vector2(S(4)), p + new Vector2(h - S(4)), h / 2 - S(4));
         }
-        var tw = Txt.Measure(value, Face.Mono, 13).X;
+        ImGui.PopID();
         Txt.Line(dl, new Vector2(pos.X + h + (valueW - tw) / 2, pos.Y), value, Face.Mono, 13, Palette.Ink, 36);
         return result;
     }
@@ -568,18 +610,16 @@ public static partial class Kit
     /// </summary>
     public static float Eyebrow(Vector2 pos, string text, Vector4? color = null, float maxWidth = 0)
     {
-        var caps = text.ToUpperInvariant();
-        while (maxWidth > 0 && caps.Length > 1 && Txt.SpacedWidth(caps, Face.Mono, 11, 0.18f) > maxWidth)
-            caps = caps[..^2].TrimEnd() + "…";
+        var caps = Txt.SpacedFit(text, Face.Mono, 11, 0.18f, maxWidth);
         Txt.Spaced(Dl, pos, caps, Face.Mono, 11, color ?? Palette.Rose, 0.18f);
         return Txt.Natural(Face.Mono, 11);
     }
 
     /// <summary>A small label (<c>.gs-label</c>): DM Mono 10px in spaced capitals (0.12em), muted. Returns its width.</summary>
     public static float Label(Vector2 pos, string text, Vector4? color = null) =>
-        Txt.Spaced(Dl, pos, text.ToUpperInvariant(), Face.Mono, 10, color ?? Palette.Muted, 0.12f);
+        Txt.Spaced(Dl, pos, Txt.Upper(text), Face.Mono, 10, color ?? Palette.Muted, 0.12f);
 
-    public static float LabelWidth(string text) => Txt.SpacedWidth(text.ToUpperInvariant(), Face.Mono, 10, 0.12f);
+    public static float LabelWidth(string text) => Txt.SpacedWidth(Txt.Upper(text), Face.Mono, 10, 0.12f);
 
     /// <summary>An eyebrow on its own row.</summary>
     public static void EyebrowRow(string text, Vector4? color = null)
@@ -599,13 +639,38 @@ public static partial class Kit
     /// </summary>
     public static void Dashed(Vector2 min, Vector2 max, float radius, Vector4 color, float thickness)
     {
-        var half = thickness / 2;
-        var outline = Model.Dashes.RoundedRect(min + new Vector2(half), max - new Vector2(half), MathF.Max(0, radius - half));
+        var dashes = DashesFor(max - min, radius, thickness);
         var col = Palette.U32(color);
         var dl = Dl;
-        foreach (var dash in Model.Dashes.Along(outline, thickness * 6))
-            if (dash.Length >= 2) dl.AddPolyline(ref dash[0], dash.Length, col, ImDrawFlags.None, thickness);
+        foreach (var dash in dashes)
+        {
+            if (dash.Length < 2) continue;
+            if (DashBuffer.Length < dash.Length) DashBuffer = new Vector2[Math.Max(dash.Length, DashBuffer.Length * 2)];
+            for (var i = 0; i < dash.Length; i++) DashBuffer[i] = min + dash[i];
+            dl.AddPolyline(ref DashBuffer[0], dash.Length, col, ImDrawFlags.None, thickness);
+        }
     }
+
+    /// <summary>
+    /// The dashes round a rectangle of a size, from its top-left corner: worked out once per size,
+    /// radius and line (they were walked anew for every dashed edge, every frame), moved into place
+    /// when drawn.
+    /// </summary>
+    private static List<Vector2[]> DashesFor(Vector2 size, float radius, float thickness)
+    {
+        var key = (size.X, size.Y, radius, thickness);
+        if (DashCache.TryGetValue(key, out var dashes)) return dashes;
+        var half = thickness / 2;
+        var outline = Model.Dashes.RoundedRect(new Vector2(half), size - new Vector2(half), MathF.Max(0, radius - half));
+        dashes = Model.Dashes.Along(outline, thickness * 6);
+        if (DashCache.Count >= 256) DashCache.Clear();
+        DashCache[key] = dashes;
+        return dashes;
+    }
+
+    private static readonly Dictionary<(float W, float H, float Radius, float Thickness), List<Vector2[]>> DashCache = new();
+
+    private static Vector2[] DashBuffer = new Vector2[64];
 
     // ---------------------------------------------------------------------------------------------
     // Panels: the content is laid first, the glass is drawn behind it at the height it had last frame.
@@ -705,9 +770,34 @@ public static partial class Kit
 
     public static void EndMenu()
     {
+        EndStrays(popup: true);
         PopBox();
         if (Frame.Open.Count > 0) Frame.Open.Pop();
         ImGui.EndPopup();
+    }
+
+    private static bool warnedStray;
+
+    /// <summary>
+    /// Before a pane or menu is ended: ends what was begun inside it and never ended (a pane in a menu,
+    /// a menu in a pane), with its box, so the wrong one isn't ended in its place (ImGui asserts when a
+    /// child is ended as a popup or the other way about). A slip in a view, so it's logged, once.
+    /// </summary>
+    private static void EndStrays(bool popup)
+    {
+        while (Frame.Open.Count > 0 && Frame.Open.Peek() != popup)
+        {
+            if (!warnedStray)
+            {
+                warnedStray = true;
+                Services.Log.Warning(popup ? "Glamour Studio ended a menu with a pane still open in it" : "Glamour Studio ended a pane with a menu still open in it");
+            }
+            var stray = Frame.Open.Pop();
+            if (!stray && Panes.Count > 0) Panes.Pop();
+            if (Boxes.Count > 0) Boxes.Pop();
+            if (stray) ImGui.EndPopup();
+            else ImGui.EndChild();
+        }
     }
 
     /// <summary>A row in a menu: 36 tall, radius 8, a faint fill when pointed at.</summary>
@@ -716,14 +806,10 @@ public static partial class Kit
         var pos = ImGui.GetCursorScreenPos();
         var w = width > 0 ? width : MathF.Max(S(180), Txt.Measure(label, Face.Sans, 13).X + S(24) + (icon != null ? S(24) : 0));
         var h = S(36);
-        var clicked = ImGui.InvisibleButton(id, new Vector2(w, h));
-        var hovered = ImGui.IsItemHovered();
+        // The kit's own hit test (nothing reacts under a dialog); a menu opened in the dialog is drawn after it's unblocked.
+        var (clicked, hovered, _) = HitHere(id, pos, new Vector2(w, h));
         var dl = ImGui.GetWindowDrawList();
-        if (hovered)
-        {
-            dl.AddRectFilled(pos, pos + new Vector2(w, h), Palette.U32(Palette.LineFaint), S(Palette.RadiusSm));
-            ImGui.SetMouseCursor(ImGuiMouseCursor.Hand);
-        }
+        if (hovered) dl.AddRectFilled(pos, pos + new Vector2(w, h), Palette.U32(Palette.LineFaint), S(Palette.RadiusSm));
         var x = pos.X + S(12);
         if (icon is { } ic)
         {
@@ -731,6 +817,7 @@ public static partial class Kit
             x += S(24);
         }
         Txt.Line(dl, new Vector2(x, pos.Y), label, Face.Sans, 13, hovered ? Palette.Ink : Palette.Soft, 36);
+        FocusRing(pos, pos + new Vector2(w, h), S(Palette.RadiusSm));
         return clicked;
     }
 }

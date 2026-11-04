@@ -223,6 +223,16 @@ public static class Icons
             for (var i = 0; i < n; i++) buffer[i] = pos + sub.Points[i] * k;
             if (filled)
             {
+                // ImGui smooths a filled shape's edge only when its points go clockwise on screen; the
+                // dot's circle goes the other way (its edge came out jagged), so it's turned round.
+                var area = 0f;
+                for (var i = 0; i < n; i++)
+                {
+                    var a = buffer[i];
+                    var b = buffer[(i + 1) % n];
+                    area += a.X * b.Y - b.X * a.Y;
+                }
+                if (area < 0) buffer[..n].Reverse();
                 dl.AddConvexPolyFilled(ref buffer[0], n, col);
                 continue;
             }
