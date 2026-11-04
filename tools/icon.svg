@@ -1,15 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!-- Glamour Studio's mark, as the site's favicon (public/favicon-glamour.svg): a white hanger on a
-       rounded tile of the tool's rose, with the night sky's faint glow behind the hanger. -->
-  <defs>
-    <radialGradient id="glow" cx="50%" cy="58%" r="55%">
-      <stop offset="0" stop-color="#ff6f9c"/>
-      <stop offset="1" stop-color="#d0104c"/>
-    </radialGradient>
-  </defs>
-  <rect width="512" height="512" rx="128" fill="url(#glow)"/>
-  <g fill="none" stroke="#ffffff" stroke-width="35" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M214.4 163.2a41.6 41.6 0 1 1 62.4 36c-12.8 7.36-20.8 17.6-20.8 32v15.2"/>
-    <path d="M256 246.4 89.6 350.4c-12 7.52-6.72 25.6 7.36 25.6h318.4c14.08 0 19.2-18.08 7.36-25.6Z"/>
-  </g>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 30 30">
+  <!-- a hanger on its rounded tile (kokos-tools: src/features/marks.ts, every tool's mark the same shape; npm run marks -- --icons draws icon.png) -->
+  <defs><radialGradient id="shine" cx="50%" cy="58%" r="62%"><stop offset="0" stop-color="#ffffff" stop-opacity=".26"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></radialGradient></defs>
+  <rect width="30" height="30" rx="8" fill="#d0104c"/>
+  <rect width="30" height="30" rx="8" fill="url(#shine)"/>
+  <g fill="none" stroke="#ffffff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15 9.5a2.2 2.2 0 1 1 2.2 2.2c-1.2 0-2.2.6-2.2 1.8v.6l-8 5.4a1 1 0 0 0 .6 1.8h14.8a1 1 0 0 0 .6-1.8l-8-5.4"/></g>
 </svg>
