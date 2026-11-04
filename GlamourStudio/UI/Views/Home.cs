@@ -85,7 +85,8 @@ public sealed partial class MainWindow
             editorMatch = (current, sync.Version, Plates.Matching(current, sync.Library.Mine.Concat(sync.Library.Loved).Concat(sync.Inbox.Select(s => s.Look))));
         var match = editorMatch.Look;
         var planned = sync.PlanFor(plate);
-        var plannedOn = planned != null && Plates.Same(current, planned.Pieces);
+        // (On it as the panels say: a plate keeping slots the look leaves bare counts, when bare slots aren't emptied.)
+        var plannedOn = planned != null && (Plates.Same(current, planned.Pieces) || (!config.ClearBare && OnPlate(planned.Pieces, current, true)));
         var plan = planned != null && !plannedOn ? PlanCached(planned) : null;
         var filled = lastFill is { } lf && lf.Result.Plate == plate ? lf : ((string LookId, FillResult Result, PlatePlan Plan)?)null;
 
@@ -400,7 +401,10 @@ public sealed partial class MainWindow
     // ---------------------------------------------------------------------------------------------
     // Ready for a plate.
 
-    private (int Sync, int Wardrobe, int Plate, Look? Planned, List<Look> Looks)? readyLooks;
+    private (int Sync, int Wardrobe, int Plate, Look? Planned, List<Look> Looks, bool More)? readyLooks;
+
+    /// <summary>Whether more looks are ready than the last ReadyLooks list holds (it holds 20).</summary>
+    private bool ReadyMore => readyLooks?.More ?? false;
 
     /// <summary>The looks to show as ready: the one planned for the plate open first, then yours and the ones you love that are ready.</summary>
     private List<Look> ReadyLooks(int plate, Look? planned)
@@ -409,12 +413,19 @@ public sealed partial class MainWindow
         var list = new List<Look>();
         if (planned != null) list.Add(planned);
         // Yours, the ones you love, and the ones sent to you from the site.
+        var more = false;
         foreach (var l in sync.Library.Mine.Concat(sync.Library.Loved).Concat(sync.Inbox.Select(s => s.Look)))
         {
-            if (list.Count >= 20) break;
-            if (list.All(x => x.Id != l.Id) && ReadinessOf(l).PlateReady) list.Add(l);
+            if (list.Any(x => x.Id == l.Id) || !ReadinessOf(l).PlateReady) continue;
+            // (One more ready than the 20 kept: said as "20+", so a list of exactly 20 isn't.)
+            if (list.Count >= 20)
+            {
+                more = true;
+                break;
+            }
+            list.Add(l);
         }
-        readyLooks = (sync.Version, wardrobe.Version, plate, planned, list);
+        readyLooks = (sync.Version, wardrobe.Version, plate, planned, list, more);
         return list;
     }
 

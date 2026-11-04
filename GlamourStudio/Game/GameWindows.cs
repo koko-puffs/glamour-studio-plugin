@@ -166,7 +166,8 @@ public static unsafe class GameWindows
     // Storing an outfit set.
 
     /// <summary>The set being stored (its own item, 0 when it can't be told) and its pieces: each item and the bag it's put from (Invalid: not picked).</summary>
-    public sealed record OutfitSetNow(uint SetItem, IReadOnlyList<(uint Item, InventoryType Where)> Pieces);
+    /// <param name="Hq">The pieces listed are high quality (the set they make is the set's high-quality copy, its id a million more).</param>
+    public sealed record OutfitSetNow(uint SetItem, IReadOnlyList<(uint Item, InventoryType Where)> Pieces, bool Hq = false);
 
     private static (long Key, uint Set)? outfitSetCache;
 
@@ -183,12 +184,14 @@ public static unsafe class GameWindows
             if (agent == null || agent->Data == null) return null;
             var d = agent->Data;
             var list = new List<(uint, InventoryType)>();
+            var hq = false;
             var n = (int)Math.Min(d->NumItemsInSet, (uint)d->Items.Length);
             for (var i = 0; i < n; i++)
             {
                 ref var it = ref d->Items[i];
                 if (it.ItemId == 0) continue;
                 list.Add((LookJson.BaseId(it.ItemId), it.InventoryType));
+                if (it.ItemId >= LookJson.HqOffset) hq = true;
             }
             if (list.Count == 0) return null;
             // The set holding every piece listed (a piece can be in more than one set), else the first
@@ -205,7 +208,7 @@ public static unsafe class GameWindows
                 if (set != 0) outfitSetCache = (key, set);
             }
             if (set == 0 && d->SourceItemId != 0) set = data.SetOf(d->SourceItemId);
-            return new OutfitSetNow(set, list);
+            return new OutfitSetNow(set, list, hq);
         }
         catch (Exception ex)
         {

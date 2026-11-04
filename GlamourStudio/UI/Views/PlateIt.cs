@@ -84,8 +84,10 @@ public sealed partial class MainWindow
                     job.Until = now + TimeSpan.FromSeconds(3);
                     break;
                 }
-                // The dresser closed before Glamour Plates opened (a moment's grace: opening it may hide the dresser).
-                if (job.Asked && !GameWindows.IsShown("MiragePrismPrismBox") && now > job.Until - TimeSpan.FromSeconds(4.5))
+                // The dresser closed before Glamour Plates opened: neither window there after 3 s (opening
+                // it may hide the dresser, and its first opening loads the plates).
+                if (job.Asked && !GameWindows.IsShown("MiragePrismPrismBox") && !GameWindows.IsShown("MiragePrismMiragePlate")
+                    && now > job.Until - TimeSpan.FromSeconds(3))
                 {
                     Fail("The glamour dresser closed");
                     break;

@@ -92,7 +92,7 @@ public sealed partial class MainWindow
                 OpenPlateItMenu("##c-plate-it", look);
         }
         DrawPlateItMenu("##c-plate-it");
-        if (!companionMore && ready.Count > 4) MoreLink("##c-more-ready", ready.Count - 4, ready.Count >= ReadyCap);
+        if (!companionMore && ready.Count > 4) MoreLink("##c-more-ready", ready.Count - 4, ReadyMore && ready.Count >= ReadyCap);
         Kit.Gap(16);
 
         var bring = BringToDresser();
@@ -126,7 +126,7 @@ public sealed partial class MainWindow
     private const int ReadyCap = 20;
 
     /// <summary>How many looks are ready, "20+" when the list stopped at its most.</summary>
-    private static string ReadyCount(int n) => n >= ReadyCap ? $"{n.ToString(En)}+" : n.ToString(En);
+    private string ReadyCount(int n) => ReadyMore && n >= ReadyCap ? $"{n.ToString(En)}+" : n.ToString(En);
 
     /// <summary>
     /// For a row of <paramref name="h"/> at the cursor in a long list: when it's scrolled out of
@@ -453,6 +453,7 @@ public sealed partial class MainWindow
         if (!Armoire.IsOpen)
         {
             storeQueue.Clear();
+            storeRefused = default;
             return;
         }
         var (row, name, say) = storeQueue.Peek();
@@ -609,7 +610,7 @@ public sealed partial class MainWindow
         if (pieces.Count == 0) pieces = set.Pieces.Select(p => p.Item).ToList();
         var loose = me?.Dresser.Count(d => !d.InSet && pieces.Contains(LookJson.BaseId(d.Item))) ?? 0;
         // Stored already: a set in the dresser of this very id (a high-quality copy's id is a million more, a set of its own).
-        var stored = set.SetItem != 0 && me?.Dresser.Any(d => d.InSet && d.SetItem == set.SetItem) == true;
+        var stored = set.SetItem != 0 && me?.Dresser.Any(d => d.InSet && d.SetItem == set.SetItem + (set.Hq ? LookJson.HqOffset : 0)) == true;
         var frees = stored ? loose : Math.Max(0, loose - 1);
         var users = PaneLooks().Where(l => l.Pieces.Values.Any(p => pieces.Contains(LookJson.BaseId(p.Item)))).ToList();
 

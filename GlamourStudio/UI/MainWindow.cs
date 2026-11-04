@@ -253,6 +253,7 @@ public sealed partial class MainWindow : Window
             pickedLook = null;
             companionPick = null;
             storeQueue.Clear();
+            storeRefused = default;
             // A question asked for the last character isn't this one's.
             confirm = null;
         }

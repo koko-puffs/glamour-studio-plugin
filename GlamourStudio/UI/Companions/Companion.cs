@@ -180,6 +180,7 @@ public sealed partial class MainWindow
         catch (Exception ex)
         {
             storeQueue.Clear();
+            storeRefused = default;
             Services.Log.Warning(ex, "Glamour Studio couldn't store a piece in the armoire");
         }
         try

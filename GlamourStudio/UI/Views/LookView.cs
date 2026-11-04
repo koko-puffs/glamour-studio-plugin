@@ -150,6 +150,9 @@ public sealed partial class MainWindow
             return;
         }
         if (!openLookListed || sync.LibraryAt == null || sync.LibraryBusy) return;
+        // (The site sends your 300 latest looks and 200 loved: one gone from a full list may only have
+        // been pushed past its end, so it stays open.)
+        if (sync.Library.Mine.Count >= 300 || sync.Library.Loved.Count >= 200) return;
         if (screen == Screen.Look) Notify(openLook.Mine ? "That look isn't on the site any more" : "That look isn't one you love any more");
         openLook = null;
         openSent = null;

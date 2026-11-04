@@ -53,7 +53,7 @@ public sealed partial class MainWindow
             if (storedAt >= 0 ? pieces.Count < 1 : pieces.Count + chance.FromBags < 2) continue;
             foreach (var p in pieces) taken.Add(p.Index);
             fromBags += chance.FromBags;
-            jobs.Add(new OutfitJob(chance.SetItem, pieces, storedAt, chance.Hq));
+            jobs.Add(new OutfitJob(chance.SetItem, pieces, storedAt, chance.Hq, chance.FromBags));
         }
         var plan = new AutoRoomPlan(jobs,
             jobs.Sum(j => j.StoredAt >= 0 ? j.Pieces.Count : Math.Max(0, j.Pieces.Count - 1)),
@@ -80,7 +80,8 @@ public sealed partial class MainWindow
         if (plan.Jobs.Count == 0) return "No set has loose pieces to gather";
         if (!GameWindows.IsShown("MiragePrismPrismBox") || !wardrobe.DresserLive) return "Open your glamour dresser first";
         var trial = config.OutfitStoreWorked ? null : TrialJob(plan);
-        var prisms = trial?.Pieces.Count ?? plan.Prisms;
+        // (A prism for each piece stored: those from your bags too.)
+        var prisms = trial != null ? trial.Pieces.Count + trial.FromBags : plan.Prisms;
         var atOnce = trial?.Pieces.Count ?? plan.MostAtOnce;
         if (have.Prisms < prisms) return $"It needs {Words.Count(prisms, "glamour prism")}: you have {have.Prisms}";
         if (have.FreeBag < atOnce) return $"It needs {Words.Count(atOnce, "free bag place")} at once: you have {have.FreeBag}";

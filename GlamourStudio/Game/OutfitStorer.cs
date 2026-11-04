@@ -7,7 +7,8 @@ using GlamourStudio.Core;
 namespace GlamourStudio.Game;
 
 /// <summary>One set to gather: its item, its loose pieces in the dresser, and the set's own place when it's stored already (-1: a new set).</summary>
-public sealed record OutfitJob(uint SetItem, IReadOnlyList<DresserPiece> Pieces, int StoredAt, bool Hq = false)
+/// <param name="FromBags">The set's pieces already in your bags when planned (they go in with it, a prism each).</param>
+public sealed record OutfitJob(uint SetItem, IReadOnlyList<DresserPiece> Pieces, int StoredAt, bool Hq = false, int FromBags = 0)
 {
     /// <summary>The set as the game names it: a high-quality set's id is a million more (the outfit window sent 1045518 for Plain Pajamas of high-quality pieces).</summary>
     public uint GameSetId => Hq ? LookJson.BaseId(SetItem) + LookJson.HqOffset : LookJson.BaseId(SetItem);
