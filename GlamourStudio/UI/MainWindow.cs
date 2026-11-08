@@ -592,8 +592,9 @@ public sealed partial class MainWindow : Window
 
     /// <summary>
     /// The tool's mark, as the site's (kokos-tools: features/marks.ts) and the plugin's icon: an
-    /// arched dressing-room mirror of its violet, a white hanger in it under a crescent moon,
-    /// <paramref name="size"/> across (drawn in the mark's own 30 × 30 grid, scaled).
+    /// arched dressing-room mirror of its violet, a white hanger in it, <paramref name="size"/>
+    /// across (drawn in the mark's own 30 × 30 grid, scaled; flat violet, where the icon's mirror is
+    /// the studio's blend of violet into orchid).
     /// </summary>
     private static void Mark(ImDrawListPtr dl, Vector2 pos, float size)
     {
@@ -619,12 +620,9 @@ public sealed partial class MainWindow : Window
             pts[n++] = P(4.5f + 2 * MathF.Cos(a), 26.5f + 2 * MathF.Sin(a));
         }
         FillConvex(dl, pts[..n], tile);
-        // The crescent moon over it: a white disc, a disc of the tile's colour over most of it.
-        dl.AddCircleFilled(P(16.6f, 7.3f), 2.7f * k, Palette.U32(Palette.White), 24);
-        dl.AddCircleFilled(P(18f, 6.4f), 2.35f * k, tile, 24);
-        // The hanger, lower in the mirror.
-        var icon = size * 0.5f;
-        Icons.Draw(dl, Icon.Hanger, pos + new Vector2((size - icon) / 2, size * 0.655f - icon * 0.525f), icon, Palette.White, 2.2f);
+        // The hanger, in the middle of the mirror.
+        var icon = size * 0.62f;
+        Icons.Draw(dl, Icon.Hanger, pos + new Vector2((size - icon) / 2, size * 0.56f - icon * 0.486f), icon, Palette.White, 1.9f);
     }
 
     /// <summary>

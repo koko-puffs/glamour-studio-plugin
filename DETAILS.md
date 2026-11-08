@@ -609,9 +609,11 @@ The site's "Moonlit Atelier" redesign, in the plugin, and your character's colou
   Figtree to read and for labels and eyebrows, Geist Mono for numbers only (DM Sans, and DM Mono
   in spaced capitals for labels, before).
 - **The mark** at the header's left, and the plugin's icon: since 8 November 2026 the site's new
-  mark (kokos-tools: `src/features/marks.ts`), a white hanger under a crescent moon in an arched
-  violet mirror (`MainWindow.Mark`, drawn in the mark's 30 × 30 grid); a white hanger on a violet
-  rounded square before (rose before that).
+  mark (kokos-tools: `src/features/marks.ts`), a white hanger in an arched violet mirror
+  (`MainWindow.Mark`, drawn flat in the mark's 30 × 30 grid; the icon's mirror is the studio's
+  blend of violet `#7b55f0` into orchid `#c03a9c`; a crescent moon over the hanger came off the
+  same day); a white hanger on a
+  violet rounded square before (rose before that).
 - **Wishlist**: the shopping list is called your wishlist everywhere, as on the site.
 
 ### 0.6.15
