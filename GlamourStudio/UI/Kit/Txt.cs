@@ -84,6 +84,18 @@ public static class Txt
         return caps;
     }
 
+    private static readonly Dictionary<string, string> Sentences = new();
+
+    /// <summary>The text with its first letter a capital ("trying it on…" → "Trying it on…"), made once.</summary>
+    public static string Sentence(string text)
+    {
+        if (text.Length == 0 || !char.IsLower(text[0])) return text;
+        if (Sentences.TryGetValue(text, out var s)) return s;
+        s = char.ToUpperInvariant(text[0]) + text[1..];
+        Keep(Sentences, text, s);
+        return s;
+    }
+
     /// <summary>The font's own line (ImGui's font size): CSS "line-height: normal".</summary>
     public static float Natural(Face face, int px)
     {

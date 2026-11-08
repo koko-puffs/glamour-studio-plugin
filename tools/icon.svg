@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 30 30">
   <!-- a hanger on its rounded tile (kokos-tools: src/features/marks.ts, every tool's mark the same shape; npm run marks -- --icons draws icon.png) -->
   <defs><radialGradient id="shine" cx="50%" cy="58%" r="62%"><stop offset="0" stop-color="#ffffff" stop-opacity=".26"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></radialGradient></defs>
-  <rect width="30" height="30" rx="8" fill="#d0104c"/>
+  <rect width="30" height="30" rx="8" fill="#7b55f0"/>
   <rect width="30" height="30" rx="8" fill="url(#shine)"/>
   <g fill="none" stroke="#ffffff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15 9.5a2.2 2.2 0 1 1 2.2 2.2c-1.2 0-2.2.6-2.2 1.8v.6l-8 5.4a1 1 0 0 0 .6 1.8h14.8a1 1 0 0 0 .6-1.8l-8-5.4"/></g>
 </svg>

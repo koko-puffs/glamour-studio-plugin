@@ -257,7 +257,7 @@ public sealed partial class MainWindow
         var cw = centerW - S(20);
         var lineRuns = new[] { new Run(ReadyLine(look, ready), Face.Sans, 12, Palette.Muted) };
         var lineH = Txt.Flow(Vector2.Zero, cw, lineRuns, 18, out _, center: true, draw: false);
-        var subH = Txt.Natural(Face.Mono, 11);
+        var subH = Kit.SubHeight;
         var ringD = S(112);
         var tryH = Kit.ButtonHeight(BtnSize.Sm);
         var dyesH = dyes.Count > 0 ? subH + S(6) + S(14) : 0;
@@ -350,11 +350,12 @@ public sealed partial class MainWindow
             {
                 Place.Dresser => ("Dresser", Palette.Success),
                 Place.Armoire => ("Armoire", Palette.Success),
-                { } p => ($"{Places.Word(p)}: put it away", Palette.RoseText),
-                null => (sync.Library.Wishes.Contains(LookJson.BaseId(piece.Item)) ? "On your list" : "Not yours yet", Palette.Dim),
+                { } p => ($"{Places.Word(p)}: put it away", Palette.AccentText),
+                // (Not yours yet: orchid, as the site marks the pieces you don't own.)
+                null => (sync.Library.Wishes.Contains(LookJson.BaseId(piece.Item)) ? "On your wishlist" : "Not yours yet", Palette.Love),
             };
             if (step is { DyeFromBags: true }) where += " · dyed from your bags";
-            else if (step is { DyeLeft: true }) (where, whereColor) = (where + " · dye it in the editor", Palette.RoseText);
+            else if (step is { DyeLeft: true }) (where, whereColor) = (where + " · dye it in the editor", Palette.AccentText);
             // (Only for the slot under the mouse: twelve of them a frame otherwise.)
             if (hover) tip = $"{name}\n{line}\n{WhereChip(w, sync.Library.Wishes.Contains(LookJson.BaseId(piece.Item))).Tip}";
         }
@@ -421,7 +422,7 @@ public sealed partial class MainWindow
         if (plate > 0)
         {
             var thePlan = PlanCached(look);
-            Kit.BeginPanel("##put", compact ? 14 : 18, compact ? 14 : 18, compact ? 14 : 18, Palette.RoseWash, Palette.RoseEdge);
+            Kit.BeginPanel("##put", compact ? 14 : 18, compact ? 14 : 18, compact ? 14 : 18, Palette.Blush, Palette.AccentEdge);
             if (!compact)
             {
                 Kit.EyebrowRow($"Plate editor open · plate {plate}");
@@ -445,7 +446,7 @@ public sealed partial class MainWindow
             if (openSent?.Plate is { } meant && meant != plate && openSent.Look.Id == look.Id)
             {
                 Kit.Gap(8);
-                Txt.Note($"It was sent for plate {meant}: pick plate {meant} in the game's window to put it there.", Palette.RoseText);
+                Txt.Note($"It was sent for plate {meant}: pick plate {meant} in the game's window to put it there.", Palette.AccentText);
             }
             Kit.EndPanel();
             return;
@@ -453,7 +454,7 @@ public sealed partial class MainWindow
         if (PlateItHere)
         {
             // The dresser's open: straight onto a plate (the plugin opens Glamour Plates and picks it).
-            Kit.BeginPanel("##put", compact ? 14 : 18, compact ? 14 : 18, compact ? 14 : 18, Palette.RoseWash, Palette.RoseEdge);
+            Kit.BeginPanel("##put", compact ? 14 : 18, compact ? 14 : 18, compact ? 14 : 18, Palette.Blush, Palette.AccentEdge);
             var pat = Kit.At;
             var pw = Kit.Width;
             var psize = compact ? BtnSize.Md : BtnSize.Lg;
@@ -470,7 +471,7 @@ public sealed partial class MainWindow
         Kit.BeginPanel("##how", 14, 16, 14, Palette.Card, Palette.Line, 14);
         var a = Kit.At;
         var iw2 = Kit.Width;
-        Icons.Draw(Kit.Dl, Icon.Layers, new Vector2(a.X, a.Y + S(2)), S(16), Palette.Rose);
+        Icons.Draw(Kit.Dl, Icon.Layers, new Vector2(a.X, a.Y + S(2)), S(16), Palette.Accent);
         var tx = a.X + S(16) + S(12);
         var h = Txt.Flow(new Vector2(tx, a.Y), iw2 - (tx - a.X), new[]
         {
@@ -684,7 +685,7 @@ public sealed partial class MainWindow
             var lh = Txt.Flow(Vector2.Zero, w - S(24), runs, 18, out _, center: true, draw: false);
             var block = S(22) + S(8) + lh;
             var y = at.Y + (boxH - block) / 2;
-            Icons.Draw(dl, Icon.Camera, new Vector2(at.X + (w - S(22)) / 2, y), S(22), Palette.Rose);
+            Icons.Draw(dl, Icon.Camera, new Vector2(at.X + (w - S(22)) / 2, y), S(22), Palette.Accent);
             Txt.Flow(new Vector2(at.X + S(12), y + S(22) + S(8)), w - S(24), runs, 18, out _, center: true);
             Kit.Reserve(at, w, boxH);
             Kit.Gap(12);

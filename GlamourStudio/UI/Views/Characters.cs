@@ -56,13 +56,13 @@ public sealed partial class MainWindow
                     var dl = Kit.Dl;
                     var r = S(Palette.RadiusLg);
                     dl.AddRectFilled(win, win + new Vector2(width, height), Palette.U32(Palette.Card), r);
-                    dl.AddRect(win, win + new Vector2(width, height), Palette.U32(Palette.RoseEdge), r);
+                    dl.AddRect(win, win + new Vector2(width, height), Palette.U32(Palette.AccentEdge), r);
                     var pad = S(20);
                     var inner = width - pad * 2;
                     var at = win + new Vector2(pad, pad);
                     ImGui.SetCursorScreenPos(at);
                     Kit.PushBox(at.X, inner);
-                    Kit.EyebrowRow(Consent.Eyebrow(c.World), Palette.Rose);
+                    Kit.EyebrowRow(Consent.Eyebrow(c.World), Palette.Accent);
                     Kit.Gap(8);
                     var tAt = Kit.At;
                     var titleH = Title(tAt, Consent.Question(c.Name), inner, 18, 3);

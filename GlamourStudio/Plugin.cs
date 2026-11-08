@@ -173,13 +173,13 @@ public sealed class Plugin : IDalamudPlugin
         }, "the plate editor");
     }
 
-    /// <summary>Pieces from your shopping list the plugin has just seen in your wardrobe: a line in chat.</summary>
+    /// <summary>Pieces from your wishlist the plugin has just seen in your wardrobe: a line in chat.</summary>
     private void OnWishesGot(System.Collections.Generic.IReadOnlyList<uint> items)
     {
         if (!config.ChatNotes || items.Count == 0) return;
         var names = Core.Words.List(items.Take(4).Select(data.ItemName));
         var more = items.Count > 4 ? $" and {items.Count - 4} more" : string.Empty;
-        Services.Chat.Print($"Glamour Studio: {names}{more} came off your shopping list.");
+        Services.Chat.Print($"Glamour Studio: {names}{more} came off your wishlist.");
     }
 
     /// <summary>Per step: when its next failure may be logged.</summary>

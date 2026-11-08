@@ -25,12 +25,16 @@ public static class Appearance
     private const int Sex = 1, Clan = 4, Highlights = 7, Skin = 8, EyeRight = 9, Hair = 10, HighlightColour = 11,
         FeatureColour = 13, EyeLeft = 15, Mouth = 19, LipColour = 20;
 
-    // human.cmp: colours of 4 bytes (red, green, blue, alpha). The shared palettes first (eyes and
-    // the features' colour at 0, highlights at 256, the dark lip colours at 512, the light at 1792),
-    // then a chunk of 1280 for each clan and sex (♂ first), its skin's palette at 768 and its hair's
-    // at 1024. As Anamnesis's ColorData and Glamourer's CmpFile read it.
+    // human.cmp: colours of 4 bytes (red, green, blue, alpha). The shared palettes first (the eyes'
+    // at 0, the highlights' at 256, the dark lip colours at 512, the dark face paint's at 640, the
+    // facial features' at 768, the light lip colours at 1024, the light face paint's at 1152; then
+    // unused ones to 2304, and the same again for the character creator's buttons to 4608), then a
+    // chunk of 1280 for each clan and sex (♂ first), its skin's palette at 768 and its hair's at
+    // 1024. As Penumbra.GameData's CmpData lays it out (Glamourer reads it so) and the site's
+    // extraction reads it. (Up to 0.6.15 the light lips were read at 1792, one of the unused
+    // palettes: yellow lips; and the features' colour from the eyes' palette.)
     private const int Shared = 4608, Chunk = 1280, SkinAt = 768, HairAt = 1024;
-    private const int EyesAt = 0, HighlightsAt = 256, DarkLipsAt = 512, LightLipsAt = 1792;
+    private const int EyesAt = 0, HighlightsAt = 256, DarkLipsAt = 512, FeaturesAt = 768, LightLipsAt = 1024;
 
     /// <summary>
     /// The colours the customize bytes pick, by name (<c>skin</c>, <c>hair</c>, <c>eyes</c>,
@@ -50,7 +54,7 @@ public static class Appearance
         }
         Put(o, "eyes", cmp, EyesAt + customize[EyeRight]);
         Put(o, "eyesLeft", cmp, EyesAt + customize[EyeLeft]);
-        Put(o, "feature", cmp, EyesAt + customize[FeatureColour]);
+        Put(o, "feature", cmp, FeaturesAt + customize[FeatureColour]);
         if ((customize[Highlights] & 0x80) != 0) Put(o, "highlights", cmp, HighlightsAt + customize[HighlightColour]);
         // (Lipstick: the mouth's top bit; the colour's 0–95 dark, 128 and up light.)
         if ((customize[Mouth] & 0x80) != 0)

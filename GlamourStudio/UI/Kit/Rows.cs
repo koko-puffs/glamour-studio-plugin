@@ -48,13 +48,13 @@ public sealed class Wrap
 /// <summary>
 /// The rows the screens share, as the site lays them out: a section's heading with a quiet note on
 /// its right ("Get started … Three steps to your first plan"), tabs as a pick-one pill, the round
-/// rose icon wells of the cards, and the row of fact boxes.
+/// lilac icon wells of the cards, and the row of fact boxes.
 /// </summary>
 public static partial class Kit
 {
     /// <summary>
-    /// A section's heading, as the site's (<c>.gs-label</c> over a list): DM Mono 11px in spaced
-    /// capitals, muted, with <paramref name="rest"/> on the right in quiet 12px.
+    /// A section's heading, as the site's (<c>.gs-label</c> over a list): Figtree 600 12px, muted,
+    /// with <paramref name="rest"/> on the right in quiet 12px. (DM Mono in spaced capitals until 0.6.16.)
     /// </summary>
     public static void Section(string text, string? rest = null)
     {
@@ -63,8 +63,7 @@ public static partial class Kit
         var h = Txt.Natural(Face.Sans, 12);
         var restW = rest != null ? Txt.Measure(rest, Face.Sans, 12).X : 0;
         var dl = Dl;
-        var lh = Txt.Natural(Face.Mono, 11);
-        Txt.Spaced(dl, new Vector2(at.X, at.Y + (h - lh) / 2), Txt.Upper(text), Face.Mono, 11, Palette.Muted, 0.12f);
+        Label(new Vector2(at.X, at.Y + (h - LabelHeight) / 2), Txt.Fit(text, Face.SansSemibold, 12, w - restW - (rest != null ? S(12) : 0)));
         if (rest != null)
             Txt.Draw(dl, new Vector2(at.X + w - restW, at.Y), rest, Face.Sans, 12, Palette.Faint);
         Reserve(at, w, h);
@@ -77,12 +76,11 @@ public static partial class Kit
         var w = Width;
         var h = Txt.Natural(Face.Sans, 12);
         var lw = Txt.Measure(link, Face.SansMedium, 12).X;
-        var mh = Txt.Natural(Face.Mono, 11);
-        Txt.Spaced(Dl, new Vector2(at.X, at.Y + (h - mh) / 2), Txt.Upper(text), Face.Mono, 11, Palette.Muted, 0.12f);
+        Label(new Vector2(at.X, at.Y + (h - LabelHeight) / 2), Txt.Fit(text, Face.SansSemibold, 12, w - lw - S(12)));
         var lh = Txt.Natural(Face.Sans, 12);
         var pos = new Vector2(at.X + w - lw, at.Y + (h - lh) / 2);
         var (clicked, hovered, _) = Hit(id, pos - new Vector2(S(4)), new Vector2(lw, lh) + new Vector2(S(8)));
-        Txt.Draw(Dl, pos, link, Face.SansMedium, 12, hovered ? Palette.RoseHover : Palette.Rose);
+        Txt.Draw(Dl, pos, link, Face.SansMedium, 12, hovered ? Palette.AccentHover : Palette.Accent);
         Reserve(at, w, h);
         return clicked;
     }
@@ -95,7 +93,7 @@ public static partial class Kit
 
     /// <summary>
     /// Tabs as the site's pick-one pill (36 tall, the strong edge, 3px inside): the picked one a soft
-    /// white fill with white words, the others grey. Returns the tab picked (the one given when none was pressed).
+    /// violet pill with white words (gliding to it), the others grey. Returns the tab picked (the one given when none was pressed).
     /// </summary>
     public static int Tabs(string id, IReadOnlyList<TabSpec> tabs, int selected)
     {
@@ -119,6 +117,15 @@ public static partial class Kit
         dl.AddRect(at + new Vector2(0.5f), at + new Vector2(total, h) - new Vector2(0.5f), Palette.U32(Palette.LineStrong), h / 2, ImDrawFlags.None, 1f);
         var result = selected;
         var x = at.X + S(4);
+        // The picked one's pill, gliding to it.
+        if (selected >= 0 && selected < tabs.Count)
+        {
+            var px = x;
+            for (var i = 0; i < selected; i++) px += TabWidth(counts ? tabs[i] : tabs[i] with { Count = null }, pad) + S(3);
+            var (gx, gw) = Glide(id, px - at.X, TabWidth(counts ? tabs[selected] : tabs[selected] with { Count = null }, pad));
+            var gp = new Vector2(at.X + gx, at.Y + S(4));
+            dl.AddRectFilled(gp, gp + new Vector2(gw, inner), Palette.U32(Palette.Picked), inner / 2);
+        }
         for (var i = 0; i < tabs.Count; i++)
         {
             var tab = counts ? tabs[i] : tabs[i] with { Count = null };
@@ -130,11 +137,10 @@ public static partial class Kit
             ImGui.PopID();
             if (clicked) result = i;
             var on = i == selected;
-            if (on) dl.AddRectFilled(p, max, Palette.U32(Palette.Picked), inner / 2);
-            else if (held || hovered) dl.AddRectFilled(p, max, Palette.U32(held ? Palette.LinePicked : Palette.LineFaint), inner / 2);
+            if (!on && (held || hovered)) dl.AddRectFilled(p, max, Palette.U32(held ? Palette.LinePicked : Palette.LineFaint), inner / 2);
             var tx = p.X + S(pad);
             tx += Txt.Line(dl, new Vector2(tx, p.Y), tab.Label, Face.SansSemibold, 13, on ? Palette.OnPicked : hovered ? Palette.Ink : Palette.Muted, 28);
-            if (tab.Count != null) Txt.Line(dl, new Vector2(tx + S(6), p.Y), tab.Count, Face.Mono, 11, on ? Palette.Faint : Palette.Faint, 28);
+            if (tab.Count != null) Txt.Line(dl, new Vector2(tx + S(6), p.Y), tab.Count, Face.Mono, 11, on ? Palette.WithAlpha(Palette.OnPicked, 0.75f) : Palette.Faint, 28);
             FocusRing(p, max, inner / 2);
             x += w + S(3);
         }
@@ -146,17 +152,17 @@ public static partial class Kit
     // Wells and facts.
 
     /// <summary>
-    /// The round icon well of the cards: the deep blush with the icon in rose (the
-    /// favicon's), or grey for something quiet.
+    /// The round icon well of the cards: the deep blush with the icon in lilac, or grey for
+    /// something quiet.
     /// </summary>
     public static void IconWell(Vector2 pos, float size, Icon icon, bool quiet = false)
     {
         var dl = Dl;
         var c = pos + new Vector2(size / 2);
-        dl.AddCircleFilled(c, size / 2, Palette.U32(quiet ? Palette.Tile : Palette.RoseTile), 40);
-        dl.AddCircle(c, size / 2 - 0.5f, Palette.U32(quiet ? Palette.Line : Palette.RoseEdge), 40, 1f);
+        dl.AddCircleFilled(c, size / 2, Palette.U32(quiet ? Palette.Tile : Palette.BlushTile), 40);
+        dl.AddCircle(c, size / 2 - 0.5f, Palette.U32(quiet ? Palette.Line : Palette.AccentEdge), 40, 1f);
         var px = MathF.Round(size * 0.45f);
-        Icons.Draw(dl, icon, c - new Vector2(px / 2), px, quiet ? Palette.Muted : Palette.Rose);
+        Icons.Draw(dl, icon, c - new Vector2(px / 2), px, quiet ? Palette.Muted : Palette.Accent);
     }
 
     /// <summary>One fact in a row of boxes: its label over its value, with a quieter note after the value ("19 to 4:40").</summary>
@@ -175,7 +181,7 @@ public static partial class Kit
         var perRow = w < S(360) ? Math.Min(facts.Count, 2) : facts.Count;
         var rows = (facts.Count + perRow - 1) / perRow;
         var cellW = w / perRow;
-        var cellH = S(66);
+        var cellH = S(68);
         var h = cellH * rows;
         var dl = Dl;
         var r = S(Palette.RadiusMd);
@@ -189,8 +195,8 @@ public static partial class Kit
             if (row > 0 && col == 0) dl.AddLine(new Vector2(at.X + 1, p.Y + 0.5f), new Vector2(at.X + w - 1, p.Y + 0.5f), Palette.U32(Palette.Line), 1f);
             var f = facts[i];
             var inner = cellW - S(28);
-            Txt.Spaced(dl, p + new Vector2(S(14), S(12)), Txt.Upper(f.Label), Face.Mono, 10, Palette.Muted, 0.12f);
-            var vy = p.Y + S(12) + Txt.Natural(Face.Mono, 10) + S(5);
+            Label(p + new Vector2(S(14), S(12)), Txt.Fit(f.Label, Face.SansSemibold, 12, inner));
+            var vy = p.Y + S(12) + LabelHeight + S(5);
             var vw = Txt.Draw(dl, new Vector2(p.X + S(14), vy), Txt.Fit(f.Value, Face.Display, 20, inner), Face.Display, 20, f.Color ?? Palette.Ink);
             if (f.Note != null && vw + S(6) < inner)
             {

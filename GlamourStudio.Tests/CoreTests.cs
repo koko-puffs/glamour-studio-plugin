@@ -709,9 +709,18 @@ public class AppearanceTests
         Assert.Equal(At(chunk + 1024 + 20), o["hair"]);
         Assert.Equal(At(3), o["eyes"]);
         Assert.Equal(At(6), o["eyesLeft"]);
-        Assert.Equal(At(5), o["feature"]);
+        Assert.Equal(At(768 + 5), o["feature"]);
         Assert.Equal(At(256 + 4), o["highlights"]);
-        Assert.Equal(At(1792 + 2), o["lips"]);
+        // A light lipstick (130: the light palette's third) from the light palette at 1024.
+        Assert.Equal(At(1024 + 2), o["lips"]);
+    }
+
+    [Fact]
+    public void ADarkLipstickIsFromTheDarkPalette()
+    {
+        var c = Raen();
+        c[20] = 7;
+        Assert.Equal(At(512 + 7), Appearance.Colours(c, Cmp())["lips"]);
     }
 
     [Fact]

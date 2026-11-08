@@ -347,11 +347,11 @@ public sealed partial class MainWindow
 
         var tx = win.X + pad;
         var tw = bx - S(8) - tx;
-        var ebH = Txt.Natural(Face.Mono, 10);
-        var tH = Txt.Natural(Face.SansSemibold, 15);
+        var ebH = Kit.EyebrowHeight;
+        var tH = Txt.Natural(Face.Heading, 16);
         var ty = win.Y + (headerH - ebH - tH) / 2;
-        Txt.Spaced(dl, new Vector2(tx, ty), "GLAMOUR STUDIO", Face.Mono, 10, Palette.Rose, 0.16f);
-        Txt.Draw(dl, new Vector2(tx, ty + ebH), Txt.Fit(PaneTitle(pane), Face.SansSemibold, 15, tw), Face.SansSemibold, 15, Palette.Ink);
+        Kit.Eyebrow(new Vector2(tx, ty), "Glamour Studio", Palette.Accent, tw);
+        Txt.Draw(dl, new Vector2(tx, ty + ebH), Txt.Fit(PaneTitle(pane), Face.Heading, 16, tw), Face.Heading, 16, Palette.Ink);
     }
 
     /// <summary>The slim tab a folded panel leaves on its window's edge: an arrow, its one number.</summary>
@@ -391,7 +391,7 @@ public sealed partial class MainWindow
                 {
                     var t = Txt.Fit(count, Face.Mono, 11, w - S(4));
                     var tw = Txt.Measure(t, Face.Mono, 11).X;
-                    Txt.Draw(dl, new Vector2(cx - tw / 2, iy + S(16) + S(8)), t, Face.Mono, 11, Palette.RoseText);
+                    Txt.Draw(dl, new Vector2(cx - tw / 2, iy + S(16) + S(8)), t, Face.Mono, 11, Palette.AccentText);
                 }
                 if (clicked)
                     Later(() =>
@@ -423,8 +423,8 @@ public sealed partial class MainWindow
         Pane.Dresser => "At the dresser",
         Pane.Examine => examined is { Name.Length: > 0 } ex ? $"{ex.Name}'s outfit" : "Their outfit",
         Pane.Retainer => paneRetainer is { } r && r.Name.Length > 0 ? $"On {r.Name}" : "A retainer's bags",
-        Pane.Market => "Shopping list",
-        _ => "Shopping list",
+        Pane.Market => "Wishlist",
+        _ => "Wishlist",
     };
 
     /// <summary>The one number a folded tab shows, or null.</summary>
@@ -515,7 +515,7 @@ public sealed partial class MainWindow
     }
 
     // ---------------------------------------------------------------------------------------------
-    // What the panels share: a piece's row, a look's row, a heading, a note, the shopping list.
+    // What the panels share: a piece's row, a look's row, a heading, a note, your wishlist.
 
     /// <summary>"Show more" pressed in this panel (a list cut short shows the rest).</summary>
     private bool companionMore;
@@ -535,6 +535,15 @@ public sealed partial class MainWindow
     /// A piece's row: its icon, a slot's mono label (if any), its name and a line under it, a chip on
     /// the right, or a small button there instead. True when the button's pressed.
     /// </summary>
+    /// <summary>A slot's key ("ringR") as the few words a piece's row starts with ("Ring R").</summary>
+    private static string SlotShort(string key) => key switch
+    {
+        "ringR" => "Ring R",
+        "ringL" => "Ring L",
+        _ when key.Length > 0 => char.ToUpperInvariant(key[0]) + key[1..],
+        _ => key,
+    };
+
     private bool PieceRow(string id, uint item, string? slotKey, string? name, string? line, string? chip, ChipKind kind, string? button = null,
         bool buttonDisabled = false, string? tip = null, bool picked = false)
     {
@@ -542,11 +551,12 @@ public sealed partial class MainWindow
         var w = Kit.Width;
         var h = line != null ? S(40) : S(32);
         var dl = Kit.Dl;
-        if (picked) dl.AddRectFilled(at, at + new Vector2(w, h), Palette.U32(Palette.RoseRow), S(8));
+        if (picked) dl.AddRectFilled(at, at + new Vector2(w, h), Palette.U32(Palette.AccentRow), S(8));
         var x = at.X + S(4);
         if (slotKey != null)
         {
-            Txt.Spaced(dl, new Vector2(x, at.Y + (h - Txt.Natural(Face.Mono, 10)) / 2), slotKey.ToUpperInvariant(), Face.Mono, 10, Palette.Dim, 0.06f);
+            var sh = Txt.Natural(Face.SansSemibold, 11);
+            Txt.Draw(dl, new Vector2(x, at.Y + (h - sh) / 2), Txt.Fit(SlotShort(slotKey), Face.SansSemibold, 11, S(38)), Face.SansSemibold, 11, Palette.Dim);
             x += S(40);
         }
         var icon = S(24);
@@ -592,7 +602,7 @@ public sealed partial class MainWindow
         var w = Kit.Width;
         var h = S(48);
         var dl = Kit.Dl;
-        if (picked) dl.AddRectFilled(at, at + new Vector2(w, h), Palette.U32(Palette.RoseRow), S(8));
+        if (picked) dl.AddRectFilled(at, at + new Vector2(w, h), Palette.U32(Palette.AccentRow), S(8));
         var m = S(36);
         Mosaic(new Vector2(at.X + S(4), at.Y + (h - m) / 2), m, look.Pieces, 8, 4);
         var x = at.X + S(4) + m + S(10);
@@ -616,7 +626,7 @@ public sealed partial class MainWindow
         return clicked;
     }
 
-    /// <summary>A piece's whereabouts as a chip: where a plate takes it from in green, elsewhere outlined, not yours in rose.</summary>
+    /// <summary>A piece's whereabouts as a chip: where a plate takes it from in mint, elsewhere outlined, not yours in orchid.</summary>
     private (string Text, ChipKind Kind) WhereChipOf(uint item)
     {
         var w = Where(item);
@@ -628,14 +638,14 @@ public sealed partial class MainWindow
             Place.Armoury => ("Armoury", ChipKind.Plain),
             Place.Saddlebag => ("Saddlebag", ChipKind.Plain),
             Place.Retainer => ("Retainer", ChipKind.Plain),
-            _ => sync.Library.Wishes.Contains(LookJson.BaseId(item)) ? ("On your list", ChipKind.Plain) : ("Don't have", ChipKind.Rose),
+            _ => sync.Library.Wishes.Contains(LookJson.BaseId(item)) ? ("On your wishlist", ChipKind.Love) : ("Don't have", ChipKind.Love),
         };
     }
 
     /// <summary>Wishes being sent (so a second press waits for the first).</summary>
     private bool wishing;
 
-    /// <summary>A rose link that puts pieces on your shopping list (shown when linked and there's any to put).</summary>
+    /// <summary>A lilac link that puts pieces on your wishlist (shown when linked and there's any to put).</summary>
     private void WishLink(string id, IReadOnlyList<Piece> pieces, string text)
     {
         if (!Linked || pieces.Count == 0) return;
@@ -658,18 +668,18 @@ public sealed partial class MainWindow
             wishing = false;
             recorder.Note($"WISH added {pieces.Count}: {(r.Ok ? $"{r.Value} new" : r.Why)}");
             (say ?? Notify)(!r.Ok ? r.Why ?? "The site said no"
-                : pieces.Count == 1 ? $"{data.ItemName(pieces[0].Item)}: on your shopping list"
-                : $"{Words.Count(pieces.Count, "piece")} on your shopping list");
+                : pieces.Count == 1 ? $"{data.ItemName(pieces[0].Item)}: on your wishlist"
+                : $"{Words.Count(pieces.Count, "piece")} on your wishlist");
         });
     }
 
-    /// <summary>Takes a piece off your shopping list (at once here; back on should the site say no).</summary>
+    /// <summary>Takes a piece off your wishlist (at once here; back on should the site say no).</summary>
     private void Unwish(uint item, Action<string>? say = null)
     {
         sync.RemoveWishes(new[] { item }, r =>
         {
             recorder.Note($"WISH removed {item}: {(r.Ok ? $"{r.Value} off" : r.Why)}");
-            (say ?? Notify)(r.Ok ? $"{data.ItemName(item)}: off your shopping list" : r.Why ?? "The site said no");
+            (say ?? Notify)(r.Ok ? $"{data.ItemName(item)}: off your wishlist" : r.Why ?? "The site said no");
         });
     }
 

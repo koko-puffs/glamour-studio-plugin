@@ -13,7 +13,7 @@ namespace GlamourStudio.UI;
 
 /// <summary>
 /// Two small additions to the game's own item windows: lines under an item's tooltip (which of your
-/// looks use the piece, the plates it's on, a copy in the dresser, on your shopping list), drawn
+/// looks use the piece, the plates it's on, a copy in the dresser, on your wishlist), drawn
 /// just under the game's tooltip; and a Glamour Studio entry in the right-click menu on gear (in
 /// your bags, the armoury chest, a retainer's, and an item linked in chat).
 /// </summary>
@@ -39,7 +39,7 @@ public sealed partial class MainWindow
             lines.Add(looks.Count == 1 ? $"In your look {names[0]}" : $"In {looks.Count} of your looks: {string.Join(", ", names)}{more}");
         }
         if (plates.Count > 0) lines.Add(plates.Count == 1 ? $"On plate {plates[0]}" : $"On plates {Words.List(plates.Select(p => p.ToString(En)))}");
-        if (wish) lines.Add(Where(item) == null ? "On your shopping list" : "On your shopping list (and yours now)");
+        if (wish) lines.Add(Where(item) == null ? "On your wishlist" : "On your wishlist (and yours now)");
         if (lines.Count > 0)
             switch (Where(item))
             {
@@ -71,7 +71,7 @@ public sealed partial class MainWindow
             var width = MathF.Max(rect.Size.X, S(220));
             var pad = S(10);
             var lineH = Txt.Natural(Face.Sans, 12) + S(2);
-            var ebH = Txt.Natural(Face.Mono, 10) + S(4);
+            var ebH = Kit.EyebrowHeight + S(4);
             var height = pad * 2 + ebH + lineH * lines.Count;
             var vp = ImGui.GetMainViewport();
             var y = rect.Max.Y + S(4);
@@ -88,8 +88,8 @@ public sealed partial class MainWindow
                 var win = ImGui.GetWindowPos();
                 var at = win + new Vector2(pad);
                 var tw = width - pad * 2;
-                // As the panels' header: whose lines these are, in small rose capitals.
-                Txt.Spaced(dl, at, "GLAMOUR STUDIO", Face.Mono, 10, Palette.Rose, 0.16f);
+                // As the panels' header: whose lines these are, in small lilac capitals (an eyebrow).
+                Txt.Spaced(dl, at, "GLAMOUR STUDIO", Face.SansSemibold, 11, Palette.Accent, 0.08f);
                 for (var i = 0; i < lines.Count; i++)
                     Txt.Draw(dl, new Vector2(at.X, at.Y + ebH + lineH * i), Txt.Fit(lines[i], Face.Sans, 12, tw), Face.Sans, 12, i == 0 ? Palette.Ink : Palette.Soft);
             }
@@ -198,9 +198,9 @@ public sealed partial class MainWindow
                 : $"Glamour Studio: {name} is in {Words.List(looks.Take(8).Select(l => l.Name))}{(looks.Count > 8 ? $" and {looks.Count - 8} more" : string.Empty)}."),
         });
         if (Linked && Where(id) == null && !sync.Library.Wishes.Contains(id))
-            items.Add(new MenuItem { Name = "Put it on the shopping list", OnClicked = _ => AddWishes(new[] { piece }, Chat) });
+            items.Add(new MenuItem { Name = "Put it on your wishlist", OnClicked = _ => AddWishes(new[] { piece }, Chat) });
         if (Linked && sync.Library.Wishes.Contains(id))
-            items.Add(new MenuItem { Name = "Take it off the shopping list", OnClicked = _ => Unwish(id, Chat) });
+            items.Add(new MenuItem { Name = "Take it off your wishlist", OnClicked = _ => Unwish(id, Chat) });
         if (inBags && Armoire.IsOpen && data.CabinetOf(id) is { } row && !wardrobe.ArmoireNow.ContainsKey(id))
             items.Add(new MenuItem
             {

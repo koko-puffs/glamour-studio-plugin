@@ -11,7 +11,7 @@ namespace GlamourStudio.UI;
 
 /// <summary>
 /// Plates: all twenty of your glamour plates at once (each its number, its pieces' icons, the look it
-/// is, a rose dot when one's planned for it on the site, the jobs of the gearsets it's linked to),
+/// is, a lilac dot when one's planned for it on the site, the jobs of the gearsets it's linked to),
 /// what you're wearing under them, and the plate picked beside: what's on it, its plan, Wear it, Try
 /// it on, Keep it as a look, its gearsets (Change to it, unlink, Link to a gearset) and its slots.
 /// </summary>
@@ -47,10 +47,10 @@ public sealed partial class MainWindow
         var w = Kit.Width;
         var dl = Kit.Dl;
         // The heading and what the marks mean.
-        Txt.Line(dl, at, "Your glamour plates", Face.SansSemibold, 15, Palette.Ink);
-        var hh = Txt.Natural(Face.SansSemibold, 15);
+        Txt.Line(dl, at, "Your glamour plates", Face.Heading, 16, Palette.Ink);
+        var hh = Txt.Natural(Face.Heading, 16);
         // What the marks mean, on the right: each part only when it clears the heading.
-        var titleEnd = at.X + Txt.Measure("Your glamour plates", Face.SansSemibold, 15).X + S(12);
+        var titleEnd = at.X + Txt.Measure("Your glamour plates", Face.Heading, 16).X + S(12);
         const string legend2 = "Gearset linked";
         var l2w = Txt.Measure(legend2, Face.Sans, 12).X;
         var chipW = Kit.ChipW("WHM", false, 18);
@@ -65,7 +65,7 @@ public sealed partial class MainWindow
             if (lx - S(14) > titleEnd)
             {
                 Txt.Draw(dl, new Vector2(lx, at.Y + (hh - Txt.Natural(Face.Sans, 12)) / 2), legend1, Face.Sans, 12, Palette.Muted);
-                Kit.Dot(new Vector2(lx - S(10), at.Y + hh / 2), Palette.Rose, 8);
+                Kit.Dot(new Vector2(lx - S(10), at.Y + hh / 2), Palette.Accent, 8);
             }
         }
         Kit.Reserve(at, w, hh);
@@ -106,7 +106,7 @@ public sealed partial class MainWindow
         var foot = read && me.PlatesReadAt is { } readAt
             ? $"As the game had them when you last opened Glamour Plates · {Words.Ago(new DateTimeOffset(readAt, TimeSpan.Zero), DateTimeOffset.UtcNow)}"
             : "Your plates show here once you've opened Glamour Plates at a glamour dresser (the game only has them then).";
-        Txt.Para(new[] { new Run(foot, Face.Sans, 12, read ? Palette.Muted : Palette.RoseText) }, 18);
+        Txt.Para(new[] { new Run(foot, Face.Sans, 12, read ? Palette.Muted : Palette.AccentText) }, 18);
 
         Kit.EndPane();
 
@@ -126,16 +126,16 @@ public sealed partial class MainWindow
         var r = S(14);
         if (on)
         {
-            dl.AddRectFilled(pos, pos + size, Palette.U32(Palette.RoseWash), r);
-            dl.AddRect(pos + new Vector2(0.5f), pos + size - new Vector2(0.5f), Palette.U32(Palette.Rose), r, ImDrawFlags.None, 1f);
-            dl.AddRect(pos - new Vector2(0.5f), pos + size + new Vector2(0.5f), Palette.U32(Palette.Rose), r + 1, ImDrawFlags.None, 1f);
+            dl.AddRectFilled(pos, pos + size, Palette.U32(Palette.Blush), r);
+            dl.AddRect(pos + new Vector2(0.5f), pos + size - new Vector2(0.5f), Palette.U32(Palette.Accent), r, ImDrawFlags.None, 1f);
+            dl.AddRect(pos - new Vector2(0.5f), pos + size + new Vector2(0.5f), Palette.U32(Palette.Accent), r + 1, ImDrawFlags.None, 1f);
         }
         else if (filled) Kit.Card(pos, pos + size, Palette.Card, hovered ? Palette.LineHover : Palette.Line, 14);
         else Kit.Dashed(pos, pos + size, r, hovered ? Palette.LineHover : Palette.LineStrong, 1f);
         var x = pos.X + S(9);
         var y = pos.Y + S(9);
         Txt.Draw(dl, new Vector2(x, y), plate.ToString(), Face.Display, 15, Palette.Ink);
-        if (sync.PlanFor(plate) != null) Kit.Dot(new Vector2(pos.X + size.X - S(13), pos.Y + S(13)), Palette.Rose, 8);
+        if (sync.PlanFor(plate) != null) Kit.Dot(new Vector2(pos.X + size.X - S(13), pos.Y + S(13)), Palette.Accent, 8);
         y += Txt.Natural(Face.Display, 15) + S(7);
         if (filled) Mosaic(new Vector2(x, y), mosaic, pieces, 10, 6);
         else
@@ -242,13 +242,13 @@ public sealed partial class MainWindow
         {
             Kit.Gap(14);
             var on = Plates.Same(pieces, planned.Pieces);
-            Kit.BeginPanel("##plan", 12, 14, 12, Palette.Card, on ? Palette.SuccessEdge : Palette.RoseEdge, 14);
+            Kit.BeginPanel("##plan", 12, 14, 12, Palette.Card, on ? Palette.SuccessEdge : Palette.AccentEdge, 14);
             var pa = Kit.At;
             var pw = Kit.Width;
             var chip = on ? "On it" : "Not on it yet";
             var cw = Kit.ChipW(chip, on, 22);
             var ph = S(24);
-            Kit.Dot(new Vector2(pa.X + S(4), pa.Y + ph / 2), on ? Palette.Success : Palette.Rose, 8);
+            Kit.Dot(new Vector2(pa.X + S(4), pa.Y + ph / 2), on ? Palette.Success : Palette.Accent, 8);
             var tx = pa.X + S(18);
             var lab = Txt.Line(Kit.Dl, new Vector2(tx, pa.Y), "Planned: ", Face.Sans, 13, Palette.Soft, 24);
             var nameRoom = pa.X + pw - cw - S(10) - tx - lab;
@@ -256,7 +256,7 @@ public sealed partial class MainWindow
             var nh = Txt.LineBox(Face.SansSemibold, 13, 24);
             if (Kit.Link("##plan-look", new Vector2(tx + lab, pa.Y + (nh - Txt.Natural(Face.SansSemibold, 13)) / 2), nm, 13, Face.SansSemibold))
                 Later(() => OpenLook(planned, null, Screen.Plates));
-            Kit.Chip(new Vector2(pa.X + pw - cw, pa.Y + S(1)), chip, on ? ChipKind.Ok : ChipKind.Rose, on, 22);
+            Kit.Chip(new Vector2(pa.X + pw - cw, pa.Y + S(1)), chip, on ? ChipKind.Ok : ChipKind.Accent, on, 22);
             Kit.Reserve(pa, pw, ph);
             Kit.EndPanel();
         }

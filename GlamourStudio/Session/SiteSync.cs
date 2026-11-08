@@ -493,10 +493,10 @@ public sealed class SiteSync : IDisposable
         });
     }
 
-    /// <summary>Pieces a read took off your shopping list (you have them now): the plugin says so.</summary>
+    /// <summary>Pieces a read took off your wishlist (you have them now): the plugin says so.</summary>
     public event Action<IReadOnlyList<uint>>? WishesGot;
 
-    /// <summary>The last pieces a read took off your shopping list, and when.</summary>
+    /// <summary>The last pieces a read took off your wishlist, and when.</summary>
     public (IReadOnlyList<uint> Items, DateTime At)? LastWishesGot { get; private set; }
 
     private DateTime nextWearable;
@@ -646,7 +646,7 @@ public sealed class SiteSync : IDisposable
     }
 
     /// <summary>
-    /// Puts pieces on your shopping list; <paramref name="done"/> hears how many went on (framework
+    /// Puts pieces on your wishlist; <paramref name="done"/> hears how many went on (framework
     /// thread). They're on the list here at once (the site's list is read again after).
     /// </summary>
     public void AddWishes(IReadOnlyList<Piece> pieces, Action<SiteReply<int>> done)
@@ -673,7 +673,7 @@ public sealed class SiteSync : IDisposable
     }
 
     /// <summary>
-    /// Takes pieces off your shopping list: off the plugin's copy at once (put back should the site
+    /// Takes pieces off your wishlist: off the plugin's copy at once (put back should the site
     /// say no); <paramref name="done"/> hears how it went (framework thread).
     /// </summary>
     public void RemoveWishes(IReadOnlyList<uint> items, Action<SiteReply<int>> done)

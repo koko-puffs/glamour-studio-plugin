@@ -18,11 +18,11 @@ choose to show it there.
 
 Most of it is right beside the game's own windows: open the glamour dresser, Glamour Plates, the
 armoire, the fitting room, Examine, a retainer's bags or the market board, and a small panel sits
-next to it with what you need there (Fill plate, Plate it, Store, Wear, your shopping list).
+next to it with what you need there (Fill plate, Plate it, Store, Wear, your wishlist).
 Gear's tooltips and right-click menu get a few Glamour Studio lines too.
 
 It also fills plates with the looks you **planned** for them on the site, lists the public looks you
-could **wear now**, ticks off your **shopping list**, helps you **make room** in your dresser, links
+could **wear now**, ticks off your **wishlist**, helps you **make room** in your dresser, links
 plates to **gearsets**, and takes **shots** of a look for its page on the site.
 
 ## Installing
@@ -73,5 +73,5 @@ how the code is laid out, and the release notes.
 ## Credits and licence
 
 Built on what the Glamaholic plugin and FFXIVClientStructs found about the game's glamour
-plates, and on Housing Studio's and Raid Planner's plugins. Fonts: Syne, DM Sans and DM Mono (SIL
-Open Font License). Icons drawn from Lucide (ISC). Licensed under the GNU AGPL-3.0 (see `LICENSE`).
+plates, and on Housing Studio's and Raid Planner's plugins. Fonts: Outfit, Figtree and Geist Mono
+(SIL Open Font License). Icons drawn from Lucide (ISC). Licensed under the GNU AGPL-3.0 (see `LICENSE`).

@@ -11,7 +11,7 @@ namespace GlamourStudio.UI;
 /// <summary>The four buttons of the design system.</summary>
 public enum Btn
 {
-    /// <summary>The one rose pill on a screen, deep rose with white words: what goes ahead (the site's <c>.gs-pill.is-accent</c>).</summary>
+    /// <summary>The one violet pill on a screen, white words, glowing when pointed at: what goes ahead (the site's <c>.gs-pill.is-accent</c>).</summary>
     Primary,
 
     /// <summary>An outline with the strong edge: everything else you press.</summary>
@@ -23,10 +23,10 @@ public enum Btn
     /// <summary>A danger outline: Stop.</summary>
     Danger,
 
-    /// <summary>A toggle that's on: the rose wash and edge.</summary>
+    /// <summary>A toggle that's on: the violet chip with white words (the site's pressed pill).</summary>
     Picked,
 
-    /// <summary>The ink pill: filled near white, dark words (the site's <c>.gs-pill.is-ink</c>).</summary>
+    /// <summary>The raised pill: the soft violet ground, ink words (the site's <c>.gs-pill.is-ink</c>).</summary>
     Ink,
 }
 
@@ -45,10 +45,10 @@ public enum Tone
     /// <summary>Green: done, sent.</summary>
     Success,
 
-    /// <summary>The rose, its dot breathing: something's going on (reading, filling a plate).</summary>
+    /// <summary>Lilac, its dot breathing: something's going on (reading, filling a plate).</summary>
     Live,
 
-    /// <summary>Rose, quieter: ready, waiting for you.</summary>
+    /// <summary>Lilac, quieter: ready, waiting for you.</summary>
     Waiting,
 
     /// <summary>Grey: nothing going on.</summary>
@@ -60,11 +60,11 @@ public enum Tone
 
 /// <summary>
 /// The site's controls, as Glamour Studio draws them, with ImGui's draw lists: pill buttons
-/// (the white one goes ahead, the rest outlined), round icon buttons, switches, segmented pills,
+/// (the violet one goes ahead, the rest outlined), round icon buttons, switches, segmented pills,
 /// status pills, cards with 1px edges, the dashed "add" outline, the progress bar, tick boxes,
 /// steppers, fields. Each takes the screen position to draw at (layout is the views'), hit-tests with
 /// an invisible ImGui button (so keyboard navigation works), and shows hover (edges lighten), press,
-/// focus (a 2px white ring, 2px out) and disabled (50% for buttons, 40% for small controls). Made
+/// focus (a 2px lilac ring, 2px out) and disabled (50% for buttons, 40% for small controls). Made
 /// from Housing Studio's plugin kit (by way of Raid Planner's), in Glamour Studio's colours.
 /// </summary>
 public static partial class Kit
@@ -146,12 +146,12 @@ public static partial class Kit
 
     private static string Part(int i) => i >= 0 && i < Numbers.Length ? Numbers[i] : i.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
-    /// <summary>The focus ring (white, 2px out, as the site's), when the keyboard is driving and the last item has focus.</summary>
+    /// <summary>The focus ring (lilac, 2px out, as the site's), when the keyboard is driving and the last item has focus.</summary>
     public static void FocusRing(Vector2 min, Vector2 max, float radius)
     {
         if (Blocked || !ImGui.IsItemFocused() || !ImGui.GetIO().NavVisible) return;
         var o = S(2);
-        Dl.AddRect(min - new Vector2(o + S(1)), max + new Vector2(o + S(1)), Palette.U32(Palette.Ink), radius + o + S(1), ImDrawFlags.None, S(2));
+        Dl.AddRect(min - new Vector2(o + S(1)), max + new Vector2(o + S(1)), Palette.U32(Palette.Accent), radius + o + S(1), ImDrawFlags.None, S(2));
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -165,7 +165,7 @@ public static partial class Kit
         _ => (40, 18, 14),
     };
 
-    /// <summary>Every pill's words in DM Sans 500, as the layout's (white on the rose one).</summary>
+    /// <summary>Every pill's words in Figtree 500, as the layout's (white on the violet one).</summary>
     private static Face FaceOf(Btn style) => Face.SansMedium;
 
     public static float ButtonHeight(BtnSize size) => S(Spec(size).Height);
@@ -194,22 +194,22 @@ public static partial class Kit
         var old = Palette.Opacity;
         if (disabled) Palette.Opacity = old * 0.5f;
         Vector4 fill, edge, ink;
-        var iconInk = (Vector4?)null;
         switch (style)
         {
             case Btn.Primary:
-                fill = hovered && !held ? Palette.RoseFillHover : Palette.RoseFill;
-                edge = fill;
-                ink = Palette.OnRose;
-                // The site's glow on the rose pill when pointed at.
+                // Violet, deeper while pressed; pointed at, the site's glow round it and its rim lit.
+                fill = held ? Palette.AccentFillHover : Palette.AccentFill;
+                edge = hovered && !disabled ? Palette.AccentHover : fill;
+                ink = Palette.OnAccent;
                 if (hovered && !disabled)
                     for (var g = 1; g <= 3; g++)
-                        Dl.AddRect(pos - new Vector2(S(2 * g)), pos + new Vector2(w, h) + new Vector2(S(2 * g)), Palette.U32(Palette.WithAlpha(Palette.Rose, 0.12f / g)), h / 2 + S(2 * g), ImDrawFlags.None, S(2));
+                        Dl.AddRect(pos - new Vector2(S(2 * g)), pos + new Vector2(w, h) + new Vector2(S(2 * g)), Palette.U32(Palette.WithAlpha(Palette.Glow, 0.3f / g)), h / 2 + S(2 * g), ImDrawFlags.None, S(2));
                 break;
             case Btn.Ink:
-                fill = held ? Palette.Soft : hovered ? Palette.White : Palette.Picked;
-                edge = fill;
-                ink = Palette.OnPicked;
+                // The site's raised pill: the soft violet, a little lighter when pointed at.
+                fill = held ? Palette.Raised : hovered ? Palette.BlushTile : Palette.Tile;
+                edge = hovered ? Palette.AccentEdge : Palette.LineStrong;
+                ink = Palette.Ink;
                 break;
             case Btn.Quiet:
                 fill = held ? Palette.LinePicked : hovered ? Palette.LineFaint : Vector4.Zero;
@@ -222,14 +222,15 @@ public static partial class Kit
                 ink = Palette.Danger;
                 break;
             case Btn.Picked:
-                fill = Palette.RoseWash;
-                edge = hovered ? Palette.Rose : Palette.RoseEdge;
-                ink = Palette.RoseSoft;
-                iconInk = Palette.Rose;
+                // A toggle that's on: the violet chip with white words, as the site's pressed pill.
+                fill = held ? Palette.AccentFillHover : Palette.Picked;
+                edge = hovered ? Palette.AccentHover : fill;
+                ink = Palette.OnPicked;
                 break;
             default:
-                fill = hovered ? Palette.LineFaint : Palette.ButtonFill;
-                edge = hovered ? Palette.LineHover : Palette.LineStrong;
+                // Outlined; pointed at, the lilac edge on the raised ground (the site's .gs-pill:hover).
+                fill = hovered ? Palette.Raised : Palette.ButtonFill;
+                edge = hovered ? Palette.AccentEdge : Palette.LineStrong;
                 ink = Palette.Ink;
                 break;
         }
@@ -251,7 +252,7 @@ public static partial class Kit
         var x = pos.X + (w - content) / 2;
         if (icon is { } ic)
         {
-            Icons.Draw(dl, ic, new Vector2(x, pos.Y + (h - iconPx) / 2), iconPx, iconInk ?? ink);
+            Icons.Draw(dl, ic, new Vector2(x, pos.Y + (h - iconPx) / 2), iconPx, ink);
             x += iconPx + (label.Length > 0 ? S(8) : 0);
         }
         if (label.Length > 0) Txt.Line(dl, new Vector2(x, pos.Y), label, face, px, ink, h / S(1));
@@ -267,7 +268,7 @@ public static partial class Kit
     // ---------------------------------------------------------------------------------------------
     // Switch, segmented pill, chips, pills.
 
-    /// <summary>The site's switch, 44×24: an outline with a grey knob, filled deep rose with a white knob when on. Returns true when flipped.</summary>
+    /// <summary>The site's switch, 44×24: an outline with a grey knob, filled violet with a white knob when on. Returns true when flipped.</summary>
     public static bool Switch(string id, Vector2 pos, bool on, bool disabled = false)
     {
         var size = new Vector2(S(44), S(24));
@@ -286,8 +287,8 @@ public static partial class Kit
         var max = pos + size;
         var r = size.Y / 2;
         var e = Ease(t);
-        // Off: the line's dark track with the strong edge inside; on: the deep rose. A white knob either way.
-        dl.AddRectFilled(pos, max, Palette.U32(Mix(Palette.Line, Palette.RoseFill, e)), r);
+        // Off: the line's dark track with the strong edge inside; on: the violet. A white knob either way.
+        dl.AddRectFilled(pos, max, Palette.U32(Mix(Palette.Line, Palette.AccentFill, e)), r);
         if (e < 1)
         {
             var edge = hovered ? Palette.LineHover : Palette.LineStrong;
@@ -298,6 +299,36 @@ public static partial class Kit
         Palette.Opacity = old;
         FocusRing(pos, max, r);
         return clicked;
+    }
+
+    /// <summary>
+    /// Where a group's picked pill is drawn this frame, from the group's left edge: gliding to the
+    /// picked item's place and width, as the site's segmented switches do (glide.ts, over about
+    /// --gs-glide's 420ms), and put there at once the first time the group's drawn and under reduced
+    /// motion.
+    /// </summary>
+    internal static (float X, float W) Glide(string id, float x, float w)
+    {
+        var storage = ImGui.GetStateStorage();
+        var kx = ImGui.GetID(id + "##glide-x");
+        var kw = ImGui.GetID(id + "##glide-w");
+        var seen = ImGui.GetID(id + "##glide-seen");
+        if (ReducedMotion || storage.GetInt(seen, 0) == 0)
+        {
+            storage.SetInt(seen, 1);
+            storage.SetFloat(kx, x);
+            storage.SetFloat(kw, w);
+            return (x, w);
+        }
+        var gx = storage.GetFloat(kx, x);
+        var gw = storage.GetFloat(kw, w);
+        // (Most of the way in about 0.3s, slowing as it arrives.)
+        var k = 1 - MathF.Exp(-ImGui.GetIO().DeltaTime / 0.075f);
+        gx = MathF.Abs(x - gx) < 0.5f ? x : gx + (x - gx) * k;
+        gw = MathF.Abs(w - gw) < 0.5f ? w : gw + (w - gw) * k;
+        storage.SetFloat(kx, gx);
+        storage.SetFloat(kw, gw);
+        return (gx, gw);
     }
 
     private static float MoveTowards(float v, float target, float step) =>
@@ -334,7 +365,7 @@ public static partial class Kit
 
     /// <summary>
     /// The segmented pill (Settings → Pace, Ready's Keep / Clear out / Swap): 40 tall outside, 32
-    /// inside, the picked one in brass-picked. Items whose bit is set in <paramref name="disabledMask"/>
+    /// inside, the picked one violet with white words. Items whose bit is set in <paramref name="disabledMask"/>
     /// are at 40% and can't be picked; <paramref name="tips"/> are each item's tooltip (null for none).
     /// With <paramref name="maxWidth"/>, the items' padding shrinks so the pill fits.
     /// </summary>
@@ -354,6 +385,15 @@ public static partial class Kit
         dl.AddRect(pos + new Vector2(0.5f), pos + new Vector2(total, h) - new Vector2(0.5f), Palette.U32(Palette.LineStrong), h / 2, ImDrawFlags.None, 1f);
         var x = pos.X + S(1) + S(3);
         var result = -1;
+        // The picked one's pill, gliding to it.
+        if (selected >= 0 && selected < items.Count)
+        {
+            var px = x;
+            for (var i = 0; i < selected; i++) px += Txt.Measure(items[i], Face.SansMedium, 13).X + pad * 2 + S(2);
+            var (gx, gw) = Glide(id, px - pos.X, Txt.Measure(items[selected], Face.SansMedium, 13).X + pad * 2);
+            var gp = new Vector2(pos.X + gx, pos.Y + S(1) + S(3));
+            dl.AddRectFilled(gp, gp + new Vector2(gw, S(28)), Palette.U32(Palette.Picked), S(14));
+        }
         ImGui.PushID(id);
         // (Popped whatever happens: a throw inside would leave the ID stack unbalanced.)
         try
@@ -371,8 +411,7 @@ public static partial class Kit
                 Tooltip(tip);
             var old = Palette.Opacity;
             if (disabled) Palette.Opacity = old * 0.4f;
-            if (on) dl.AddRectFilled(p, p + size, Palette.U32(Palette.Picked), size.Y / 2);
-            else if (hovered) dl.AddRectFilled(p, p + size, Palette.U32(Palette.LineFaint), size.Y / 2);
+            if (!on && hovered) dl.AddRectFilled(p, p + size, Palette.U32(Palette.LineFaint), size.Y / 2);
             Txt.Line(dl, new Vector2(p.X + pad, p.Y), items[i], Face.SansMedium, 13, on ? Palette.OnPicked : hovered ? Palette.Ink : Palette.Muted, 28);
             Palette.Opacity = old;
             FocusRing(p + new Vector2(S(4)), p + size - new Vector2(S(4)), size.Y / 2 - S(4));
@@ -389,8 +428,8 @@ public static partial class Kit
     private static (Vector4 Fill, Vector4 Ink, Vector4 Dot) ToneColors(Tone tone) => tone switch
     {
         Tone.Success => (Palette.SuccessChip, Palette.Success, Palette.Success),
-        Tone.Live => (Palette.RoseWash, Palette.RoseSoft, Palette.Rose),
-        Tone.Waiting => (Palette.Card, Palette.Soft, Palette.Rose),
+        Tone.Live => (Palette.Blush, Palette.AccentSoft, Palette.Accent),
+        Tone.Waiting => (Palette.Card, Palette.Soft, Palette.Accent),
         Tone.Danger => (Palette.DangerWash, Palette.Danger, Palette.Danger),
         _ => (Palette.Card, Palette.Soft, Palette.Faint),
     };
@@ -409,7 +448,7 @@ public static partial class Kit
         dl.AddRectFilled(pos, pos + new Vector2(w, h), Palette.U32(fill), h / 2);
         var edge = tone switch
         {
-            Tone.Live => Palette.RoseEdge,
+            Tone.Live => Palette.AccentEdge,
             Tone.Success => Palette.SuccessEdge,
             Tone.Danger => Palette.DangerEdge,
             _ => Palette.LineStrong,
@@ -496,7 +535,7 @@ public static partial class Kit
         dl.AddCircle(center, r - 0.5f, Palette.U32(Palette.LineHover), 16, 1f);
     }
 
-    /// <summary>A round well with an icon (brass wash and brass for the steps, green for done).</summary>
+    /// <summary>A round well with an icon (the blush and lilac for the steps, mint for done).</summary>
     public static void Round(Vector2 pos, float diameter, Icon icon, float iconPx, Vector4 fill, Vector4 ink, float stroke = 1.8f)
     {
         var dl = Dl;
@@ -505,7 +544,7 @@ public static partial class Kit
         Icons.Draw(dl, icon, c - new Vector2(iconPx / 2), iconPx, ink, stroke);
     }
 
-    /// <summary>A tick box, 18px with a 5px radius: the 0.34 edge, brass with a dark tick when ticked.</summary>
+    /// <summary>A tick box, 18px with a 5px radius: the 0.34 edge, violet with a white tick when ticked.</summary>
     public static void TickBox(Vector2 pos, bool on, bool hovered)
     {
         var dl = Dl;
@@ -513,13 +552,13 @@ public static partial class Kit
         var r = S(5);
         if (on)
         {
-            dl.AddRectFilled(pos, pos + new Vector2(s), Palette.U32(hovered ? Palette.White : Palette.Ink), r);
-            Icons.Draw(dl, Icon.Check, pos + new Vector2(S(2)), S(14), Palette.Ground, 2.6f);
+            dl.AddRectFilled(pos, pos + new Vector2(s), Palette.U32(hovered ? Palette.AccentFillHover : Palette.AccentFill), r);
+            Icons.Draw(dl, Icon.Check, pos + new Vector2(S(2)), S(14), Palette.White, 2.6f);
         }
         else
         {
             dl.AddRectFilled(pos, pos + new Vector2(s), Palette.U32(Palette.Field), r);
-            dl.AddRect(pos + new Vector2(0.5f), pos + new Vector2(s) - new Vector2(0.5f), Palette.U32(hovered ? Palette.Ink : Palette.LineHover), r, ImDrawFlags.None, 1f);
+            dl.AddRect(pos + new Vector2(0.5f), pos + new Vector2(s) - new Vector2(0.5f), Palette.U32(hovered ? Palette.Accent : Palette.LineHover), r, ImDrawFlags.None, 1f);
         }
     }
 
@@ -601,38 +640,77 @@ public static partial class Kit
             ImGui.PopStyleVar();
             ImGui.PopStyleColor(2);
             ImGui.SetCursorScreenPos(keep);
-            var edge = active ? Palette.Rose : hovered ? Palette.LineHover : Palette.LineStrong;
+            var edge = active ? Palette.Accent : hovered ? Palette.LineHover : Palette.LineStrong;
             dl.AddRect(pos + new Vector2(0.5f), max - new Vector2(0.5f), Palette.U32(edge), r, ImDrawFlags.None, 1f);
         }
         return changed;
     }
 
-    /// <summary>The 8px progress bar: a faint track and a brass fill, both pills.</summary>
+    /// <summary>
+    /// The 8px progress bar (the site's <c>.gs-progress</c>): a faint track and the iridescent fill,
+    /// lilac to orchid to ice along it, both pills; all of it done, mint.
+    /// </summary>
     public static void Progress(Vector2 pos, float width, float fraction)
     {
         var dl = Dl;
         var h = S(8);
         dl.AddRectFilled(pos, pos + new Vector2(width, h), Palette.U32(Palette.Track), h / 2);
         fraction = Math.Clamp(fraction, 0, 1);
-        if (fraction > 0) dl.AddRectFilled(pos, pos + new Vector2(MathF.Max(h, width * fraction), h), Palette.U32(Palette.Rose), h / 2);
+        if (fraction <= 0) return;
+        var fill = MathF.Max(h, width * fraction);
+        if (fraction >= 1)
+        {
+            dl.AddRectFilled(pos, pos + new Vector2(fill, h), Palette.U32(Palette.Success), h / 2);
+            return;
+        }
+        IrisPill(dl, pos, new Vector2(fill, h));
     }
 
     /// <summary>
-    /// An eyebrow over a title, as the site has them (<c>.gs-eyebrow</c>): DM Mono 11px in spaced
-    /// capitals (0.18em), rose (or a colour), cut with "…" to fit. Returns its height.
+    /// A pill filled with the iridescent gradient across its length (ImGui's gradients have no
+    /// corners): its round ends in the end colours, and between them the gradient in two spans,
+    /// to orchid at 48% and on to ice.
+    /// </summary>
+    public static void IrisPill(ImDrawListPtr dl, Vector2 pos, Vector2 size)
+    {
+        var r = size.Y / 2;
+        var x0 = pos.X + r;
+        var x1 = pos.X + size.X - r;
+        dl.AddCircleFilled(new Vector2(x0, pos.Y + r), r, Palette.U32(Palette.Iris(0)), 16);
+        dl.AddCircleFilled(new Vector2(MathF.Max(x0, x1), pos.Y + r), r, Palette.U32(Palette.Iris(1)), 16);
+        if (x1 <= x0) return;
+        var mid = x0 + (x1 - x0) * 0.48f;
+        uint C(float t) => Palette.U32(Palette.Iris(t));
+        dl.AddRectFilledMultiColor(new Vector2(x0, pos.Y), new Vector2(mid, pos.Y + size.Y), C(0), C(0.48f), C(0.48f), C(0));
+        dl.AddRectFilledMultiColor(new Vector2(mid, pos.Y), new Vector2(x1, pos.Y + size.Y), C(0.48f), C(1), C(1), C(0.48f));
+    }
+
+    /// <summary>
+    /// An eyebrow over a title, as the site has them (<c>.gs-eyebrow</c>): Figtree 600 11px in
+    /// capitals (0.08em apart), lilac (or a colour), cut with "…" to fit. Returns its height. (DM
+    /// Mono in wider-spaced capitals until 0.6.16.)
     /// </summary>
     public static float Eyebrow(Vector2 pos, string text, Vector4? color = null, float maxWidth = 0)
     {
-        var caps = Txt.SpacedFit(text, Face.Mono, 11, 0.18f, maxWidth);
-        Txt.Spaced(Dl, pos, caps, Face.Mono, 11, color ?? Palette.Rose, 0.18f);
-        return Txt.Natural(Face.Mono, 11);
+        var caps = Txt.SpacedFit(text, Face.SansSemibold, 11, 0.08f, maxWidth);
+        Txt.Spaced(Dl, pos, caps, Face.SansSemibold, 11, color ?? Palette.Accent, 0.08f);
+        return EyebrowHeight;
     }
 
-    /// <summary>A small label (<c>.gs-label</c>): DM Mono 10px in spaced capitals (0.12em), muted. Returns its width.</summary>
-    public static float Label(Vector2 pos, string text, Vector4? color = null) =>
-        Txt.Spaced(Dl, pos, Txt.Upper(text), Face.Mono, 10, color ?? Palette.Muted, 0.12f);
+    /// <summary>An eyebrow's height.</summary>
+    public static float EyebrowHeight => Txt.Natural(Face.SansSemibold, 11);
 
-    public static float LabelWidth(string text) => Txt.SpacedWidth(Txt.Upper(text), Face.Mono, 10, 0.12f);
+    /// <summary>
+    /// A small label (<c>.gs-label</c>): Figtree 600 12px in normal capitals, muted. Returns its
+    /// width. (DM Mono 10px in spaced capitals until 0.6.16.)
+    /// </summary>
+    public static float Label(Vector2 pos, string text, Vector4? color = null) =>
+        Txt.Draw(Dl, pos, text, Face.SansSemibold, 12, color ?? Palette.Muted);
+
+    public static float LabelWidth(string text) => Txt.Measure(text, Face.SansSemibold, 12).X;
+
+    /// <summary>A label's height.</summary>
+    public static float LabelHeight => Txt.Natural(Face.SansSemibold, 12);
 
     /// <summary>An eyebrow on its own row.</summary>
     public static void EyebrowRow(string text, Vector4? color = null)

@@ -6,12 +6,16 @@ using static GlamourStudio.UI.Theme;
 
 namespace GlamourStudio.UI;
 
-/// <summary>A chip's colour: the outline, green (where a plate can take it, done), or rose (to do).</summary>
+/// <summary>
+/// A chip's colour: the outline; mint (yours, where a plate can take it, done); lilac (to do); or
+/// orchid (you don't have it yet), as the site's tags are.
+/// </summary>
 public enum ChipKind
 {
     Plain,
     Ok,
-    Rose,
+    Accent,
+    Love,
 }
 
 /// <summary>
@@ -125,7 +129,7 @@ public static partial class Kit
 
     /// <summary>
     /// One of the rail's items (40 tall, radius 12): its icon, its name and a count on the right in
-    /// mono; where you are in the rose wash with rose-pale words. Compact, the icon alone (its name the
+    /// mono; where you are on the lilac wash with pale lilac words and a lilac icon. Compact, the icon alone (its name the
     /// tooltip). True when it's pressed.
     /// </summary>
     public static bool NavItem(string id, Vector2 pos, float width, Icon icon, string label, string? count, bool on, bool compact = false)
@@ -134,17 +138,17 @@ public static partial class Kit
         var (clicked, hovered, _) = Hit(id, pos, new Vector2(width, h));
         var dl = Dl;
         var max = pos + new Vector2(width, h);
-        if (on) dl.AddRectFilled(pos, max, Palette.U32(Palette.RosePicked), S(12));
+        if (on) dl.AddRectFilled(pos, max, Palette.U32(Palette.AccentPicked), S(12));
         else if (hovered) dl.AddRectFilled(pos, max, Palette.U32(Palette.RowHover), S(12));
-        var ink = on ? Palette.RoseSoft : hovered ? Palette.Ink : Palette.Muted;
+        var ink = on ? Palette.AccentSoft : hovered ? Palette.Ink : Palette.Muted;
         if (compact)
         {
-            Icons.Draw(dl, icon, new Vector2(pos.X + (width - S(16)) / 2, pos.Y + (h - S(16)) / 2), S(16), on ? Palette.Rose : ink);
+            Icons.Draw(dl, icon, new Vector2(pos.X + (width - S(16)) / 2, pos.Y + (h - S(16)) / 2), S(16), on ? Palette.Accent : ink);
             if (hovered) Tooltip(count != null ? $"{label} · {count}" : label);
         }
         else
         {
-            Icons.Draw(dl, icon, new Vector2(pos.X + S(12), pos.Y + (h - S(16)) / 2), S(16), on ? Palette.Rose : ink);
+            Icons.Draw(dl, icon, new Vector2(pos.X + S(12), pos.Y + (h - S(16)) / 2), S(16), on ? Palette.Accent : ink);
             var lx = pos.X + S(12 + 16 + 12);
             var room = width - S(12) - (lx - pos.X);
             var cw = count != null ? Txt.Measure(count, Face.Mono, 11).X : 0;
@@ -179,7 +183,7 @@ public static partial class Kit
 
     /// <summary>
     /// The pick-one pill (40 tall: 4px inside the strong edge, 30px items 3px apart, 600 13px words and
-    /// a mono count): the picked item filled ink with dark words. Returns the item picked.
+    /// a mono count): the picked item violet with white words, its pill gliding to it. Returns the item picked.
     /// </summary>
     public static int Seg(string id, Vector2 pos, IReadOnlyList<TabSpec> tabs, int selected, float pad = 14)
     {
@@ -190,6 +194,15 @@ public static partial class Kit
         var x = pos.X + S(1) + S(4);
         var y = pos.Y + S(1) + S(4);
         var result = selected;
+        // The picked one's pill, gliding to it.
+        if (selected >= 0 && selected < tabs.Count)
+        {
+            var px = x;
+            for (var i = 0; i < selected; i++) px += SegItemWidth(tabs[i], pad) + S(3);
+            var (gx, gw) = Glide(id, px - pos.X, SegItemWidth(tabs[selected], pad));
+            var gp = new Vector2(pos.X + gx, y);
+            dl.AddRectFilled(gp, gp + new Vector2(gw, S(30)), Palette.U32(Palette.Picked), S(15));
+        }
         for (var i = 0; i < tabs.Count; i++)
         {
             var t = tabs[i];
@@ -201,8 +214,7 @@ public static partial class Kit
             ImGui.PopID();
             if (clicked) result = i;
             var on = i == selected;
-            if (on) dl.AddRectFilled(p, p + size, Palette.U32(Palette.Picked), size.Y / 2);
-            else if (hovered) dl.AddRectFilled(p, p + size, Palette.U32(Palette.LineFaint), size.Y / 2);
+            if (!on && hovered) dl.AddRectFilled(p, p + size, Palette.U32(Palette.LineFaint), size.Y / 2);
             var ink = on ? Palette.OnPicked : hovered ? Palette.Ink : Palette.Muted;
             var tx = p.X + S(pad);
             tx += Txt.Line(dl, new Vector2(tx, p.Y), t.Label, Face.SansSemibold, 13, ink, 30);
@@ -229,7 +241,7 @@ public static partial class Kit
         return S(pad) * 2 + (tick ? S(12 + 6) : 0) + Txt.Measure(text, Face.Sans, px).X;
     }
 
-    /// <summary>A chip (24, 22 or 18 tall): the strong outline, or green, or rose, with a tick before its words if asked. Returns its width.</summary>
+    /// <summary>A chip (24, 22 or 18 tall): the strong outline, or mint, lilac or orchid, with a tick before its words if asked. Returns its width.</summary>
     public static float Chip(Vector2 pos, string text, ChipKind kind, bool tick = false, int size = 24, float minWidth = 0)
     {
         var (hc, pad, px) = ChipSpec(size);
@@ -238,7 +250,8 @@ public static partial class Kit
         var (fill, edge, ink) = kind switch
         {
             ChipKind.Ok => (Palette.SuccessChip, Palette.SuccessEdge, Palette.Success),
-            ChipKind.Rose => (Palette.RoseChip, Palette.RoseEdge, Palette.RoseText),
+            ChipKind.Accent => (Palette.AccentChip, Palette.AccentEdge, Palette.AccentText),
+            ChipKind.Love => (Palette.LoveChip, Palette.LoveEdge, Palette.Love),
             _ => (System.Numerics.Vector4.Zero, Palette.LineStrong, Palette.Soft),
         };
         var dl = Dl;
@@ -258,14 +271,27 @@ public static partial class Kit
     // ---------------------------------------------------------------------------------------------
     // Small things.
 
-    /// <summary>A small mono label ("ON IT NOW · 7 PIECES"): DM Mono 11px, .06em, dim (or a colour). Returns its width.</summary>
+    /// <summary>A small line's face and size: Figtree 500, 12px.</summary>
+    public const Face SubFace = Face.SansMedium;
+
+    public const int SubPx = 12;
+
+    /// <summary>
+    /// A small line beside a heading or over a strip ("On it now · 7 pieces"): Figtree 500 12px, dim
+    /// (or a colour), its first letter a capital, cut to fit. Returns its width. (DM Mono in spaced capitals until 0.6.16: the
+    /// mono is for numbers now, as the site's is.)
+    /// </summary>
     public static float Sub(Vector2 pos, string text, Vector4? color = null, float maxWidth = 0)
     {
-        var caps = Txt.SpacedFit(text, Face.Mono, 11, 0.06f, maxWidth);
-        return Txt.Spaced(Dl, pos, caps, Face.Mono, 11, color ?? Palette.Dim, 0.06f);
+        text = Txt.Sentence(text);
+        var t = maxWidth > 0 ? Txt.Fit(text, SubFace, SubPx, maxWidth) : text;
+        return Txt.Draw(Dl, pos, t, SubFace, SubPx, color ?? Palette.Dim);
     }
 
-    public static float SubWidth(string text) => Txt.SpacedWidth(Txt.Upper(text), Face.Mono, 11, 0.06f);
+    public static float SubWidth(string text) => Txt.Measure(Txt.Sentence(text), SubFace, SubPx).X;
+
+    /// <summary>A small line's height.</summary>
+    public static float SubHeight => Txt.Natural(SubFace, SubPx);
 
     /// <summary>
     /// A heading (15px 600, ink) with a small label on its right, on one row; when the two don't fit
@@ -276,31 +302,32 @@ public static partial class Kit
     {
         var at = At;
         var w = Width;
-        var ipx = (int)px;
-        var h = Txt.Natural(Face.SansSemibold, ipx);
+        // (Outfit 600 a pixel bigger than the size asked for: it's smaller than Figtree for its em.)
+        var ipx = (int)px + 1;
+        var h = Txt.Natural(Face.Heading, ipx);
         var subW = sub != null ? SubWidth(sub) : 0;
-        var textW = Txt.Measure(text, Face.SansSemibold, ipx).X;
+        var textW = Txt.Measure(text, Face.Heading, ipx).X;
         if (sub == null || textW + S(12) + subW <= w)
         {
-            Txt.Line(Dl, at, Txt.Fit(text, Face.SansSemibold, ipx, w - subW - (sub != null ? S(12) : 0)), Face.SansSemibold, ipx, Palette.Ink);
+            Txt.Line(Dl, at, Txt.Fit(text, Face.Heading, ipx, w - subW - (sub != null ? S(12) : 0)), Face.Heading, ipx, Palette.Ink);
             if (sub != null)
-                Sub(new Vector2(at.X + w - subW, at.Y + (h - Txt.Natural(Face.Mono, 11)) / 2 + S(1)), sub, subColor);
+                Sub(new Vector2(at.X + w - subW, at.Y + (h - SubHeight) / 2 + S(1)), sub, subColor);
             Reserve(at, w, h);
             return;
         }
-        Txt.Line(Dl, at, Txt.Fit(text, Face.SansSemibold, ipx, w), Face.SansSemibold, ipx, Palette.Ink);
-        var sh = Txt.Natural(Face.Mono, 11);
+        Txt.Line(Dl, at, Txt.Fit(text, Face.Heading, ipx, w), Face.Heading, ipx, Palette.Ink);
+        var sh = SubHeight;
         Sub(new Vector2(at.X, at.Y + h + S(3)), sub, subColor, w);
         Reserve(at, w, h + S(3) + sh);
     }
 
-    /// <summary>A heading with a rose link on its right (true when the link's pressed).</summary>
+    /// <summary>A heading with a lilac link on its right (true when the link's pressed).</summary>
     public static bool HeadingLink(string id, string text, string link)
     {
         var at = At;
         var w = Width;
-        var h = Txt.Natural(Face.SansSemibold, 15);
-        Txt.Line(Dl, at, text, Face.SansSemibold, 15, Palette.Ink);
+        var h = Txt.Natural(Face.Heading, 16);
+        Txt.Line(Dl, at, text, Face.Heading, 16, Palette.Ink);
         var lw = Txt.Measure(link, Face.Sans, 13).X;
         var lh = Txt.Natural(Face.Sans, 13);
         var pos = new Vector2(at.X + w - lw, at.Y + (h - lh) / 2);
@@ -309,12 +336,12 @@ public static partial class Kit
         return pressed;
     }
 
-    /// <summary>Rose words that are a link (ink when pointed at); true when pressed.</summary>
+    /// <summary>Lilac words that are a link (ink when pointed at); true when pressed.</summary>
     public static bool Link(string id, Vector2 pos, string text, int px = 13, Face face = Face.Sans)
     {
         var size = Txt.Measure(text, face, px);
         var (clicked, hovered, _) = Hit(id, pos, size);
-        Txt.Draw(Dl, pos, text, face, px, hovered ? Palette.Ink : Palette.RoseText);
+        Txt.Draw(Dl, pos, text, face, px, hovered ? Palette.Ink : Palette.AccentText);
         return clicked;
     }
 
@@ -347,14 +374,14 @@ public static partial class Kit
         Palette.Opacity = old;
     }
 
-    /// <summary>A round well with an icon: rose (the blush, its edge, the rose icon) or quiet (the soft tile, a hairline, dim).</summary>
-    public static void Well(Vector2 pos, float size, Icon icon, bool rose = true, float iconPx = 16)
+    /// <summary>A round well with an icon: lit (the blush, its lilac edge, the lilac icon) or quiet (the soft tile, a hairline, dim).</summary>
+    public static void Well(Vector2 pos, float size, Icon icon, bool lit = true, float iconPx = 16)
     {
         var dl = Dl;
         var c = pos + new Vector2(size / 2);
-        dl.AddCircleFilled(c, size / 2, Palette.U32(rose ? Palette.RoseTile : Palette.Tile), 48);
-        dl.AddCircle(c, size / 2 - 0.5f, Palette.U32(rose ? Palette.RoseEdge : Palette.Line), 48, 1f);
-        Icons.Draw(dl, icon, c - new Vector2(S(iconPx) / 2), S(iconPx), rose ? Palette.Rose : Palette.Dim);
+        dl.AddCircleFilled(c, size / 2, Palette.U32(lit ? Palette.BlushTile : Palette.Tile), 48);
+        dl.AddCircle(c, size / 2 - 0.5f, Palette.U32(lit ? Palette.AccentEdge : Palette.Line), 48, 1f);
+        Icons.Draw(dl, icon, c - new Vector2(S(iconPx) / 2), S(iconPx), lit ? Palette.Accent : Palette.Dim);
     }
 
     /// <summary>A dot of a colour, 7px (or another size).</summary>

@@ -74,12 +74,12 @@ public sealed partial class MainWindow
         Kit.EndPane();
     }
 
-    /// <summary>A group's label over its card ("GLAMOUR PLATES"): DM Mono 11px, .18em, muted.</summary>
+    /// <summary>A group's label over its card ("GLAMOUR PLATES"): an eyebrow, muted.</summary>
     private static void GroupLabel(string text)
     {
         var at = Kit.At;
-        Txt.Spaced(Kit.Dl, at, text.ToUpperInvariant(), Face.Mono, 11, Palette.Muted, 0.18f);
-        Kit.Reserve(at, Kit.Width, Txt.Natural(Face.Mono, 11));
+        Kit.Eyebrow(at, text, Palette.Muted, Kit.Width);
+        Kit.Reserve(at, Kit.Width, Kit.EyebrowHeight);
         Kit.Gap(10);
     }
 
@@ -140,13 +140,13 @@ public sealed partial class MainWindow
         GroupLabel("In menus and tooltips");
         Kit.BeginPanel("##set-menus", 0, 0, 0);
         if (SwitchRow(0, "##tooltip", "Glamour lines under item tooltips", "Which looks use a piece, its plate, a copy in the dresser", config.TooltipLines,
-                "Under the game's tooltip of a piece of gear: which of your looks have it, the plates it's on, whether your dresser has a copy, and whether it's on your shopping list."))
+                "Under the game's tooltip of a piece of gear: which of your looks have it, the plates it's on, whether your dresser has a copy, and whether it's on your wishlist."))
         {
             config.TooltipLines = !config.TooltipLines;
             config.Save();
         }
         if (SwitchRow(1, "##menu", "Glamour Studio in the right-click menu", "On gear in your bags, the armoury, retainers and chat links", config.ContextMenu,
-                "Right-click a piece: add it to one of your looks, try it on with a look that has it, see which looks use it, put it on your shopping list, or store it in the armoire while that's open."))
+                "Right-click a piece: add it to one of your looks, try it on with a look that has it, see which looks use it, put it on your wishlist, or store it in the armoire while that's open."))
         {
             config.ContextMenu = !config.ContextMenu;
             config.Save();
@@ -198,8 +198,8 @@ public sealed partial class MainWindow
             config.SendPlates = !config.SendPlates;
             config.Save();
         }
-        if (SwitchRow(i++, "##chat-notes", "Say in chat when a wish comes true", "A piece from your shopping list, seen in your wardrobe", config.ChatNotes,
-                "Pieces on your shopping list on the site come off it by themselves once the plugin sees them in your wardrobe. On, a line in chat says which."))
+        if (SwitchRow(i++, "##chat-notes", "Say in chat when a wish comes true", "A piece from your wishlist, seen in your wardrobe", config.ChatNotes,
+                "Pieces on your wishlist on the site come off it by themselves once the plugin sees them in your wardrobe. On, a line in chat says which."))
         {
             config.ChatNotes = !config.ChatNotes;
             config.Save();
@@ -455,7 +455,7 @@ public sealed partial class MainWindow
         var nx = x;
         if (icon is { } ic)
         {
-            Icons.Draw(dl, ic, new Vector2(nx, top + (nameH - S(14)) / 2), S(14), Palette.Rose);
+            Icons.Draw(dl, ic, new Vector2(nx, top + (nameH - S(14)) / 2), S(14), Palette.Accent);
             nx += S(14 + 6);
         }
         Txt.Line(dl, new Vector2(nx, top), Txt.Fit(name, Face.SansMedium, 14, x + wordsW - nx), Face.SansMedium, 14, Palette.Ink);

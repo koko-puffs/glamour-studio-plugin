@@ -183,7 +183,7 @@ public sealed partial class MainWindow
     /// <summary>On Make room: what each would do, its button (asked first), or how it's going.</summary>
     private void DrawAutoRoom(CharacterWardrobe me)
     {
-        Kit.BeginPanel("##auto-room", 14, 16, 14, Palette.RoseWash, Palette.RoseEdge, 14);
+        Kit.BeginPanel("##auto-room", 14, 16, 14, Palette.Blush, Palette.AccentEdge, 14);
         var w = Kit.Width;
         if (AutoBusy)
         {
@@ -225,7 +225,7 @@ public sealed partial class MainWindow
         if (autoRoomLast is { } last)
         {
             Kit.Gap(10);
-            Txt.Para(new[] { new Run(last.Words, Face.Sans, 12, last.Ok ? Palette.Success : Palette.RoseText) }, 18);
+            Txt.Para(new[] { new Run(last.Words, Face.Sans, 12, last.Ok ? Palette.Success : Palette.AccentText) }, 18);
         }
         Kit.EndPanel();
     }
@@ -239,7 +239,7 @@ public sealed partial class MainWindow
         var stacked = w - bw - S(16) < S(260);
         var textW = stacked ? w : w - bw - S(16);
         Txt.Draw(Kit.Dl, at, Txt.Fit(head, Face.SansSemibold, 14, textW), Face.SansSemibold, 14, Palette.Ink);
-        var lh = Txt.Flow(new Vector2(at.X, at.Y + Txt.Natural(Face.SansSemibold, 14) + S(4)), textW, new[] { new Run(line, Face.Sans, 12, blocked ? Palette.RoseText : Palette.Soft) }, 18, out _);
+        var lh = Txt.Flow(new Vector2(at.X, at.Y + Txt.Natural(Face.SansSemibold, 14) + S(4)), textW, new[] { new Run(line, Face.Sans, 12, blocked ? Palette.AccentText : Palette.Soft) }, 18, out _);
         var blockH = Txt.Natural(Face.SansSemibold, 14) + S(4) + lh;
         var bh = Kit.ButtonHeight(BtnSize.Md);
         var bpos = stacked ? new Vector2(at.X, at.Y + blockH + S(10)) : new Vector2(at.X + w - bw, at.Y + MathF.Max(0, (blockH - bh) / 2));
@@ -255,7 +255,7 @@ public sealed partial class MainWindow
         {
             PaneNote(OutfitStorer.Busy
                 ? $"Storing sets for you: {OutfitStorer.SetsDone} done, {OutfitStorer.SetsLeft} to go. Keep the dresser open."
-                : $"Taking out duplicates: {DresserTaker.Done} out, {DresserTaker.Left} to go. Keep the dresser open.", Palette.RoseText);
+                : $"Taking out duplicates: {DresserTaker.Done} out, {DresserTaker.Left} to go. Keep the dresser open.", Palette.AccentText);
             Kit.Gap(6);
             var srow = Kit.At;
             if (Kit.Button("##c-auto-stop", srow, "Stop", Btn.Danger, BtnSize.Sm, Icon.Square))
@@ -273,7 +273,7 @@ public sealed partial class MainWindow
         {
             var blocked = AutoRoomBlocked(plan, have);
             PaneNote(blocked ?? $"{Words.Count(plan.Jobs.Count, "set")} could gather {Words.Count(plan.Pieces, "loose piece")}: frees {Words.Count(plan.Frees, "place")}, for {Words.Count(plan.Prisms, "glamour prism")} (you have {have.Prisms}). Needs {Words.Count(plan.MostAtOnce, "free bag place")} at a time (you have {have.FreeBag}).{HeldBackWords(plan)}",
-                blocked != null ? Palette.RoseText : null);
+                blocked != null ? Palette.AccentText : null);
             Kit.Gap(6);
             PaneArmedButton("##c-auto-room", config.OutfitStoreWorked ? $"Store {Words.Count(plan.Jobs.Count, "set")} for me" : "Try it on one set",
                 config.OutfitStoreWorked ? "Press again to store them" : "Press again to try it", Icon.Package, blocked, AutoRoomWords(plan, have),
@@ -283,13 +283,13 @@ public sealed partial class MainWindow
         if (dupes.Count > 0)
         {
             var blocked = DupesBlocked(dupes, have);
-            PaneNote(blocked ?? $"{Words.Count(dupes.Count, "duplicate")} could come out to your bags: frees {Words.Count(dupes.Count, "place")}.", blocked != null ? Palette.RoseText : null);
+            PaneNote(blocked ?? $"{Words.Count(dupes.Count, "duplicate")} could come out to your bags: frees {Words.Count(dupes.Count, "place")}.", blocked != null ? Palette.AccentText : null);
             Kit.Gap(6);
             PaneArmedButton("##c-dupes", $"Take out {Words.Count(dupes.Count, "duplicate")}", "Press again to take them out", Icon.Trash, blocked, DupesWords(dupes, have),
                 ref dupesArmedUntil, StartDupes);
             Kit.Gap(10);
         }
-        if (autoRoomLast is { } last) PaneNote(last.Words, last.Ok ? Palette.Success : Palette.RoseText);
+        if (autoRoomLast is { } last) PaneNote(last.Words, last.Ok ? Palette.Success : Palette.AccentText);
     }
 
     /// <summary>A panel button pressed twice: the first press arms it for five seconds, the second starts.</summary>

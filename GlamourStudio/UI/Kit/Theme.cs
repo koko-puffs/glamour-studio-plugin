@@ -8,7 +8,7 @@ namespace GlamourStudio.UI;
 
 /// <summary>
 /// Pushes the window's look onto ImGui. Before ImGui.Begin only what can't touch the title bar's
-/// buttons: colours (the near-black bar, the night-sky window, the hairline edge), a 14px window
+/// buttons: colours (the dark violet bar, the violet night of the window, the hairline edge), a 14px window
 /// radius and no window padding. The title bar keeps Dalamud's own font and frame padding, so its ☰, ▼ and
 /// × sit and hit exactly as in every other Dalamud window (0.3.0 pushed a 13px font and a 12px frame
 /// padding there, which made each button's hit box about 41px wide while they stand 17px apart).
@@ -88,8 +88,8 @@ public static class Theme
         C(ImGuiCol.FrameBg, Vector4.Zero);
         C(ImGuiCol.FrameBgHovered, Vector4.Zero);
         C(ImGuiCol.FrameBgActive, Vector4.Zero);
-        C(ImGuiCol.TextSelectedBg, Palette.WithAlpha(Palette.White, 0.22f));
-        C(ImGuiCol.NavHighlight, Palette.Ink);
+        C(ImGuiCol.TextSelectedBg, Palette.WithAlpha(Palette.Accent, 0.3f));
+        C(ImGuiCol.NavHighlight, Palette.Accent);
         C(ImGuiCol.Header, Palette.LineFaint);
         C(ImGuiCol.HeaderHovered, Palette.LineFaint);
         C(ImGuiCol.HeaderActive, Palette.LinePicked);

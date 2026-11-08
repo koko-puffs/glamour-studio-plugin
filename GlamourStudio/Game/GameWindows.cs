@@ -343,7 +343,7 @@ public static unsafe class GameWindows
     // ---------------------------------------------------------------------------------------------
     // Shops.
 
-    /// <summary>The shop windows the plugin looks through for your shopping list.</summary>
+    /// <summary>The shop windows the plugin looks through for your wishlist.</summary>
     public static readonly string[] ShopWindows =
     {
         "Shop", "ShopExchangeItem", "ShopExchangeCurrency", "ShopExchangeCoin", "InclusionShop", "GrandCompanyExchange", "FreeShop", "SkyIslandExchange",

@@ -117,7 +117,7 @@ public sealed partial class MainWindow
     {
         var at = Kit.At;
         var w = Kit.Width;
-        var h = S(14) * 2 + Txt.Natural(Face.Mono, 10) + S(6) + Txt.Natural(Face.Display, 26);
+        var h = S(14) * 2 + Kit.LabelHeight + S(6) + Txt.Natural(Face.Display, 26);
         Kit.Card(at, at + new Vector2(w, h), Palette.Card, Palette.Line, 14);
         var dl = Kit.Dl;
         var cw = w / 3;
@@ -133,8 +133,8 @@ public sealed partial class MainWindow
             if (i > 0) dl.AddLine(new Vector2(p.X + 0.5f, at.Y + 1), new Vector2(p.X + 0.5f, at.Y + h - 1), Palette.U32(Palette.Line), 1f);
             var (label, value, note, color) = facts[i];
             var q = p + new Vector2(S(18), S(14));
-            Txt.Spaced(dl, q, label.ToUpperInvariant(), Face.Mono, 10, Palette.Dim, 0.12f);
-            var vy = q.Y + Txt.Natural(Face.Mono, 10) + S(6);
+            Kit.Label(q, Txt.Fit(label, Face.SansSemibold, 12, cw - S(36)), Palette.Dim);
+            var vy = q.Y + Kit.LabelHeight + S(6);
             var vw = Txt.Draw(dl, new Vector2(q.X, vy), Txt.Fit(value, Face.Display, 26, cw - S(36)), Face.Display, 26, color);
             if (note != null && vw + S(6) < cw - S(36))
                 Txt.Draw(dl, new Vector2(q.X + vw + S(6), vy + Txt.Ascent(Face.Display, 26) - Txt.Ascent(Face.Sans, 13)), Txt.Fit(note, Face.Sans, 13, cw - S(36) - vw - S(6)), Face.Sans, 13, Palette.Muted);

@@ -9,7 +9,7 @@ using static GlamourStudio.UI.Theme;
 namespace GlamourStudio.UI;
 
 /// <summary>
-/// Home. At a glamour dresser with Glamour Plates open: the plate open in the game in a big rose card
+/// Home. At a glamour dresser with Glamour Plates open: the plate open in the game in a big lilac-edged card
 /// (the look planned for it on the site, Fill plate N, and its twelve slots now and after); else how
 /// to get there. Not linked: three steps to begin with. Then, side by side, the looks ready for a
 /// plate (the planned one first) and on the right the looks sent from the site and, while the
@@ -90,7 +90,7 @@ public sealed partial class MainWindow
         var plan = planned != null && !plannedOn ? PlanCached(planned) : null;
         var filled = lastFill is { } lf && lf.Result.Plate == plate ? lf : ((string LookId, FillResult Result, PlatePlan Plan)?)null;
 
-        Kit.BeginPanel("##editor", 20, 22, 20, Palette.RoseWash, Palette.RoseEdge);
+        Kit.BeginPanel("##editor", 20, 22, 20, Palette.Blush, Palette.AccentEdge);
         var at = Kit.At;
         var w = Kit.Width;
         var dl = Kit.Dl;
@@ -207,8 +207,8 @@ public sealed partial class MainWindow
             SlotStrip(new Vector2(row.X, row.Y), colW, strips.NowLabel, Palette.Dim, strips.Now, null);
             var ax = row.X + colW + S(12);
             var stripH = StripHeight(colW);
-            Icons.Draw(dl, Icon.ArrowRight, new Vector2(ax + (S(36) - S(20)) / 2, row.Y + (stripH - S(20)) / 2), S(20), Palette.Rose);
-            SlotStrip(new Vector2(ax + S(36) + S(12), row.Y), colW, strips.AfterLabel, Palette.RoseText, strips.After!, strips.Missing);
+            Icons.Draw(dl, Icon.ArrowRight, new Vector2(ax + (S(36) - S(20)) / 2, row.Y + (stripH - S(20)) / 2), S(20), Palette.Accent);
+            SlotStrip(new Vector2(ax + S(36) + S(12), row.Y), colW, strips.AfterLabel, Palette.AccentText, strips.After!, strips.Missing);
             Kit.Reserve(row, w, stripH);
         }
         else
@@ -266,14 +266,14 @@ public sealed partial class MainWindow
     private static float TileOf(float width) => (width - S(4) * 11) / 12;
 
     /// <summary>The strip: its label, 8, and the tiles 30 tall.</summary>
-    private static float StripHeight(float width) => Txt.Natural(Face.Mono, 11) + S(8) + S(30);
+    private static float StripHeight(float width) => Kit.SubHeight + S(8) + S(30);
 
     /// <summary>A label and twelve slot tiles in the plate's order (the empty ones dim; a missing piece dashed).</summary>
     /// <param name="missingAt">Each tile's slot kept for want of the look's piece (in the plate's order), or null.</param>
     private void SlotStrip(Vector2 pos, float width, string label, System.Numerics.Vector4 labelColor, IReadOnlyList<Piece?> pieces, IReadOnlyList<bool>? missingAt)
     {
         Kit.Sub(pos, label, labelColor, width);
-        var y = pos.Y + Txt.Natural(Face.Mono, 11) + S(8);
+        var y = pos.Y + Kit.SubHeight + S(8);
         var tile = TileOf(width);
         var th = S(30);
         var dl = Kit.Dl;
@@ -298,7 +298,7 @@ public sealed partial class MainWindow
             {
                 var old = Palette.Opacity;
                 Palette.Opacity = old * 0.6f;
-                if (missing) Kit.Dashed(p, max, S(8), Palette.LineDashed, 1f);
+                if (missing) Kit.Dashed(p, max, S(8), Palette.LoveEdge, 1f);
                 else
                 {
                     dl.AddRectFilled(p, max, Palette.U32(Palette.Raised), S(8));
@@ -501,7 +501,7 @@ public sealed partial class MainWindow
             any = true;
             Kit.Heading("Sent from the site", Words.Count(sent.Count, "look"));
             Kit.Gap(10);
-            Kit.BeginPanel("##sent", 6, 6, 6, Palette.Card, Palette.RoseEdge);
+            Kit.BeginPanel("##sent", 6, 6, 6, Palette.Card, Palette.AccentEdge);
             var now = DateTimeOffset.UtcNow;
             for (var i = 0; i < sent.Count && i < 5; i++)
             {

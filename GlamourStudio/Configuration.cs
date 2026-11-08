@@ -28,7 +28,7 @@ public sealed class Configuration : IPluginConfiguration
     /// <summary>Open the window by itself when the plate editor opens.</summary>
     public bool OpenWithEditor { get; set; } = true;
 
-    /// <summary>A line in chat when pieces from your shopping list are seen in your wardrobe (and come off it).</summary>
+    /// <summary>A line in chat when pieces from your wishlist are seen in your wardrobe (and come off it).</summary>
     public bool ChatNotes { get; set; } = true;
 
     /// <summary>A small panel beside the game's glamour windows (the dresser, Glamour Plates and the rest), moving with the window.</summary>

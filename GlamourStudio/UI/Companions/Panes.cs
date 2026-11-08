@@ -168,8 +168,8 @@ public sealed partial class MainWindow
         var on = OnPlate(look.Pieces, current, !config.ClearBare);
         // The look: where it came from, its name (opens it in the plugin), on the plate or not yet.
         {
-            var fill = on ? Palette.SuccessWash : Palette.RoseWash;
-            var edge = on ? Palette.SuccessEdge : Palette.RoseEdge;
+            var fill = on ? Palette.SuccessWash : Palette.Blush;
+            var edge = on ? Palette.SuccessEdge : Palette.AccentEdge;
             Kit.BeginPanel("##c-plan", 10, 10, 10, fill, edge, 12);
             var at = Kit.At;
             var w = Kit.Width;
@@ -177,7 +177,7 @@ public sealed partial class MainWindow
             Mosaic(at, m, look.Pieces, 8, 4);
             var chip = on ? "On it" : "Not on it yet";
             var cw = Kit.ChipW(chip, false, 18);
-            Kit.Chip(new Vector2(at.X + w - cw, at.Y + (m - S(18)) / 2), chip, on ? ChipKind.Ok : ChipKind.Rose, false, 18);
+            Kit.Chip(new Vector2(at.X + w - cw, at.Y + (m - S(18)) / 2), chip, on ? ChipKind.Ok : ChipKind.Accent, false, 18);
             var x = at.X + m + S(10);
             var tw = w - m - S(10) - cw - S(8);
             var lh = Txt.Natural(Face.Sans, 11);
@@ -216,10 +216,10 @@ public sealed partial class MainWindow
                 (chip, kind) = step.Kind switch
                 {
                     StepKind.Set when step.Source == PlateSource.Armoire => ("From the armoire", ChipKind.Plain),
-                    StepKind.Set => ("Changes", ChipKind.Rose),
+                    StepKind.Set => ("Changes", ChipKind.Accent),
                     StepKind.Clear => ("Emptied", ChipKind.Plain),
                     StepKind.Missing when step.Elsewhere != null => (WhereChipOf(step.Want!.Value.Item).Text, ChipKind.Plain),
-                    StepKind.Missing => ("Don't have", ChipKind.Rose),
+                    StepKind.Missing => ("Don't have", ChipKind.Love),
                     _ => ("Kept", ChipKind.Plain),
                 };
             var item = step.Want?.Item ?? 0;
@@ -240,14 +240,14 @@ public sealed partial class MainWindow
                 .Where(d => d != 0 && !wardrobe.BagDyes.ContainsKey(d)).Distinct()
                 .Select(d => data.Dye(d)?.Items.FirstOrDefault() ?? 0).Where(i => i != 0 && !sync.Library.Wishes.Contains(i))
                 .Select(i => new Piece(i)).ToList();
-            WishLink("##c-plate-dyes", bottles, bottles.Count == 1 ? $"Add {data.ItemName(bottles[0].Item)} to the shopping list" : $"Add the {bottles.Count} dyes to the shopping list");
+            WishLink("##c-plate-dyes", bottles, bottles.Count == 1 ? $"Add {data.ItemName(bottles[0].Item)} to your wishlist" : $"Add the {bottles.Count} dyes to your wishlist");
         }
         Kit.Gap(10);
 
         var filled = lastFill is { } lf && lf.LookId == look.Id && lf.Result.Plate == plate ? lf : ((string, FillResult, PlatePlan)?)null;
         if (filled is { } f && editorChanges)
         {
-            Kit.BeginPanel("##c-save", 10, 12, 10, Palette.RoseWash, Palette.RoseEdge, 12);
+            Kit.BeginPanel("##c-save", 10, 12, 10, Palette.Blush, Palette.AccentEdge, 12);
             Txt.Para(new[] { new Run("Filled. ", Face.SansSemibold, 12, Palette.Ink), new Run("Press Save in the game to keep it.", Face.Sans, 12, Palette.Soft) }, 18);
             Kit.EndPanel();
             Kit.Gap(10);
@@ -372,7 +372,7 @@ public sealed partial class MainWindow
             var w = Kit.Width;
             var h = S(40);
             var dl = Kit.Dl;
-            if (p == picked) dl.AddRectFilled(at, at + new Vector2(w, h), Palette.U32(Palette.RoseRow), S(8));
+            if (p == picked) dl.AddRectFilled(at, at + new Vector2(w, h), Palette.U32(Palette.AccentRow), S(8));
             var num = p.ToString(En);
             Txt.Draw(dl, new Vector2(at.X + S(6), at.Y + (h - Txt.Natural(Face.Display, 13)) / 2), num, Face.Display, 13, Palette.Ink);
             var m = S(28);
@@ -417,7 +417,7 @@ public sealed partial class MainWindow
         {
             Kit.Gap(6);
             Kit.Sub(Kit.At, $"and {Words.Count(empty, "empty plate")}");
-            Kit.Reserve(Kit.At, Kit.Width, Txt.Natural(Face.Mono, 11));
+            Kit.Reserve(Kit.At, Kit.Width, Kit.SubHeight);
         }
     }
 
@@ -743,11 +743,11 @@ public sealed partial class MainWindow
             var tw = w - b * 2 - S(16);
             var title = look?.Name ?? (shown.Count > 0 ? "Tried on by hand" : "Nothing tried on");
             var sub = FittingRoom.Busy ? "trying it on…" : look != null && list.Any(l => l.Id == look.Id) ? $"{tryIndex + 1} of {list.Count}" : shown.Count > 0 ? "what the fitting room has" : $"{list.Count} looks";
-            var t = Txt.Fit(title, Face.SansSemibold, 15, tw);
-            var th = Txt.Natural(Face.SansSemibold, 15);
-            var sh = Txt.Natural(Face.Mono, 11);
+            var t = Txt.Fit(title, Face.Heading, 16, tw);
+            var th = Txt.Natural(Face.Heading, 16);
+            var sh = Kit.SubHeight;
             var ty = at.Y + (b - th - sh) / 2;
-            Txt.Draw(Kit.Dl, new Vector2(mid - Txt.Measure(t, Face.SansSemibold, 15).X / 2, ty), t, Face.SansSemibold, 15, Palette.Ink);
+            Txt.Draw(Kit.Dl, new Vector2(mid - Txt.Measure(t, Face.Heading, 16).X / 2, ty), t, Face.Heading, 16, Palette.Ink);
             var sw = Kit.SubWidth(sub);
             Kit.Sub(new Vector2(mid - MathF.Min(sw, tw) / 2, ty + th), sub, null, tw);
             Kit.Reserve(at, w, b);
@@ -767,7 +767,7 @@ public sealed partial class MainWindow
         }
         Kit.Gap(8);
         var missing = MissingOf(pieces);
-        WishLink("##c-try-wish", missing, missing.Count == 1 ? "Add the one you don't have to the shopping list" : $"Add the {missing.Count} you don't have to the shopping list");
+        WishLink("##c-try-wish", missing, missing.Count == 1 ? "Add the one you don't have to your wishlist" : $"Add the {missing.Count} you don't have to your wishlist");
         Kit.Gap(10);
 
         var row = Kit.At;
@@ -848,7 +848,7 @@ public sealed partial class MainWindow
         }
         Kit.Gap(8);
         var missing = MissingOf(e.Pieces);
-        WishLink("##c-ex-wish", missing, missing.Count == 1 ? "Add the one you don't have to the shopping list" : $"Add the {missing.Count} you don't have to the shopping list");
+        WishLink("##c-ex-wish", missing, missing.Count == 1 ? "Add the one you don't have to your wishlist" : $"Add the {missing.Count} you don't have to your wishlist");
         Kit.Gap(10);
         var row = Kit.At;
         if (Kit.Button("##c-ex-try", row, "Try it on", Btn.Primary, BtnSize.Sm, Icon.Eye))
@@ -939,10 +939,10 @@ public sealed partial class MainWindow
             var have = wardrobe.BagDyes.TryGetValue(d, out var n) ? n : 0;
             var bottle = data.Dye(d)?.Items.FirstOrDefault() ?? 0;
             if (have == 0 && bottle != 0 && !sync.Library.Wishes.Contains(bottle)) toGet.Add(new Piece(bottle));
-            PieceRow($"##c-dye-{d}", bottle, null, data.DyeName(d), null, have > 0 ? $"×{have}" : "none", have > 0 ? ChipKind.Ok : ChipKind.Rose);
+            PieceRow($"##c-dye-{d}", bottle, null, data.DyeName(d), null, have > 0 ? $"×{have}" : "none", have > 0 ? ChipKind.Ok : ChipKind.Love);
         }
         Kit.Gap(6);
-        WishLink("##c-dye-wish", toGet, toGet.Count == 1 ? $"Add {data.ItemName(toGet[0].Item)} to the shopping list" : $"Add the {toGet.Count} dyes to the shopping list");
+        WishLink("##c-dye-wish", toGet, toGet.Count == 1 ? $"Add {data.ItemName(toGet[0].Item)} to your wishlist" : $"Add the {toGet.Count} dyes to your wishlist");
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -1085,7 +1085,7 @@ public sealed partial class MainWindow
                     lists.Others[key] = n = their.Items.Select(LookJson.BaseId).Distinct().Count(i => lookItems.ContainsKey(i) && Where(i) is not (Place.Dresser or Place.Armoire));
                 }
                 text = n > 0 ? $"{name} · {n} for your looks" : $"{name} · none";
-                if (n > 0) kind = ChipKind.Rose;
+                if (n > 0) kind = ChipKind.Accent;
             }
             var w = MathF.Min(Kit.ChipW(text, false, 22), Kit.Width);
             if (cx + w > right)
@@ -1100,13 +1100,13 @@ public sealed partial class MainWindow
     }
 
     // ---------------------------------------------------------------------------------------------
-    // The market board and shops: the shopping list.
+    // The market board and shops: your wishlist.
 
     private void PaneMarket()
     {
         if (!Linked)
         {
-            PaneNote("Link your account (Settings → Account) and your shopping list shows here.");
+            PaneNote("Link your account (Settings → Account) and your wishlist shows here.");
             return;
         }
         var wishes = WishesShown(sync.Library.Wishes);
@@ -1114,7 +1114,7 @@ public sealed partial class MainWindow
         var sold = wishes.Where(i => data.Item(i)?.Untradable != true).ToList();
         var notSold = wishes.Where(i => data.Item(i)?.Untradable == true).ToList();
         PaneHeading("On the market board", $"{sold.Count} of {wishes.Count}");
-        if (wishes.Count == 0) PaneNote("Your shopping list is empty. Put pieces on it from a look, Examine or the fitting room.");
+        if (wishes.Count == 0) PaneNote("Your wishlist is empty. Put pieces on it from a look, Examine or the fitting room.");
         var open = GameWindows.MarketResultItem();
         foreach (var item in sold.Take(companionMore ? 40 : 8))
         {
@@ -1143,7 +1143,7 @@ public sealed partial class MainWindow
         {
             var id = item;
             if (PieceRow($"##c-ns-{item}", item, null, null, forLook.TryGetValue(item, out var look) ? $"for {look}" : null, null, ChipKind.Plain, "Take off", false,
-                    "Takes it off your shopping list"))
+                    "Takes it off your wishlist"))
                 Later(() => Unwish(id));
         }
     }
@@ -1154,7 +1154,7 @@ public sealed partial class MainWindow
     {
         if (!Linked)
         {
-            PaneNote("Link your account (Settings → Account) and what's on your shopping list is marked in shops.");
+            PaneNote("Link your account (Settings → Account) and what's on your wishlist is marked in shops.");
             return;
         }
         var wishes = sync.Library.Wishes;
@@ -1164,7 +1164,7 @@ public sealed partial class MainWindow
         var found = c.Found;
         var forLook = WishLooks();
         PaneHeading("Sold here", $"{found.Count} of {wishes.Count} on your list");
-        if (found.Count == 0) PaneNote(wishes.Count == 0 ? "Your shopping list is empty." : "Nothing on your shopping list is sold here, as far as this shop's window tells.");
+        if (found.Count == 0) PaneNote(wishes.Count == 0 ? "Your wishlist is empty." : "Nothing on your wishlist is sold here, as far as this shop's window tells.");
         foreach (var item in found.OrderBy(data.ItemName))
             PieceRow($"##c-shop-{item}", item, null, null, forLook.TryGetValue(item, out var look) ? $"for {look}" : null, "Sold here", ChipKind.Ok);
         Kit.Gap(6);

@@ -81,7 +81,7 @@ public sealed partial class MainWindow
         {
             var (head, line) = looksTab switch
             {
-                1 => ("No loved looks yet", "Love a look on Glamour Studio's front page and it's here."),
+                1 => ("No loved looks yet", "Love a look on Glamour Studio's Discover page and it's here."),
                 2 => ("None yet", "No public look is all yours yet. As your closet grows (open your dresser, armoire and retainers once), they show here."),
                 _ => ("No looks yet", "Dress the mannequin in Glamour Studio's dressing room and save a look: it's here."),
             };
@@ -163,11 +163,11 @@ public sealed partial class MainWindow
         var at = Kit.At;
         var w = Kit.Width;
         var x = at.X;
-        // Ready for a plate first: rose with a tick when on.
+        // Ready for a plate first: lilac with a tick when on.
         const string ready = "Ready for a plate first";
         var rw = Kit.ChipW(ready, readyFirst);
         var (rc, rh, _) = Kit.Hit("##ready-first", at, new Vector2(rw, S(24)));
-        Kit.Chip(at, ready, readyFirst ? ChipKind.Rose : ChipKind.Plain, readyFirst);
+        Kit.Chip(at, ready, readyFirst ? ChipKind.Accent : ChipKind.Plain, readyFirst);
         if (rh) Kit.Tooltip(readyFirst ? "The looks ready for a plate first (press for the site's order)" : "Press to put the looks ready for a plate first");
         if (rc) readyFirst = !readyFirst;
         x += rw + S(8);
@@ -205,7 +205,7 @@ public sealed partial class MainWindow
         var (clicked, _, _) = Kit.Hit(id, pos, new Vector2(w, S(24)), none);
         var old = Palette.Opacity;
         if (none) Palette.Opacity = old * 0.5f;
-        Kit.Chip(pos, text, on ? ChipKind.Rose : ChipKind.Plain);
+        Kit.Chip(pos, text, on ? ChipKind.Accent : ChipKind.Plain);
         Palette.Opacity = old;
         if (none && !Kit.Blocked && ImGui.IsWindowHovered() && ImGui.IsMouseHoveringRect(pos, pos + new Vector2(w, S(24))))
             Kit.Tooltip("None of these looks says one");
@@ -228,7 +228,7 @@ public sealed partial class MainWindow
         return w;
     }
 
-    /// <summary>A look's row in the list: its pieces' icons, name, a line and how ready it is; the picked one in the rose. True when pressed.</summary>
+    /// <summary>A look's row in the list: its pieces' icons, name, a line and how ready it is; the picked one in lilac. True when pressed.</summary>
     private bool LooksRow(Look look, bool on)
     {
         var at = Kit.At;
@@ -244,8 +244,8 @@ public sealed partial class MainWindow
         var dl = Kit.Dl;
         if (on)
         {
-            dl.AddRectFilled(at, at + new Vector2(w, h), Palette.U32(Palette.RoseRow), S(12));
-            dl.AddRect(at + new Vector2(0.5f), at + new Vector2(w, h) - new Vector2(0.5f), Palette.U32(Palette.RoseEdge), S(12), ImDrawFlags.None, 1f);
+            dl.AddRectFilled(at, at + new Vector2(w, h), Palette.U32(Palette.AccentRow), S(12));
+            dl.AddRect(at + new Vector2(0.5f), at + new Vector2(w, h) - new Vector2(0.5f), Palette.U32(Palette.AccentEdge), S(12), ImDrawFlags.None, 1f);
         }
         else if (hovered) dl.AddRectFilled(at, at + new Vector2(w, h), Palette.U32(Palette.RowHover), S(12));
         Mosaic(new Vector2(at.X + S(10), at.Y + S(10)), S(48), look.Pieces);
@@ -413,14 +413,14 @@ public sealed partial class MainWindow
         Kit.Reserve(at, w, h);
     }
 
-    /// <summary>Where a piece is, as a chip: green where a plate takes it from, rose where it's to put away, the outline when it isn't yours yet.</summary>
+    /// <summary>Where a piece is, as a chip: mint where a plate takes it from, lilac where it's to put away, orchid when it isn't yours yet (as the site marks the pieces you don't own).</summary>
     private static (string Text, ChipKind Kind, string Tip) WhereChip(Place? where, bool wished) => where switch
     {
         Place.Dresser => ("Dresser", ChipKind.Ok, "In your glamour dresser: ready for a plate."),
         Place.Armoire => ("Armoire", ChipKind.Ok, "In your armoire: ready for a plate."),
-        { } p => (Places.Word(p), ChipKind.Rose, $"Yours, {Places.Where(p)}. A plate takes pieces from the dresser or the armoire: put it away first."),
-        null => (wished ? "On your list" : "Missing", ChipKind.Plain, wished
-            ? "On your shopping list on the site: the plugin hasn't seen it in your wardrobe yet."
+        { } p => (Places.Word(p), ChipKind.Accent, $"Yours, {Places.Where(p)}. A plate takes pieces from the dresser or the armoire: put it away first."),
+        null => (wished ? "On your wishlist" : "Missing", ChipKind.Love, wished
+            ? "On your wishlist on the site: the plugin hasn't seen it in your wardrobe yet."
             : "The plugin hasn't seen it in your wardrobe. Open your dresser, armoire, saddlebags and retainers once, and it knows them."),
     };
 }

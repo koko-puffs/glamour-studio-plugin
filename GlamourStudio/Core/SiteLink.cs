@@ -36,7 +36,7 @@ public sealed record SiteReply<T>(T? Value, string? Why = null, string? Hint = n
 }
 
 /// <summary>What the site kept of a read of your wardrobe (<c>gs_plugin_sync</c>).</summary>
-/// <param name="WishesGot">The pieces taken off your shopping list: the read shows you have them now.</param>
+/// <param name="WishesGot">The pieces taken off your wishlist: the read shows you have them now.</param>
 public sealed record SyncResult(int Total, int Added, int Moved, int Removed, int Plates, DateTimeOffset? ReadAt, IReadOnlyList<uint>? WishesGot = null);
 
 /// <summary>A shot the site added to a look's Worn in game (<c>gs-plugin-shot</c>).</summary>
@@ -226,7 +226,7 @@ public static class SiteLink
     // ---------------------------------------------------------------------------------------------
     // The calls.
 
-    /// <summary>Your looks, the ones you love, and your shopping list.</summary>
+    /// <summary>Your looks, the ones you love, and your wishlist.</summary>
     public static async Task<SiteReply<Library>> LooksAsync(HttpClient http, string token, CancellationToken cancel = default)
     {
         if (!LooksRight(token)) return NoToken<Library>();
@@ -437,7 +437,7 @@ public static class SiteLink
         return Unreadable<SavedLook>();
     }
 
-    /// <summary>Puts pieces on your shopping list (40 at most; one there already stays as it was). The value: how many went on.</summary>
+    /// <summary>Puts pieces on your wishlist (40 at most; one there already stays as it was). The value: how many went on.</summary>
     public static async Task<SiteReply<int>> WishAddAsync(HttpClient http, string token, IReadOnlyList<Piece> pieces, CancellationToken cancel = default)
     {
         if (!LooksRight(token)) return NoToken<int>();
@@ -451,14 +451,14 @@ public static class SiteLink
         {
             // An older site, without the call yet.
             if (r.Hint == null && r.Why?.Contains("gs_plugin_wish_add", StringComparison.Ordinal) == true)
-                return new SiteReply<int>(0, "The site can't take shopping list pieces from the plugin yet.");
+                return new SiteReply<int>(0, "The site can't take wishlist pieces from the plugin yet.");
             return r.As<int>();
         }
         if (r.Value is JsonObject o && o["added"] is JsonValue v && v.TryGetValue<int>(out var n)) return new SiteReply<int>(n);
         return Unreadable<int>();
     }
 
-    /// <summary>Takes pieces off your shopping list (item ids). The value: how many came off.</summary>
+    /// <summary>Takes pieces off your wishlist (item ids). The value: how many came off.</summary>
     public static async Task<SiteReply<int>> WishRemoveAsync(HttpClient http, string token, IReadOnlyList<uint> items, CancellationToken cancel = default)
     {
         if (!LooksRight(token)) return NoToken<int>();
@@ -470,7 +470,7 @@ public static class SiteLink
         {
             // An older site, without the call yet.
             if (r.Hint == null && r.Why?.Contains("gs_plugin_wish_remove", StringComparison.Ordinal) == true)
-                return new SiteReply<int>(0, "The site can't take pieces off the shopping list from the plugin yet.");
+                return new SiteReply<int>(0, "The site can't take pieces off your wishlist from the plugin yet.");
             return r.As<int>();
         }
         if (r.Value is JsonObject o && o["removed"] is JsonValue v && v.TryGetValue<int>(out var n)) return new SiteReply<int>(n);

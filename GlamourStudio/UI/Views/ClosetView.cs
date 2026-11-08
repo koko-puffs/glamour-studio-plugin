@@ -11,7 +11,7 @@ namespace GlamourStudio.UI;
 /// <summary>
 /// Closet: where your gear is. The glamour dresser first, how full it is (to Make room); then each
 /// other place with how many pieces and when it was read, or what to open so it can be; your closet
-/// on the site; and beside it, your shopping list, each piece with where it is if you have it now.
+/// on the site; and beside it, your wishlist, each piece with where it is if you have it now.
 /// </summary>
 public sealed partial class MainWindow
 {
@@ -50,7 +50,7 @@ public sealed partial class MainWindow
         dl.AddRectFilled(asideMin, asideMin + new Vector2(asideW, size.Y), Palette.U32(Palette.Rail), S(14), ImDrawFlags.RoundCornersBottomRight);
         dl.AddLine(new Vector2(asideMin.X + 0.5f, asideMin.Y), new Vector2(asideMin.X + 0.5f, asideMin.Y + size.Y), Palette.U32(Palette.Divider), 1f);
         Kit.BeginPane("##closet-aside", asideMin + new Vector2(1, 0), new Vector2(asideW - 1, size.Y), 22, 20, 20, scroll: false);
-        DrawShoppingList();
+        DrawWishlist();
         Kit.EndPane();
     }
 
@@ -73,7 +73,7 @@ public sealed partial class MainWindow
         var nw = Txt.Draw(dl, new Vector2(x, y), "Glamour dresser", Face.SansSemibold, 14, Palette.Ink);
         if (read == null)
         {
-            Txt.Draw(dl, new Vector2(x, y + Txt.Natural(Face.SansSemibold, 14) + S(6)), Txt.Fit(Places.HowToRead(Place.Dresser), Face.Sans, 12, tw), Face.Sans, 12, Palette.RoseText);
+            Txt.Draw(dl, new Vector2(x, y + Txt.Natural(Face.SansSemibold, 14) + S(6)), Txt.Fit(Places.HowToRead(Place.Dresser), Face.Sans, 12, tw), Face.Sans, 12, Palette.AccentText);
             Kit.Reserve(at, w, h);
             return;
         }
@@ -94,7 +94,7 @@ public sealed partial class MainWindow
             ? $"{Words.Count(now.Sets.Count, "outfit set")} could free up to {Words.Count(now.Frees, "place")} · "
             : "No outfit set to gather · ";
         var lw = Txt.Draw(dl, new Vector2(x, y), Txt.Fit(line, Face.Sans, 12, tw - S(70)), Face.Sans, 12, Palette.Muted);
-        Txt.Draw(dl, new Vector2(x + lw, y), "Make room", Face.Sans, 12, hovered ? Palette.Ink : Palette.RoseText);
+        Txt.Draw(dl, new Vector2(x + lw, y), "Make room", Face.Sans, 12, hovered ? Palette.Ink : Palette.AccentText);
         if (clicked) Later(() => Go(Screen.MakeRoom));
         Kit.Reserve(at, w, h + S(4));
     }
@@ -115,7 +115,7 @@ public sealed partial class MainWindow
         foreach (var (place, _) in ClosetPlaces)
             tallestNote = MathF.Max(tallestNote, Txt.Flow(Vector2.Zero, noteW, new[] { new Run(PlaceNote(me, place, now), Face.Sans, 12, Palette.Muted) }, 18, out _, draw: false));
         var placeH = S(14) * 2 + S(34) + S(10) + Txt.Natural(Face.Display, 26) + S(10) + tallestNote;
-        var siteH = S(14) * 2 + Txt.Natural(Face.Mono, 11) + S(10)
+        var siteH = S(14) * 2 + Kit.EyebrowHeight + S(10)
                     + Txt.Flow(Vector2.Zero, noteW, new[] { new Run(SiteWords(now), Face.Sans, 13, Palette.Soft) }, 19.5f, out _, draw: false)
                     + S(12) + Kit.ButtonHeight(BtnSize.Sm);
         var ch = MathF.Max(placeH, siteH);
@@ -133,17 +133,17 @@ public sealed partial class MainWindow
             Txt.Draw(dl, new Vector2(q.X, y), read == null ? "—" : read.Items.Count.ToString("N0"), Face.Display, 26, read == null ? Palette.Dim : Palette.Ink);
             y += Txt.Natural(Face.Display, 26) + S(10);
             var note = PlaceNote(me, place, now);
-            Txt.Flow(new Vector2(q.X, y), cw - S(28), new[] { new Run(note, Face.Sans, 12, read == null ? Palette.RoseText : Palette.Muted) }, 18, out _);
+            Txt.Flow(new Vector2(q.X, y), cw - S(28), new[] { new Run(note, Face.Sans, 12, read == null ? Palette.AccentText : Palette.Muted) }, 18, out _);
         }
 
         // The site.
         {
             var p = new Vector2(at.X + (cw + gap) * (i % cols), at.Y + (ch + gap) * (i / cols));
-            Kit.Card(p, p + new Vector2(cw, ch), Palette.RoseWash, Palette.RoseEdge, 14);
+            Kit.Card(p, p + new Vector2(cw, ch), Palette.Blush, Palette.AccentEdge, 14);
             var q = p + new Vector2(S(14));
             var inner = cw - S(28);
             Kit.Eyebrow(q, "On the site", null, inner);
-            var y = q.Y + Txt.Natural(Face.Mono, 11) + S(10);
+            var y = q.Y + Kit.EyebrowHeight + S(10);
             var said = SiteWords(now);
             Txt.Flow(new Vector2(q.X, y), inner, new[] { new Run(said, Face.Sans, 13, sync.SyncProblem != null && Linked ? Palette.Danger : Palette.Soft) }, 19.5f, out _);
             var by = p.Y + ch - S(14) - Kit.ButtonHeight(BtnSize.Sm);
@@ -190,7 +190,7 @@ public sealed partial class MainWindow
             : config.AutoSync ? "It's sent by itself as it changes." : "Sending by itself is off (Settings).");
 
     // ---------------------------------------------------------------------------------------------
-    // The shopping list.
+    // Your wishlist.
 
     private (int Sync, Dictionary<uint, string> For)? wishLooks;
 
@@ -217,14 +217,14 @@ public sealed partial class MainWindow
         return shown;
     }
 
-    private void DrawShoppingList()
+    private void DrawWishlist()
     {
         var wishes = sync.Library.Wishes;
-        Kit.Heading("Your shopping list", Linked ? Words.Count(wishes.Count, "piece") : null);
+        Kit.Heading("Your wishlist", Linked ? Words.Count(wishes.Count, "piece") : null);
         Kit.Gap(12);
         if (!Linked)
         {
-            Txt.Para(new[] { new Run("Link your account: the pieces on your shopping list on the site show here, each with where it is once you have it.", Face.Sans, 13, Palette.Muted) }, 19.5f);
+            Txt.Para(new[] { new Run("Link your account: the pieces on your wishlist on the site show here, each with where it is once you have it.", Face.Sans, 13, Palette.Muted) }, 19.5f);
             return;
         }
         var w = Kit.Width;
@@ -289,7 +289,7 @@ public sealed partial class MainWindow
             var lh = Txt.Natural(Face.Sans, 11);
             var y = r.Y + (h - nh - lh) / 2;
             Txt.Draw(dl, new Vector2(x, y), Txt.Fit(item?.Name ?? $"Item {id}", Face.Sans, 13, tw), Face.Sans, 13, Palette.Ink);
-            Txt.Draw(dl, new Vector2(x, y + nh), Txt.Fit(forLook.TryGetValue(id, out var ln) ? $"For {ln}" : "On your list", Face.Sans, 11, tw), Face.Sans, 11, Palette.Dim);
+            Txt.Draw(dl, new Vector2(x, y + nh), Txt.Fit(forLook.TryGetValue(id, out var ln) ? $"For {ln}" : "On your wishlist", Face.Sans, 11, tw), Face.Sans, 11, Palette.Dim);
             Kit.Chip(new Vector2(r.X + rw - xw - S(8) - cw, r.Y + (h - S(24)) / 2), chip, where != null ? ChipKind.Ok : ChipKind.Plain);
             var gone = id;
             if (Kit.IconButton($"##unwish-{id}", new Vector2(r.X + rw - xw, r.Y + (h - xw) / 2), Icon.X, "Take it off the list", 28, Btn.Quiet, false, 14))

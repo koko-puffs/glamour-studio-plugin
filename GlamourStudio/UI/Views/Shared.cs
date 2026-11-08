@@ -82,11 +82,11 @@ public sealed partial class MainWindow
         var pad = S(22);
         var inner = w - pad * 2;
         var y = at.Y + pad;
-        Kit.Well(new Vector2(at.X + (w - S(44)) / 2, y), S(44), icon, rose: false, iconPx: 20);
+        Kit.Well(new Vector2(at.X + (w - S(44)) / 2, y), S(44), icon, lit: false, iconPx: 20);
         y += S(44) + S(12);
-        var hw = Txt.Measure(head, Face.SansSemibold, 15).X;
-        Txt.Draw(Kit.Dl, new Vector2(at.X + (w - MathF.Min(hw, inner)) / 2, y), Txt.Fit(head, Face.SansSemibold, 15, inner), Face.SansSemibold, 15, Palette.Ink);
-        y += Txt.Natural(Face.SansSemibold, 15) + S(4);
+        var hw = Txt.Measure(head, Face.Heading, 16).X;
+        Txt.Draw(Kit.Dl, new Vector2(at.X + (w - MathF.Min(hw, inner)) / 2, y), Txt.Fit(head, Face.Heading, 16, inner), Face.Heading, 16, Palette.Ink);
+        y += Txt.Natural(Face.Heading, 16) + S(4);
         var lh = Txt.Flow(new Vector2(at.X + pad, y), inner, new[] { new Run(line, Face.Sans, 13, Palette.Muted) }, 19.5f, out _, center: true);
         y += lh + pad;
         Kit.Dashed(at, new Vector2(at.X + w, y), S(Palette.RadiusLg), Palette.LineDashed, 1f);

@@ -28,7 +28,7 @@ dressed in any piece of gear, dyed, saved, shared. The plugin is its half in the
 - **Your closet on the site.** Linked with a token, it sends what it has read of your wardrobe:
   each piece of gear you own and its handiest place (dresser, armoire, armoury chest, bags,
   saddlebags, a retainer), your glamour plates and what you're wearing. The site's closet, "6/8 in
-  your closet", Only looks I can wear today and the shopping list all read from it, for the
+  your closet", Only looks I can wear today and your wishlist all read from it, for the
   character you view the site as. **It asks first**, on each character, whether to send it at all
   (see [Asking about each character](#asking-about-each-character)).
 - **Both ways.** Looks you Send to game on the site wait in the plugin (Sent from the site); a
@@ -37,7 +37,7 @@ dressed in any piece of gear, dyed, saved, shared. The plugin is its half in the
 - **Plates planned on the site.** On the site's Closet → Plates, pick a look for each plate of a
   character; at a dresser the plugin's plate editor card offers Fill it with “that look”.
 - **Wear now.** The public looks on the site you own every piece of, the most loved first.
-- **Your shopping list ticks itself.** A piece on your list that the plugin sees in your wardrobe
+- **Your wishlist ticks itself.** A piece on your wishlist that the plugin sees in your wardrobe
   comes off it on the site (and a line in chat says so, if you like).
 - **Make room in your dresser.** How full it is, the outfit sets whose loose pieces could be kept
   as one outfit, and the pieces none of your looks or plates uses.
@@ -53,21 +53,30 @@ dressed in any piece of gear, dyed, saved, shared. The plugin is its half in the
 closet now, `/gstudio refresh` reads it all again (as the Refresh button does).
 
 **Refresh** (the round arrow left of Settings at the top of the window, and in each panel's header
-beside the game's windows): your looks, shopping list, plans, the looks sent to you and what you
+beside the game's windows): your looks, wishlist, plans, the looks sent to you and what you
 can wear are read from the site again, and your wardrobe from the game. The dresser and armoire are
 read only while they're open (the game has them only then), so they're as of when you last opened
 them. The site's looks are also read every ten minutes while the window or a panel is open.
 
 ## The window
 
-One wide window in the site's look (Glamour Studio's dark night sky and its rose: `UI/Kit/Palette.cs`
-holds the site's `--gs-*` colours; Syne 800 capitals for titles, DM Sans to read, DM Mono in
-spaced capitals for labels and eyebrows: `UI/Kit/Fonts.cs`), 1120 × 760 to start with, 900 × 600 at
-the least. As in Housing Studio's and Raid Planner's plugins, the back arrow is at the top left of a
+One wide window in the site's look since its "Moonlit Atelier" redesign (0.6.16, November 2026): a
+violet night with cards a shade lighter and lilac-tinted hairline edges; lilac for words, icons,
+rings and where you are; the one thing to do a violet pill with white words that glows when
+pointed at (a toggle that's on, and a segmented switch's pick, violet too, the pick's pill gliding
+to it); orchid for the pieces you don't have yet ("Don't have", "Missing", "Not yours yet", a
+missing slot's dashes); mint for what's yours, done or linked; the progress bar iridescent (lilac
+to orchid to ice), mint once it's full. `UI/Kit/Palette.cs` holds the site's `--gs-*` colours.
+Outfit for titles and headings (700 and 600, in normal capitals), Figtree to read, for buttons, and
+for labels (600, normal capitals) and eyebrows (600 in capitals, 0.08em apart), and Geist Mono only
+for numbers that change (counts, a token): `UI/Kit/Fonts.cs`. (Until 0.6.16: a near-black window
+with one rose for all three meanings, Syne 800 capitals, DM Sans, and DM Mono in spaced capitals
+for labels too.) 1120 × 760 to start with, 900 × 600 at the least. As in Housing Studio's and Raid Planner's plugins, the back arrow is at the top left of a
 screen below (a look, Settings) and Settings behind the sliders button at the top right; the
 question is a card over the window.
 
-- **The header** across the top: GLAMOUR STUDIO, a pill for what's going on (recording, the plate
+- **The header** across the top: the mark (a white hanger on a rounded violet square, as the
+  site's bar and the plugin's icon have it) and "Glamour Studio" in Outfit, a pill for what's going on (recording, the plate
   editor open and on which plate, not linked, sending your closet, sent and when, or what went
   wrong) and Settings. On a look: back, its eyebrow and name, On the site and Settings.
 - **The rail** down the left: Home, Looks (how many of yours), Plates (how many have something on
@@ -78,7 +87,7 @@ question is a card over the window.
 
 ### Home
 
-- **At the glamour dresser** (the plate editor open): a rose card with the plate open (PLATE 3),
+- **At the glamour dresser** (the plate editor open): a lilac-edged card with the plate open (PLATE 3),
   what's on it (empty, one of your looks, so many pieces), whether it's saved, and with a look
   planned for that plate on the site, **Fill plate 3** (and See the look). Under it the plate's
   twelve slots now and, with a plan, after: what goes on, what's emptied, a dashed slot for a piece
@@ -106,7 +115,7 @@ then **Ready for a plate first** (on by default), a job and a mood. Each row: fo
 icons, its name, whose it is, and how ready it is (Ready for a plate, so many to store, so many of
 so many yours). The look picked shows in the pane beside: its pieces' icons, eyebrow and name, its
 mood and job, the plate card (below), Try on, Shot (public looks), Site, its pieces each with where
-it is (green Dresser or Armoire; rose where it's to put away; On your list; Missing) and **Open the
+it is (mint Dresser or Armoire; lilac where it's to put away; orchid On your wishlist or Missing) and **Open the
 look**.
 
 ### A look
@@ -143,7 +152,7 @@ On the right:
 ### Plates
 
 All twenty plates at once, five across: each its number, its pieces' icons, the look it is (or how
-many pieces), a rose dot when one's planned for it on the site, and the jobs of the gearsets linked
+many pieces), a lilac dot when one's planned for it on the site, and the jobs of the gearsets linked
 to it; an empty one dashed. Above them **What you're wearing** (Try it on, Keep it as a look:
 under the twenty plates it took scrolling to find), under them when the game last had them. The plate picked, in the pane beside: what's on it, its plan (a
 link to the look, On it or Not on it yet), **Wear it** (`/gearset change <your gearset> N`), Try it on, Keep it as a
@@ -158,7 +167,7 @@ The glamour dresser first (read when, places used of 800 with a bar, how many pl
 outfit sets would free, Make room), then the armoire, armoury chest, bags, saddlebags and retainers
 (how many pieces and when read, or dashed with what to open so it can be read), and **On the site**
 (what was sent and when, Send now, Open: both at their full width, "Send" when they don't fit
-side by side, Open left out when even that doesn't). Beside it **your shopping list**: the pieces
+side by side, Open left out when even that doesn't). Beside it **your wishlist**: the pieces
 that just came off it (seen in your wardrobe), and each piece with a look that uses it, where it is
 if you have it now, and × to take it off (`gs_plugin_wish_remove`: off here at once, back on should
 the site say no).
@@ -228,12 +237,12 @@ yours to sell or discard. Recordings write each step (`TAKE OUT …`). New: not 
 A small Glamour Studio panel (300 wide, the plugin's own look) docked to the edge of the game window
 you have open, its top level with the window's, moving with it as you drag it; on the side with room
 (right by default; Settings can pin a side). As tall as what's in it, whatever the game window's
-height (it measures what it drew each frame), scrolling only when the screen runs out. Its header: GLAMOUR STUDIO in small rose capitals over what it's beside, Refresh, the arrow
+height (it measures what it drew each frame), scrolling only when the screen runs out. Its header: GLAMOUR STUDIO in a small lilac eyebrow over what it's beside (in Outfit), Refresh, the arrow
 that opens the plugin's window on the matching screen, and the fold button: folded, a slim tab stays
-on the window's edge with its one number (looks ready, the plate, your list's length), remembered
+on the window's edge with its one number (looks ready, the plate, your wishlist's length), remembered
 for each window. The panels share their parts: a piece's row (its icon, name, a line under it, and
-a chip for where it is: Dresser or Armoire in green, Bags, Armoury, Saddlebag or Retainer outlined,
-Don't have in rose, On your list), a look's row (its four icons, name, a chip or a line, a small
+a chip for where it is: Dresser or Armoire in mint, Bags, Armoury, Saddlebag or Retainer outlined,
+Don't have and On your wishlist in orchid; a slot's name before it in Figtree, "Ring R"), a look's row (its four icons, name, a chip or a line, a small
 button), headings with a count in words, "and N more" to show a list whole, and "Link your account
 (Settings → Account)…" where linking's needed. It's gone with its window, while the HUD's hidden, in cutscenes and in group pose.
 One panel at a time: the game window that has the game's focus, else the likeliest (Glamour Plates,
@@ -246,26 +255,26 @@ is off meanwhile). `UI/Companions/Companion.cs` is the panel, `Panes.cs` what ea
 | Beside | It shows |
 | --- | --- |
 | **Glamour Dresser** | Places used of 800 as a bar, free, how many pieces could leave without breaking a look (and Make room); the looks the dresser and armoire have everything for (yours, the ones you love, and the ones sent to you), each with **Plate it**: a menu of the twenty plates (what each has on it, by look name, and what's planned for it; the plate planned for this look first, then the empty ones), and the one you pick is filled in one go (`UI/Views/PlateIt.cs`): it presses the dresser's own Glamour Plates button (`[u:5]`, as the first recording saw), picks the plate as clicking it does (`[i:17, u:plate−1]`, plate 1 to 14 and 1 to 3 in a recording), waits for the game to show it picked and 0.3 s more for its slots, and fills it as Fill plate does. Nothing's saved: you press Save in the game's window. It won't pick another plate over changes not yet saved. A look's own page has the same, **Put on a plate…**, while the dresser's open; your looks' pieces still in your bags, armoury chest, saddlebags or on retainers. |
-| **Glamour Plates** (at a dresser) | Follows the plate picked in the game: its planned look (or one picked here: **Another look** lists the ready ones, then the rest of yours; a pick made here is for its plate), green when it's on the plate, its name opening it in the plugin; slot by slot, each marked On it, Changes, From the armoire, In your bags…, Don't have or Emptied; the dyes from your bags, the pieces to dye, and the missing bottles to put on your list; **Fill plate N**; then "Press Save in the game", and once saved Wear plate N. No plan: the ready looks, each with Fill with it. |
+| **Glamour Plates** (at a dresser) | Follows the plate picked in the game: its planned look (or one picked here: **Another look** lists the ready ones, then the rest of yours; a pick made here is for its plate), green when it's on the plate, its name opening it in the plugin; slot by slot, each marked On it, Changes, From the armoire, In your bags…, Don't have or Emptied; the dyes from your bags, the pieces to dye, and the missing bottles to put on your wishlist; **Fill plate N**; then "Press Save in the game", and once saved Wear plate N. No plan: the ready looks, each with Fill with it. |
 | **Glamour Plates** (from the Character window) | Every plate with something on it, by its look's name (or how many pieces), its linked gearsets' jobs, On for the one you wear, **Wear** for the rest (it picks the plate, `[i:17, u:plate−1]`, and once the game shows it picked presses the window's own apply, `[i:15, u:0]`, which applies the plate picked: 0.6.6 sent the plate's number with the apply and the window applied plate 1; nothing's applied if the plate isn't shown picked within two seconds. `/gearset change` is refused while this window's open, "…while occupied", a recording saw); the plate picked in the game highlighted. It fills no plate: that's the dresser's Glamour Plates. |
 | **Armoire** | Your looks' pieces stored in it (plates take them from there); what in your bags and armoury chest it takes, each with **Store**, and **Store all** (one by one, 0.6 s apart); how many pieces in your dresser it would take (and which), each a place freed once moved. |
 | **Storing an outfit set** | The set's name; dresser places freed by storing it (its loose pieces, less the one place the set takes); your looks that use it and which of its pieces; each piece and where it is. |
-| **Fitting Room** | Your looks (all, or just the ready ones) to step through with the arrows, each put on in the fitting room (the panel stays while it reopens); where each piece is; the ones you don't have onto your shopping list; Wear it · plate N when the look's on a plate. What you tried on by hand: Keep it as a look. |
-| **Examine** | How many of their pieces you have (a ring), each piece and where yours is, the missing ones onto your list, Try it on, Keep it as a look (named after them, "Their name's outfit", as Home's; "An outfit I saw" when the name can't be read). |
-| **Dye** | The piece being dyed (the first dyeable gear in the window's values, else the one piece its preview shows: not yet watched), your looks that have it and the dyes each wants, the bottles in your bags for them, the missing ones onto your list. |
+| **Fitting Room** | Your looks (all, or just the ready ones) to step through with the arrows, each put on in the fitting room (the panel stays while it reopens); where each piece is; the ones you don't have onto your wishlist; Wear it · plate N when the look's on a plate. What you tried on by hand: Keep it as a look. |
+| **Examine** | How many of their pieces you have (a ring), each piece and where yours is, the missing ones onto your wishlist, Try it on, Keep it as a look (named after them, "Their name's outfit", as Home's; "An outfit I saw" when the name can't be read). |
+| **Dye** | The piece being dyed (the first dyeable gear in the window's values, else the one piece its preview shows: not yet watched), your looks that have it and the dyes each wants, the bottles in your bags for them, the missing ones onto your wishlist. |
 | **A retainer's bags** | Your looks' pieces on this retainer that aren't in your dresser or armoire; how much glamour on it no look uses, and what of it the armoire takes (and which); your other retainers, each with how many of your looks' pieces it has (or not read yet). |
-| **Market board** | Your shopping list: what the market board sells (each with the look it's for, the cheapest listing while its results are open, **Search**, which types it into the market board's search and searches: not yet watched, else it copies the name), and what it doesn't (untradable), each with **Take off** (off your shopping list). |
-| **Shops** (`Shop`, `ShopExchangeItem`, `ShopExchangeCurrency`, `ShopExchangeCoin`, `InclusionShop`, `GrandCompanyExchange`, `FreeShop`, `SkyIslandExchange`) | What on your shopping list the shop sells, as far as its window's values name the items (best effort: a price or an icon that happens to equal an item's number would count too). |
+| **Market board** | Your wishlist: what the market board sells (each with the look it's for, the cheapest listing while its results are open, **Search**, which types it into the market board's search and searches: not yet watched, else it copies the name), and what it doesn't (untradable), each with **Take off** (off your wishlist). |
+| **Shops** (`Shop`, `ShopExchangeItem`, `ShopExchangeCurrency`, `ShopExchangeCoin`, `InclusionShop`, `GrandCompanyExchange`, `FreeShop`, `SkyIslandExchange`) | What on your wishlist the shop sells, as far as its window's values name the items (best effort: a price or an icon that happens to equal an item's number would count too). |
 
 **Under item tooltips:** while the game's item tooltip (`ItemDetail`) shows a piece of gear, a small
 box under it (above, with no room below), GLAMOUR STUDIO over its lines: which of your looks have it, the plates it's on, on your
-shopping list, and whether your dresser or armoire has it. Nothing when none of that's so.
+wishlist, and whether your dresser or armoire has it. Nothing when none of that's so.
 
 **Right-click menu:** on gear in your bags, the armoury chest, a retainer's, an item linked in chat
 (and the market board, recipes, shops), a **Glamour Studio** entry: Add it to a look… (your looks;
 the piece goes in its slot, a ring on the free hand, `gs_plugin_look_put`), Try it on with a look of yours that has it (the
-whole look in the fitting room; a submenu of them, up to twelve, when more than one has it), Which looks use it (a line in chat), Put it on the shopping list (when it isn't
-yours), Take it off the shopping list (when it's on it), Store it in the armoire (from your bags, while the armoire's open).
+whole look in the fitting room; a submenu of them, up to twelve, when more than one has it), Which looks use it (a line in chat), Put it on your wishlist (when it isn't
+yours), Take it off your wishlist (when it's on it), Store it in the armoire (from your bags, while the armoire's open).
 
 Recordings write down which panel shows, where, folded or not, a look picked for a plate, and the
 piece the dye window has (`PLUGIN … panel …`); and the market board's and shops' windows opening and closing, never their words (sellers' and retainers' names), as Examine's.
@@ -287,7 +296,7 @@ piece the dye window has (`PLUGIN … panel …`); and the market board's and sh
 | Open with the plate editor | on | Opening Glamour Plates opens the window (off, and greyed out, while the Glamour Plates panel is on). |
 | Keep it up to date by itself | on | Sends your closet as it changes (see [The site](#the-site)). |
 | Send my plates and outfit | on | Your plates and what you wear go along, with your character's name and world (only you see them). |
-| Say in chat when a wish comes true | on | A line in chat when pieces on your shopping list are seen in your wardrobe (they come off the list either way). |
+| Say in chat when a wish comes true | on | A line in chat when pieces on your wishlist are seen in your wardrobe (they come off the list either way). |
 | Forget this character | | Forgets what the plugin has read of the character you're playing (it's read again as you play). |
 
 One column in the middle (640 at most), as the other plugins' Settings: General and Account as a
@@ -491,18 +500,18 @@ runs them off the framework thread and takes the answers back to it.
 | `gs_plugin_characters` | linking, changing character, every 10 min while the window's open (30 otherwise) | what the site does with each of your characters (key, `ask` / `yes` / `no`) |
 | `gs_plugin_character` | you answer the question, or flip a character's switch in Settings → Account; an answer the site hasn't heard yet (a minute after a failed try) | your answer for a character: yes with its name and world; no with its key alone, and the site lets go of what it had of it |
 | `gs_plugin_sync` | your wardrobe changed and settled for 10 s, at most every 3 min (and only when what's sent changed); Send it now; saying yes; linking. **Only for a character the site takes (`yes`)** | the character you're on (key, name, world), its pieces each where they are, the places read in full, its plates and what it wears, with how it looks (`p_outfit.appearance`: its customize bytes and their colours as `#rrggbb`, for the site's dressing room to draw it as its mannequin) |
-| `gs_plugin_looks` | the window opens, every 10 min while it's open, Refresh | your looks (300), the public ones you love (200), your shopping list's items |
+| `gs_plugin_looks` | the window opens, every 10 min while it's open, Refresh | your looks (300), the public ones you love (200), your wishlist's items |
 | `gs_plugin_inbox_list` | as the window opens (any way: the plugin list, `/gstudio`, a panel's arrow), every minute while it's open, every 15 otherwise | the looks sent to the game, each whole, with the plate meant |
 | `gs_plugin_inbox_remove` | a sent look went on a plate | it's off the list |
 | `gs_plugin_save_look` | Keep it as a look (a plate, your outfit, someone examined) | a new private look of yours |
 | `gs_plugin_plans` | the window opens and with the looks, and when you change character (30 s at most); only for a character the site takes | that character's plate plans, each look whole |
 | `gs_plugin_wearable` | the window opens, every 10 min while it's open, after a sync that changed the closet, on another character | public looks you own every piece of, the most loved first: as the character you're on (`p_character`) when the site takes it, else with all your characters' pieces |
-| `gs_plugin_wish_add` | a panel's "Add … to the shopping list", the right-click menu's | up to 40 pieces (item and dyes) onto your shopping list; a piece on it already stays |
+| `gs_plugin_wish_add` | a panel's "Add … to your wishlist", the right-click menu's | up to 40 pieces (item and dyes) onto your wishlist; a piece on it already stays |
 | `gs_plugin_look_put` | the right-click menu's Add it to a look | the piece into one slot of one of your own looks |
 | `gs-plugin-shot` (edge function) | Send it to the look | multipart: token, look, caption, the JPEG; the site checks the token, the look (public), the limits, and stores the shot |
 | `gs_plugin_shot_character` | right after a shot's sent, for a character the site takes | which character wore it (the site shows it on the shot only while you show that character on your shots) |
 
-`gs_plugin_sync`'s answer has `wishes_got`: the items it took off your shopping list because this
+`gs_plugin_sync`'s answer has `wishes_got`: the items it took off your wishlist because this
 sync had them.
 
 On the site, each character's reads are kept apart (`gs_closet_reads`), and the plugin's pieces in
@@ -532,11 +541,11 @@ it there too: what to do (`Consent.Decide`) is
 | yes or not asked | not read yet | wait (nothing sent) |
 
 **The question** (`UI/Views/Characters.cs`): while linked, on a character that needs asking, a card
-of its own at the top of the screen (440 wide, the question's card as the window has it: the rose
-edge, an eyebrow "A new character on Lich", "SEND KOKO NYAN'S WARDROBE TO GLAMOUR STUDIO?" in Syne,
+of its own at the top of the screen (440 wide, the question's card as the window has it: the lilac
+edge, an eyebrow "A new character on Lich", "Send Koko Nyan's wardrobe to Glamour Studio?" in Outfit,
 what goes, that it stays private, and that nothing is sent until you say yes), whether the window's
 open or not; gone in cutscenes and group pose and while the HUD's hidden, as the panels are. **Yes,
-send it** (rose): told to the site, then the closet goes at once, its plans and Wear now read as that
+send it** (violet): told to the site, then the closet goes at once, its plans and Wear now read as that
 character; **No**: told to the site, which lets go of what it had of it; **Not now**: not asked again
 about it until the plugin loads again (Send now in Closet asks again). A line in chat says what you
 chose. Not linked, nothing's asked (nothing could be sent); on linking it is. The header's pill and the
@@ -581,6 +590,26 @@ this one too, within a few minutes of a release.
 The workflows need Settings → Actions → General → Workflow permissions → Read and write.
 
 ## Release notes
+
+### 0.6.16
+
+The site's "Moonlit Atelier" redesign, in the plugin, and your character's colours read right.
+
+- **Your character's lipstick and facial-feature colour** were read from the wrong places in the
+  game's colour file (`Core/Appearance.cs`, sent with what you wear): a light lipstick from colour
+  1792, one of the file's unused palettes (yellow lips on the site), and the features' colour from
+  the eyes' palette. Now the light lips are at 1024 and the features at 768, as Penumbra.GameData's
+  `CmpData` lays the file out (Glamourer reads it so) and the site's extraction reads it. (The site
+  reads both from your character's bytes too, so a character sent by 0.6.15 shows right there once
+  it's put on again.)
+- **The new look**: the window a violet night, lilac for words, rings and where you are, the one
+  thing to do a violet pill that glows when pointed at, orchid for the pieces you don't have yet,
+  mint for what's yours, the progress bar iridescent; the segmented switches' pick glides to it.
+- **The new type**: Outfit for titles and headings, in normal capitals (Syne capitals before),
+  Figtree to read and for labels and eyebrows, Geist Mono for numbers only (DM Sans, and DM Mono
+  in spaced capitals for labels, before).
+- **The mark** at the header's left, and the plugin's icon, a white hanger on violet (rose before).
+- **Wishlist**: the shopping list is called your wishlist everywhere, as on the site.
 
 ### 0.6.15
 

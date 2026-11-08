@@ -54,7 +54,7 @@ public sealed record SentLook(string Id, int? Plate, DateTimeOffset CreatedAt, L
 /// <summary>A look planned on the site for one of a character's plates (<c>gs_plugin_plans</c>).</summary>
 public sealed record PlannedPlate(int Plate, Look Look);
 
-/// <summary>Your looks and the ones you love (<c>gs_plugin_looks</c>), and what's on your shopping list.</summary>
+/// <summary>Your looks and the ones you love (<c>gs_plugin_looks</c>), and what's on your wishlist.</summary>
 public sealed record Library(IReadOnlyList<Look> Mine, IReadOnlyList<Look> Loved, IReadOnlySet<uint> Wishes)
 {
     public static readonly Library Empty = new(Array.Empty<Look>(), Array.Empty<Look>(), new HashSet<uint>());
@@ -160,7 +160,7 @@ public static class LookJson
             Str(o["job"]));
     }
 
-    /// <summary>The plugin's library: your looks, the ones you love, your shopping list. Null when it isn't one.</summary>
+    /// <summary>The plugin's library: your looks, the ones you love, your wishlist. Null when it isn't one.</summary>
     public static Library? ReadLibrary(JsonNode? node)
     {
         if (node is not JsonObject o) return null;

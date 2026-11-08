@@ -12,7 +12,7 @@ using static GlamourStudio.UI.Theme;
 namespace GlamourStudio.UI;
 
 /// <summary>
-/// The plugin's one window, in Glamour Studio's look (the site's night sky and its rose), wide: a
+/// The plugin's one window, in Glamour Studio's look (the site's violet night and its lilac), wide: a
 /// header across the top (the title, or the back arrow at the top left on a screen below; what the
 /// plugin's doing; Settings at the top right), the rail down the left (Home, Looks, Plates, Closet,
 /// Make room, and your character with how your closet's sent), and the screen beside it, most of
@@ -334,7 +334,7 @@ public sealed partial class MainWindow : Window
             case Screen.Settings:
             {
                 if (Kit.IconButton("##back", new Vector2(x0, y), Icon.ArrowLeft, "Back", 36)) Later(LeaveSettings);
-                Title(new Vector2(x0 + S(36 + 14), y + (S(36) - S(20 * 1.05f)) / 2), "Settings", x1 - x0 - S(50), 20, 1);
+                Title(new Vector2(x0 + S(36 + 14), y + (S(36) - S(20 * TitleLine)) / 2), "Settings", x1 - x0 - S(50), 20, 1);
                 return;
             }
             default:
@@ -359,17 +359,21 @@ public sealed partial class MainWindow : Window
                 Dalamud.Utility.Util.OpenLink(SiteLink.LookUrl(openLook.Id));
             right -= sw + S(14);
             var tw = right - left;
-            var eyebrowH = Txt.Natural(Face.Mono, 11);
-            var blockH = eyebrowH + S(4) + S(20 * 1.05f);
+            var eyebrowH = Kit.EyebrowHeight;
+            var blockH = eyebrowH + S(4) + S(20 * TitleLine);
             var ty = y + (S(36) - blockH) / 2;
             Kit.Eyebrow(new Vector2(left, ty), LookEyebrow(openLook), null, tw);
             Title(new Vector2(left, ty + eyebrowH + S(4)), openLook.Name, tw, 20, 1);
             return;
         }
 
-        // The title, then what's going on in a pill before Settings.
-        var titleW = Txt.Measure("GLAMOUR STUDIO", Face.Display, 22).X;
-        Title(new Vector2(left, y + (S(36) - S(22 * 1.05f)) / 2), "Glamour Studio", MathF.Min(titleW + S(4), right - left), 22, 1);
+        // The mark and the title (as the site's bar has them: a white hanger on a rounded violet
+        // square, then the name in Outfit, all of it one colour), then what's going on in a pill
+        // before Settings.
+        Mark(dl, new Vector2(left, y + (S(36) - S(30)) / 2), S(30));
+        left += S(30) + S(12);
+        var titleW = Txt.Measure("Glamour Studio", Face.Display, 22).X;
+        Title(new Vector2(left, y + (S(36) - S(22 * TitleLine)) / 2), "Glamour Studio", MathF.Min(titleW + S(4), right - left), 22, 1);
         var (status, tone, pulse) = StatusNow();
         var room = right - (left + titleW + S(24));
         if (room > S(80))
@@ -431,8 +435,8 @@ public sealed partial class MainWindow : Window
         {
             Kit.Gap(14);
             var lat = Kit.At;
-            Txt.Spaced(dl, new Vector2(x + S(12), lat.Y), "TIDY UP", Face.Mono, 10, Palette.Dim, 0.14f);
-            Kit.Reserve(lat, w, Txt.Natural(Face.Mono, 10) + S(6));
+            Kit.Eyebrow(new Vector2(x + S(12), lat.Y), "Tidy up", Palette.Dim);
+            Kit.Reserve(lat, w, Kit.EyebrowHeight + S(6));
             Kit.Gap(2);
         }
         {
@@ -453,9 +457,9 @@ public sealed partial class MainWindow : Window
         if (compact)
         {
             var c = new Vector2(x + w / 2, ct.Y + S(22));
-            dl.AddCircleFilled(c, S(17), Palette.U32(Palette.RoseTile), 40);
+            dl.AddCircleFilled(c, S(17), Palette.U32(Palette.BlushTile), 40);
             var iw = Txt.Measure(initials, Face.SansSemibold, 12);
-            Txt.Draw(dl, c - iw / 2, initials, Face.SansSemibold, 12, Palette.RoseText);
+            Txt.Draw(dl, c - iw / 2, initials, Face.SansSemibold, 12, Palette.AccentText);
             Kit.Dot(c + new Vector2(S(12), S(12)), dot, 8);
             if (!Kit.Blocked && ImGui.IsWindowHovered() && ImGui.IsMouseHoveringRect(c - new Vector2(S(17)), c + new Vector2(S(17))))
                 Kit.Tooltip($"{name}{(me?.World is { Length: > 0 } wd ? " · " + wd : string.Empty)}\n{line}");
@@ -465,9 +469,9 @@ public sealed partial class MainWindow : Window
             Kit.Card(ct, ct + new Vector2(w, cardH), Palette.Card, Palette.Line, 14);
             var p = ct + new Vector2(S(14));
             var c = p + new Vector2(S(17));
-            dl.AddCircleFilled(c, S(17), Palette.U32(Palette.RoseTile), 40);
+            dl.AddCircleFilled(c, S(17), Palette.U32(Palette.BlushTile), 40);
             var iw = Txt.Measure(initials, Face.SansSemibold, 12);
-            Txt.Draw(dl, c - iw / 2, initials, Face.SansSemibold, 12, Palette.RoseText);
+            Txt.Draw(dl, c - iw / 2, initials, Face.SansSemibold, 12, Palette.AccentText);
             var tx = p.X + S(34 + 10);
             var tw = ct.X + w - S(14) - tx;
             var nh = Txt.Natural(Face.SansSemibold, 13);
@@ -515,7 +519,7 @@ public sealed partial class MainWindow : Window
     {
         if (!sync.Linked) return ("Not linked to the site", Palette.Faint);
         if (sync.TokenRefused) return ("Link again: token refused", Palette.Danger);
-        if (sync.Syncing) return ("Sending your closet…", Palette.Rose);
+        if (sync.Syncing) return ("Sending your closet…", Palette.Accent);
         if (sync.SyncProblem != null) return ("Closet not sent: see Closet", Palette.Danger);
         switch (sync.StepFor(wardrobe.Current))
         {
@@ -532,7 +536,7 @@ public sealed partial class MainWindow : Window
     private void Later(Action action) => later.Add(action);
 
     /// <summary>
-    /// Reads everything again now: your looks, shopping list, plans, sent looks and what you can wear
+    /// Reads everything again now: your looks, wishlist, plans, sent looks and what you can wear
     /// from the site, and your wardrobe from the game (the dresser and armoire only while they're
     /// open: the game has them only then).
     /// </summary>
@@ -552,19 +556,22 @@ public sealed partial class MainWindow : Window
     // ---------------------------------------------------------------------------------------------
     // Titles and the header every screen below Home has.
 
+    /// <summary>A title's line, times its size (Outfit's display lines are tight, as the site's are).</summary>
+    private const float TitleLine = 1.1f;
+
     /// <summary>
-    /// A title in Syne 800 capitals, as the site's display type, on up to <paramref name="lines"/>
-    /// lines, cut with an ellipsis on the last. Returns its height; with <paramref name="draw"/> false, only measures.
+    /// A title in Outfit 700, in normal capitals, as the site's display type (Syne 800 in capitals
+    /// until 0.6.16), on up to <paramref name="lines"/> lines, cut with an ellipsis on the last.
+    /// Returns its height; with <paramref name="draw"/> false, only measures.
     /// </summary>
     private static float Title(Vector2 pos, string text, float maxWidth, int px = 24, int lines = 2, bool draw = true, Vector4? color = null)
     {
-        var lineCss = px * 1.05f;
+        var lineCss = px * TitleLine;
         var lh = S(lineCss);
         maxWidth = MathF.Max(S(40), maxWidth);
-        var caps = text.ToUpperInvariant();
         var rows = new List<string>();
         var cur = string.Empty;
-        foreach (var word in caps.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+        foreach (var word in text.Split(' ', StringSplitOptions.RemoveEmptyEntries))
         {
             var candidate = cur.Length == 0 ? word : cur + " " + word;
             if (cur.Length == 0 || Txt.Measure(candidate, Face.Display, px).X <= maxWidth) cur = candidate;
@@ -581,6 +588,17 @@ public sealed partial class MainWindow : Window
         for (var i = 0; i < rows.Count; i++)
             Txt.Line(dl, pos + new Vector2(0, lh * i), Txt.Fit(rows[i], Face.Display, px, maxWidth), Face.Display, px, color ?? Palette.Ink, lineCss);
         return lh * rows.Count;
+    }
+
+    /// <summary>
+    /// The tool's mark, as the site's (features/marks.ts) and the plugin's icon: a white hanger on a
+    /// rounded square of its violet, <paramref name="size"/> across.
+    /// </summary>
+    private static void Mark(ImDrawListPtr dl, Vector2 pos, float size)
+    {
+        dl.AddRectFilled(pos, pos + new Vector2(size), Palette.U32(Palette.AccentFill), size * 0.27f);
+        var icon = size * 0.62f;
+        Icons.Draw(dl, Icon.Hanger, pos + new Vector2((size - icon) / 2), icon, Palette.White);
     }
 
     /// <summary>The header's Settings button.</summary>
@@ -636,7 +654,7 @@ public sealed partial class MainWindow : Window
             // The site's glow under its dialogs.
             for (var g = 3; g >= 1; g--)
                 dl.AddRectFilled(cardPos - new Vector2(S(6 * g)), cardPos + new Vector2(width, cardH) + new Vector2(S(6 * g)),
-                    Palette.U32(Palette.WithAlpha(Palette.Rose, 0.025f)), r + S(6 * g));
+                    Palette.U32(Palette.WithAlpha(Palette.Accent, 0.025f)), r + S(6 * g));
             dl.AddRectFilled(cardPos, cardPos + new Vector2(width, cardH), Palette.U32(Palette.Card), r);
             dl.AddRect(cardPos, cardPos + new Vector2(width, cardH), Palette.U32(Palette.LineStrong), r);
 
