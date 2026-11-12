@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Plates · Glamour Studio plugin redesign</title>
+    <link rel="stylesheet" href="../assets/kit.css" />
+    <script src="../assets/kit.js"></script>
+    <style>
+      .pv { display: grid; grid-template-columns: minmax(0, 1fr) 352px; height: 100%; }
+      .pv .grid { position: relative; padding: 18px 20px 0 24px; overflow: hidden; }
+      .pv .right { position: relative; padding: 18px 20px; overflow: hidden; display: grid; gap: 14px; align-content: start; }
+      .plates { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+      .pl { position: relative; display: grid; gap: 7px; align-content: start; height: 178px; padding: 10px; border: 1px solid var(--line); border-radius: 16px; background: var(--card); }
+      .pl .top { display: flex; align-items: center; gap: 6px; }
+      .pl .no { color: var(--ink); font: 800 16px/1 var(--display); }
+      .pl .ic { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; padding: 6px; border-radius: 10px; background: var(--raised); }
+      .pl .ic .it { width: 100%; height: auto; aspect-ratio: 1; border-radius: 6px; }
+      .pl .nm { color: var(--ink); font: 800 11.5px/1.1 var(--display); letter-spacing: .02em; text-transform: uppercase; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+      .pl .ln { color: var(--muted); font: 400 11px/1.2 var(--sans); }
+      .pl.on { border-color: var(--accent); background: var(--blush, #1c1730); box-shadow: inset 0 0 0 1px var(--accent); }
+      .pl.empty { border-style: dashed; border-color: var(--line-strong); background: transparent; }
+      .pl.empty .well { display: grid; place-items: center; height: 82px; border: 1px dashed var(--line-strong); border-radius: 10px; color: var(--faint); font: 560 14px/1 var(--hand); }
+      .pl .job { height: 18px; padding: 0 5px; font: 500 10px/1 var(--mono); letter-spacing: 0; }
+      .wearing { display: flex; gap: 14px; align-items: center; padding: 12px 14px; }
+      .gs-row { display: flex; gap: 10px; align-items: center; height: 46px; border-top: 1px solid var(--line); }
+      .gs-row .no { width: 22px; color: var(--muted); font: 500 12px/1 var(--mono); }
+      .slots12l .prow { min-height: 38px; padding: 3px 0; }
+      .slots12l .sl { width: 64px; }
+    </style>
+  </head>
+  <body>
+    <div class="mock-head">
+      <a class="back" href="../index.html#screens"><i data-i="arrow-left" class="s14"></i>The deck</a>
+      <span class="where">Screens · 4</span>
+      <h1>Plates</h1>
+      <div class="end">
+        <a href="look.html"><i data-i="arrow-left" class="s14"></i>A look</a>
+        <a href="closet.html">Closet<i data-i="arrow-right" class="s14"></i></a>
+        <button data-toggle="build">B · how it's built</button>
+        <button data-toggle="pins">P · pins</button>
+      </div>
+    </div>
+
+    <div class="mock-wrap">
+      <div class="mock-intro">
+        <span class="eyebrow-d">The main window · Plates</span>
+        <h2>Plates: all twenty, and the gearsets that wear them</h2>
+        <p>
+          The site's Closet → Plates, in the game: twenty numbered cards, five across, an empty one dashed with “empty”
+          in the hand voice. What you're wearing sits above them; the plate picked opens in the pane: wear it, try it on,
+          keep it as a look, and its gearsets.
+        </p>
+      </div>
+
+      <!-- ───────── 1 · A plate picked ───────── -->
+      <div class="frame-cap">
+        <h2>Your plates, plate 3 picked</h2>
+        <p>In a city: Wear it works here</p>
+        <span class="size">1120 × 760</span>
+      </div>
+      <div class="stage city">
+        <div class="win" style="width: 1120px; height: 760px" data-place="plates">
+          <div class="body">
+            <div class="pv">
+              <div class="grid">
+                <div class="card wearing rel">
+                  <div class="col g4" style="width: 150px; flex: none"><span class="eyebrow">What you're wearing</span><span class="t12 muted">Koko Nyan's outfit · 9 pieces</span></div>
+                  <div class="row g4 grow" data-look="weaver" data-n="6" data-s="32"></div>
+                  <span class="btn sm"><i data-i="shirt" class="s14"></i>Try it on</span>
+                  <span class="btn sm">Copy my game outfit</span>
+                  <span class="pin tl">1</span>
+                </div>
+                <div class="row mt16"><span class="d d17">Your glamour plates</span><span class="t12 faint num">14/20</span><span class="end t12 faint">As the game had them when you last opened Glamour Plates · 2 hours ago</span></div>
+                <div class="plates">
+                  <div class="pl"><div class="top"><span class="no">01</span><span class="end tag job">WAR</span></div><div class="ic" data-look="weaver" data-n="6"></div><div class="nm">Tailor's Day Off</div></div>
+                  <div class="pl"><div class="top"><span class="no">02</span><span class="dot live" title="Planned on the site"></span><span class="end tag job">SCH</span></div><div class="ic" data-look="valen" data-n="5"></div><div class="nm">8 pieces</div><div class="ln">Planned: Moonlit Scholar</div><span class="pin tr">2</span></div>
+                  <div class="pl on"><div class="top"><span class="no">03</span><span class="end tag job">WHM</span><span class="tag job">SGE</span></div><div class="ic" data-look="scholar" data-n="6"></div><div class="nm">Moonlit Scholar</div><span class="pin tr">3</span></div>
+                  <div class="pl"><div class="top"><span class="no">04</span><span class="end tag ok job">On</span></div><div class="ic" data-look="fuath" data-n="5"></div><div class="nm">Fuath at Dusk</div></div>
+                  <div class="pl empty"><div class="top"><span class="no">05</span><span class="dot live"></span></div><div class="well">empty</div><div class="ln">Planned: Fuath at Dusk</div></div>
+                  <div class="pl"><div class="top"><span class="no">06</span></div><div class="ic" data-look="moon" data-n="4"></div><div class="nm">Moon Rabbit Nightwatch</div></div>
+                  <div class="pl"><div class="top"><span class="no">07</span><span class="dot live"></span></div><div class="ic" data-look="wed" data-n="5"></div><div class="nm">Wedding Guest</div></div>
+                  <div class="pl empty"><div class="top"><span class="no">08</span></div><div class="well">empty</div><span class="pin tr">4</span></div>
+                  <div class="pl"><div class="top"><span class="no">09</span><span class="end tag job">DNC</span></div><div class="ic" data-look="witch" data-n="5"></div><div class="nm">Witching Hour</div></div>
+                  <div class="pl empty"><div class="top"><span class="no">10</span></div><div class="well">empty</div></div>
+                  <div class="pl"><div class="top"><span class="no">11</span></div><div class="ic" data-look="valen" data-n="5"></div><div class="nm">5 pieces</div></div>
+                  <div class="pl empty"><div class="top"><span class="no">12</span></div><div class="well">empty</div></div>
+                  <div class="pl empty"><div class="top"><span class="no">13</span></div><div class="well">empty</div></div>
+                  <div class="pl"><div class="top"><span class="no">14</span></div><div class="ic" data-look="moon" data-n="3"></div><div class="nm">3 pieces</div></div>
+                  <div class="pl empty"><div class="top"><span class="no">15</span></div><div class="well">empty</div></div>
+                </div>
+                <span class="scrollbar" style="top: 140px; height: 300px; right: 6px"></span>
+              </div>
+              <div class="right side">
+                <div class="col g4">
+                  <span class="eyebrow">Glamour plate</span>
+                  <span class="d d34">Plate 3</span>
+                  <span class="row g6 t13"><span class="ink b6">Moonlit Scholar</span><span class="muted">· your look, already</span></span>
+                </div>
+                <div class="row g8">
+                  <span class="sticker"><i data-i="shirt"></i>Wear it<span class="pin tr">5</span></span>
+                  <span class="btn sm">Try it on</span>
+                  <span class="btn sm quiet">Keep it as a look</span>
+                </div>
+                <div class="card pad-s">
+                  <div class="row"><span class="d d15">Gearsets</span><span class="t12 faint num">2</span><span class="end btn xs"><i data-i="plus" class="s12"></i>Link to a gearset</span></div>
+                  <div class="gs-row mt8"><span class="no">03</span><span class="tag job">WHM</span><span class="grow t13 ink ell">Healer, cosy</span><span class="btn xs">Change to it</span><span class="btn round r28 quiet" title="Unlink the plate from this gearset"><i data-i="x" class="s14"></i></span></div>
+                  <div class="gs-row"><span class="no">11</span><span class="tag job">SGE</span><span class="grow t13 ink ell">Sage</span><span class="btn xs">Change to it</span><span class="btn round r28 quiet"><i data-i="x" class="s14"></i></span></div>
+                  <span class="pin tl">6</span>
+                </div>
+                <div class="slots12l">
+                  <div class="row" style="margin-bottom: 2px"><span class="d d15">Its twelve slots</span></div>
+                  <div class="prow"><span class="sl">Head</span><b class="it s28" data-it="42631"></b><span class="grow nm">Pedagogy Mortarboard</span></div>
+                  <div class="prow"><span class="sl">Body</span><b class="it s28" data-it="42632"></b><span class="grow nm">Pedagogy Gown</span></div>
+                  <div class="prow"><span class="sl">Hands</span><b class="it s28" data-it="42633"></b><span class="grow nm">Pedagogy Halfgloves</span></div>
+                  <div class="prow"><span class="sl">Legs</span><b class="it s28" data-it="42634"></b><span class="grow nm">Pedagogy Culottes</span></div>
+                </div>
+                <span class="scrollbar" style="top: 380px; height: 120px"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <ol class="notes">
+        <li><span class="pin">1</span><span><b>What you're wearing, first.</b> Your outfit as the game has it, Try it on, and <i>Copy my game outfit</i> (the site's own words for it: a new private look from what you wear, the dressing room's Copy my game outfit reads the same).</span></li>
+        <li><span class="pin">2</span><span><b>A plate card</b>: its number in display capitals, up to six of its pieces on a raised well, the look it is (or how many pieces), a lilac dot when a look's planned for it on the site, and the jobs of the gearsets linked to it in Geist Mono tags.</span></li>
+        <li><span class="pin">3</span><span><b>The one picked</b> is lilac-edged on the violet-tinted ground (the site's blush); the one you're wearing says On in ice.</span></li>
+        <li><span class="pin">4</span><span><b>An empty plate</b> is dashed with “empty” in the hand voice, as the site's plates have it.</span></li>
+        <li><span class="pin">5</span><span><b>Wear it is the sticker.</b> It changes to your gearset with this plate (<code>/gearset change</code>), as today. Greyed out with the reason as its tooltip in combat, at a dresser, with either plate window open, while busy, and outside a sanctuary.</span></li>
+        <li><span class="pin">6</span><span><b>Gearsets</b>: each linked one with its number, job and name, Change to it (the plate comes with it) and × to unlink; Link to a gearset is a menu of the others with the plate each has now (next frame).</span></li>
+      </ol>
+
+      <!-- ───────── 2 · Linking, blocked ───────── -->
+      <div class="frame-cap">
+        <h2>Link to a gearset, Wear it blocked</h2>
+        <p>At the dresser: the game won't change gearset here, so Wear it says why</p>
+        <span class="size">1120 × 760</span>
+      </div>
+      <div class="stage">
+        <div class="win" style="width: 1120px; height: 760px" data-place="plates" data-who="live|Plate editor open · plate 3">
+          <div class="body">
+            <div class="pv">
+              <div class="grid">
+                <div class="card wearing">
+                  <div class="col g4" style="width: 150px; flex: none"><span class="eyebrow">What you're wearing</span><span class="t12 muted">Koko Nyan's outfit · 9 pieces</span></div>
+                  <div class="row g4 grow" data-look="weaver" data-n="6" data-s="32"></div>
+                  <span class="btn sm"><i data-i="shirt" class="s14"></i>Try it on</span>
+                  <span class="btn sm">Copy my game outfit</span>
+                </div>
+                <div class="row mt16"><span class="d d17">Your glamour plates</span><span class="t12 faint num">14/20</span></div>
+                <div class="plates">
+                  <div class="pl"><div class="top"><span class="no">01</span><span class="end tag job">WAR</span></div><div class="ic" data-look="weaver" data-n="6"></div><div class="nm">Tailor's Day Off</div></div>
+                  <div class="pl"><div class="top"><span class="no">02</span><span class="dot live"></span><span class="end tag job">SCH</span></div><div class="ic" data-look="valen" data-n="5"></div><div class="nm">8 pieces</div></div>
+                  <div class="pl"><div class="top"><span class="no">03</span><span class="end tag job">WHM</span><span class="tag job">SGE</span></div><div class="ic" data-look="scholar" data-n="6"></div><div class="nm">Moonlit Scholar</div></div>
+                  <div class="pl"><div class="top"><span class="no">04</span></div><div class="ic" data-look="fuath" data-n="5"></div><div class="nm">Fuath at Dusk</div></div>
+                  <div class="pl on"><div class="top"><span class="no">05</span><span class="dot live"></span></div><div class="ic" data-look="moon" data-n="4"></div><div class="nm">Moon Rabbit Nightwatch</div></div>
+<div class="pl empty"><div class="top"><span class="no">06</span></div><div class="well">empty</div></div>
+                  <div class="pl"><div class="top"><span class="no">07</span><span class="dot live"></span></div><div class="ic" data-look="wed" data-n="5"></div><div class="nm">Wedding Guest</div></div>
+                  <div class="pl empty"><div class="top"><span class="no">08</span></div><div class="well">empty</div></div>
+                  <div class="pl"><div class="top"><span class="no">09</span><span class="end tag job">DNC</span></div><div class="ic" data-look="witch" data-n="5"></div><div class="nm">Witching Hour</div></div>
+                  <div class="pl empty"><div class="top"><span class="no">10</span></div><div class="well">empty</div></div>
+                  <div class="pl"><div class="top"><span class="no">11</span></div><div class="ic" data-look="valen" data-n="5"></div><div class="nm">5 pieces</div></div>
+                  <div class="pl empty"><div class="top"><span class="no">12</span></div><div class="well">empty</div></div>
+                  <div class="pl empty"><div class="top"><span class="no">13</span></div><div class="well">empty</div></div>
+                  <div class="pl"><div class="top"><span class="no">14</span></div><div class="ic" data-look="moon" data-n="3"></div><div class="nm">3 pieces</div></div>
+                  <div class="pl empty"><div class="top"><span class="no">15</span></div><div class="well">empty</div></div>
+                </div>
+              </div>
+              <div class="right side">
+                <div class="col g4">
+                  <span class="eyebrow">Glamour plate</span>
+                  <span class="d d34">Plate 5</span>
+                  <span class="row g6 t13"><span class="ink b6">Moon Rabbit Nightwatch</span></span>
+                  <span class="row g6 t12"><span class="dot live"></span><span class="muted">Planned on the site: Moon Rabbit Nightwatch</span><span class="tag ok">On it</span></span>
+                </div>
+                <div class="row g8 rel">
+                  <span class="sticker off"><i data-i="shirt"></i>Wear it</span>
+                  <span class="btn sm">Try it on</span>
+                  <span class="btn sm quiet">Keep it as a look</span>
+                  <div class="tip" style="left: 0; top: 46px; width: 250px"><b>Not at a glamour dresser</b><br />The game won't change gearset while Glamour Plates or the dresser is open (“Unable to execute command while occupied”).</div>
+                  <span class="pin tl">1</span>
+                </div>
+                <div class="card pad-s" style="margin-top: 104px">
+                  <div class="row"><span class="d d15">Gearsets</span><span class="t12 faint num">0</span><span class="end btn xs hover"><i data-i="plus" class="s12"></i>Link to a gearset</span></div>
+                  <span class="t12 muted mt8" style="display: block">Link it to a gearset and changing to that gearset puts the plate on.</span>
+                </div>
+                <div class="menu" style="right: 20px; top: 398px; width: 300px">
+                  <div class="mh">Your gearsets · the plate each has now</div>
+                  <div class="mi"><span class="num t12 muted">01</span><span class="tag job">PLD</span><span class="grow">Tank</span><span class="k">plate 1</span></div>
+                  <div class="mi on"><span class="num t12 muted">02</span><span class="tag job">SCH</span><span class="grow">Scholar</span><span class="k">plate 2</span></div>
+                  <div class="mi"><span class="num t12 muted">04</span><span class="tag job">BLM</span><span class="grow">Witch, off duty</span><span class="k">none</span></div>
+                  <div class="mi"><span class="num t12 muted">07</span><span class="tag job">DNC</span><span class="grow">Dancer</span><span class="k">plate 9</span></div>
+                  <div class="mi"><span class="num t12 muted">09</span><span class="tag job">CRP</span><span class="grow">Weaver</span><span class="k">none</span></div>
+                  <span class="pin tl">2</span>
+                </div>
+              </div>
+            </div>
+            <span class="toast" style="left: 26px; bottom: 18px"><span class="spark s16"></span>Gearset 3 wears plate 3 now</span>
+          </div>
+        </div>
+      </div>
+      <ol class="notes">
+        <li><span class="pin">1</span><span><b>(Two moments in one frame: the tooltip while pointing at Wear it, the menu once Link to a gearset is pressed.) A sticker that can't be pressed</b> stays a sticker at half strength (so the screen's one thing is still clear), with the reason in its tooltip, said the game's way. In combat, while busy, and outside a sanctuary the same.</span></li>
+        <li><span class="pin">2</span><span><b>Link to a gearset</b>: a popup of the gearsets this plate isn't on, each with its job and the plate it has now (Geist Mono). Picking one links it (<code>LinkGlamourPlate</code>) and says so in a toast; “The game wouldn't link it” in amber if not.</span></li>
+      </ol>
+
+      <!-- ───────── 3 · Not read yet ───────── -->
+      <div class="frame-cap">
+        <h2>Plates not read yet</h2>
+        <p>The game has them only once Glamour Plates has been opened</p>
+        <span class="size">1120 × 760</span>
+      </div>
+      <div class="stage city">
+        <div class="win" style="width: 1120px; height: 760px" data-place="plates" data-counts="|32||612|">
+          <div class="body">
+            <div class="pv" style="grid-template-columns: 1fr">
+              <div class="grid">
+                <div class="card wearing">
+                  <div class="col g4" style="width: 150px; flex: none"><span class="eyebrow">What you're wearing</span><span class="t12 muted">Koko Nyan's outfit · 9 pieces</span></div>
+                  <div class="row g4 grow" data-look="weaver" data-n="6" data-s="32"></div>
+                  <span class="btn sm"><i data-i="shirt" class="s14"></i>Try it on</span>
+                  <span class="btn sm">Copy my game outfit</span>
+                </div>
+                <div class="empty-s mt20" style="height: 470px; align-content: center">
+                  <span class="cloud"></span>
+                  <span class="sign"><b>Not read yet</b><small>the game keeps them at the dresser</small></span>
+                  <span class="line">Your plates show here once you've opened Glamour Plates at a glamour dresser (every inn room has one).</span>
+                  <span class="pin tl" style="top: 10px; left: 10px">1</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <ol class="notes">
+        <li><span class="pin">1</span><span><b>Not read yet, drawn</b>: the sign, a cloud, one line. The bar shows no count for Plates until there's one. (Not logged in: “Log in to a character to see its plates.”)</span></li>
+      </ol>
+    </div>
+  </body>
+</html>

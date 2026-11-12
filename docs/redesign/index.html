@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Glamour Studio plugin redesign: Character Sheet in the game</title>
+    <link rel="stylesheet" href="assets/kit.css" />
+    <script src="assets/kit.js"></script>
+    <style>
+      .hero-d { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 36px; align-items: center; }
+      .hero-d h1 { color: #f6f3ff; font: 800 64px/0.95 var(--display); letter-spacing: .01em; text-transform: uppercase; text-shadow: 3px 3px 0 var(--field-deep), 6px 6px 0 #000; }
+      .principles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 30px; list-style: none; }
+      .principles li { display: flex; gap: 12px; color: var(--muted); font-size: 14.5px; }
+      .principles li b { color: var(--ink); }
+      .principles .n { color: var(--accent); font: 800 20px/1 var(--display); width: 22px; flex: none; }
+      .twocol { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 22px; }
+      .changes td:first-child { width: auto; color: var(--muted); font: 400 13.5px/1.5 var(--sans); }
+      .changes td:last-child { white-space: normal; color: var(--body); }
+      .partcell { display: grid; gap: 8px; justify-items: start; }
+      .partcell small { color: var(--faint); font: 400 11.5px/1.35 var(--sans); max-width: 260px; }
+    </style>
+  </head>
+  <body>
+    <div class="mock-head">
+      <span class="logo s22"></span>
+      <span class="where">Proposal · November 2026</span>
+      <h1>Glamour Studio plugin · Character Sheet</h1>
+      <div class="end">
+        <a href="#screens">Every screen</a>
+        <a href="#features">Nothing lost</a>
+        <a href="README.md">Building it</a>
+        <button data-toggle="build">B · how it's built</button>
+      </div>
+    </div>
+
+    <div class="mock-wrap">
+      <div class="hero-d">
+        <div class="col g16">
+          <span class="eyebrow">The in-game plugin, redesigned to match the site</span>
+          <h1>Every look is a character sheet. In the game too.</h1>
+          <p class="t15 muted" style="max-width: 760px">
+            The site's new look, <i>Character Sheet</i>, carried into the plugin's window and the panels beside the game's
+            windows: the ink studio, one periwinkle field a screen for the moment you came for, one sticker for the thing to
+            do, the three honest colours for what you own, Bricolage Grotesque's heavy capitals and a hand-lettered voice.
+            Every screen, pane and state the plugin has today is here, drawn at its real size, and every part is something
+            ImGui can draw. This is a proposal: no C# has changed.
+          </p>
+          <div class="row g10"><a class="sticker lg" href="pages/home.html">Start with Home<i data-i="arrow-right"></i></a><a class="btn" href="#screens">All eleven pages</a></div>
+        </div>
+        <div class="field" style="height: 300px; display: grid; place-items: center">
+          <div class="echo"><span style="margin: 10px 0 0 -40px">Glamour ·</span><span style="margin-left: -120px">Studio · Glam</span><span style="margin-left: -10px">our · Studio</span></div>
+          <span class="logo s96" style="filter: drop-shadow(4px 4px 0 #000)"></span>
+        </div>
+      </div>
+
+      <div class="sheet">
+        <h3>The idea, in eight rules (the site's, kept)</h3>
+        <ol class="principles">
+          <li><span class="n">1</span><span><b>Two grounds.</b> Ink is the studio (#0C0A12, cards a step up, lilac hairlines); the field (flat periwinkle #8F7CF6, ink-violet words) is a screen's one moment. At most one field a screen.</span></li>
+          <li><span class="n">2</span><span><b>One sticker a screen.</b> The thing you came to do (Fill plate 3, Put on plate 3, Try it on, Wear it, Make room for me, Yes, send it, Link) is the field's violet with ink words, a 2px ink edge and a hard 3px deep-violet block. On the field it turns over to ink.</span></li>
+          <li><span class="n">3</span><span><b>Three honest colours</b> for what you have: owned ice, missing pink, starred (wishlist) lavender; amber for what to see to (in your bags, a dye to do); red only for what went wrong.</span></li>
+          <li><span class="n">4</span><span><b>Holo means special</b>: a love, something new (a look just sent from the site), a wish come true, the tab you're on. Never a button or a panel.</span></li>
+          <li><span class="n">5</span><span><b>Two voices.</b> Bricolage Grotesque's heavy capitals say what a place or a look is; Shantell Sans, the hand-lettered voice, says something to you (“you press Save in the game”). Figtree to read, Geist Mono for numbers that change.</span></li>
+          <li><span class="n">6</span><span><b>The sheet's motifs</b>, where they mean something: the echo (a name huge behind), callouts (a look's pieces round its middle), the palette strip, the maker's seal, the plate slip (a ticket), the sign for an empty page.</span></li>
+          <li><span class="n">7</span><span><b>Plain where it's account and settings</b>: Settings is a quiet column of cards and switches, as the site's account pages are.</span></li>
+          <li><span class="n">8</span><span><b>Drawable in ImGui.</b> Flat shapes, hard offset shadows as second rects, text at fixed sizes, a few textures (the logo, holo, dots, cloud, sparkle, the game's icons). No blur, no soft shadows, no CSS gradients in the UI.</span></li>
+        </ol>
+      </div>
+
+      <!-- ───────── The logo in the window ───────── -->
+      <div class="frame-cap" id="logo"><h2>The logo in the window header</h2><p>The site's mark: a clothes tag on its side, pointed end left with its hole, the field's gradient, a white hanger</p></div>
+      <div class="stage" style="width: 100%">
+        <div class="col g20">
+          <div class="win" style="width: 1120px; height: 88px" data-place="home"></div>
+          <div class="row top g20">
+            <div class="pane" data-pane="At the dresser"></div>
+            <div class="paneTab"><i data-i="chev-r" class="s16" style="color: var(--body)"></i><span>6</span><span class="logo s18"></span></div>
+            <div class="card pad col g12" style="flex: 1">
+              <div class="row g20 base">
+                <span class="logo s96" data-build="texture: logo@2x"></span><span class="logo s48"></span><span class="logo"></span><span class="logo s22"></span><span class="logo s18"></span>
+                <img src="../../GlamourStudio/images/icon.png" alt="" style="width: 64px; height: 64px; opacity: .45; margin-left: auto" title="Today's icon.png" />
+              </div>
+              <span class="t13 muted">96 · 48 · 30 (the bar) · 22 (a panel, the question) · 18 (tooltips, the folded tab). A texture made from <code>public/favicon-glamour.svg</code> at 1× and 2× (its gradient and the hole cut out don't draw well as a polygon). The plugin's <code>images/icon.png</code> (faded, right: today's rounded square) becomes the tag too: the site's <code>npm run marks</code> already writes the in-game plugins' icons from <code>src/features/marks.ts</code>.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ───────── Colour ───────── -->
+      <div class="sheet" id="colour">
+        <h3>Colour · the Palette's new values</h3>
+        <span class="cap">The site's <code>--gs-*</code> tokens (styles/glamour.css), as <code>UI/Kit/Palette.cs</code> would hold them. Lines are given opaque so they read the same on any ground.</span>
+        <div class="swatches">
+          <div class="sw"><i style="background: #0c0a12"></i><b>Ground</b><small>#0C0A12 · the window</small></div>
+          <div class="sw"><i style="background: #100d18"></i><b>Ground2</b><small>#100D18 · title bar, side panes</small></div>
+          <div class="sw"><i style="background: #14111d"></i><b>Card</b><small>#14111D</small></div>
+          <div class="sw"><i style="background: #1c1828"></i><b>Raised</b><small>#1C1828 · wells, fields, popups</small></div>
+          <div class="sw"><i style="background: #242036"></i><b>Soft</b><small>#242036 · tiles, tags, tracks</small></div>
+          <div class="sw"><i style="background: #252036"></i><b>Line</b><small>#252036</small></div>
+          <div class="sw"><i style="background: #3a3356"></i><b>LineStrong</b><small>#3A3356 · what you press</small></div>
+          <div class="sw"><i style="background: #1c1730"></i><b>Blush</b><small>#1C1730 · the picked card</small></div>
+          <div class="sw"><i style="background: #8f7cf6"></i><b>Field</b><small>#8F7CF6 · the moment, the sticker</small></div>
+          <div class="sw"><i style="background: #a897ff"></i><b>FieldHi</b><small>#A897FF · sticker hovered</small></div>
+          <div class="sw"><i style="background: #6a55e6"></i><b>FieldDeep</b><small>#6A55E6 · the floor, stacked shadow</small></div>
+          <div class="sw"><i style="background: #7f6bf0"></i><b>FieldTone</b><small>#7F6BF0 · the echo</small></div>
+          <div class="sw"><i style="background: #160d33"></i><b>OnField</b><small>#160D33 · words on the field, sticker words</small></div>
+          <div class="sw"><i style="background: #4b37c9"></i><b>StickerShadow</b><small>#4B37C9 · the block on ink (black on the field)</small></div>
+          <div class="sw"><i style="background: #c9b8ff"></i><b>Accent · Starred</b><small>#C9B8FF · where you are, the wishlist</small></div>
+          <div class="sw"><i style="background: #8ce2ff"></i><b>Ice</b><small>#8CE2FF · yours, done, linked</small></div>
+          <div class="sw"><i style="background: #f5a3dc"></i><b>Pink</b><small>#F5A3DC · missing, loves</small></div>
+          <div class="sw"><i style="background: #ffc46b"></i><b>Amber</b><small>#FFC46B · to see to</small></div>
+          <div class="sw"><i style="background: #ff7a9a"></i><b>Danger</b><small>#FF7A9A · went wrong</small></div>
+          <div class="sw"><i style="background: url('assets/holo.svg') 0 0 / 220px"></i><b>Holo</b><small>texture · loves, new, the tab</small></div>
+          <div class="sw"><i style="background: #f6f3ff"></i><b>Ink</b><small>#F6F3FF · headings</small></div>
+          <div class="sw"><i style="background: #d8d1f2"></i><b>Body</b><small>#D8D1F2 · reading</small></div>
+          <div class="sw"><i style="background: #a59cc8"></i><b>Muted</b><small>#A59CC8</small></div>
+          <div class="sw"><i style="background: #77709a"></i><b>Faint</b><small>#77709A · not for reading</small></div>
+        </div>
+      </div>
+
+      <!-- ───────── Type ───────── -->
+      <div class="sheet" id="type">
+        <h3>Type · four faces, fixed sizes</h3>
+        <span class="cap">ImGui bakes each face at each size into the atlas, so the sizes are a short list. Bricolage Grotesque replaces Outfit; Shantell Sans is new; Figtree and Geist Mono stay.</span>
+        <div class="typerow"><small>Bricolage Grotesque 800<br />13 15 17 20 26 34 44 60 · echo 72, 104 (A–Z 0–9 · only)</small><span style="color: #f6f3ff; font: 800 44px/1 var(--display); text-transform: uppercase; text-shadow: 3px 3px 0 var(--field-deep), 5px 5px 0 #000">Moonlit Scholar</span></div>
+        <div class="typerow"><small>Bricolage 800 · headings</small><span class="d d20">Ready for plate 3 <span class="d d15 muted" style="margin-left: 14px">Slot by slot</span></span></div>
+        <div class="typerow"><small>Shantell Sans 560<br />13 15 18 · the hand voice</small><span class="hand s18">you press Save in the game · a wish came true!</span></div>
+        <div class="typerow"><small>Figtree 400 · 500 · 600 · 650 · 800<br />11 12 13 13.5 14 15</small><span class="t14">Every piece is in your dresser or armoire. <b class="ink">Put on plate 3</b> <span class="eyebrow" style="margin-left: 8px">Planned on the site</span></span></div>
+        <div class="typerow"><small>Geist Mono 400 · 500<br />10 11 12 13</small><span class="num ink t13">612/800 · 14/20 · gsp_••••7Fq2 · 1,204 lines</span></div>
+      </div>
+
+      <!-- ───────── Parts ───────── -->
+      <div class="sheet" id="parts">
+        <h3>The Kit's parts</h3>
+        <span class="cap">Each drawn with the draw list (rects, lines, circles, polygons, arcs) and the fonts above; textures marked.</span>
+        <div class="parts">
+          <div class="partcell"><span class="sticker">Put on plate 3</span><small>The sticker: fill, 2px edge, a second rect 3px down-right for the block.</small></div>
+          <div class="partcell"><span class="sticker hover">Hovered</span><small>FieldHi.</small></div>
+          <div class="partcell"><span class="sticker pressed">Pressed</span><small>Moved into its block.</small></div>
+          <div class="partcell"><span class="sticker off">Can't yet</span><small>Half strength, a tooltip says why.</small></div>
+          <div class="partcell field" style="padding: 16px; border-radius: 20px"><span class="sticker">On the field</span></div>
+          <div class="partcell"><span class="btn">Outlined</span><span class="btn sm">Small 34</span></div>
+          <div class="partcell"><span class="btn quiet">Quiet</span><span class="btn danger sm">Danger</span></div>
+          <div class="partcell"><span class="seg"><span class="on">General</span><span>Account</span></span><small>Segmented pick.</small></div>
+          <div class="partcell"><div class="tabs"><span class="on">Your looks <span class="n">23</span></span><span>Loved <span class="n">41</span></span></div><small>Tabs, holo underline (a texture strip).</small></div>
+          <div class="partcell"><div class="row"><span class="switch on"></span><span class="switch"></span><span class="check on"><i data-i="check" class="s12"></i></span></div></div>
+          <div class="partcell"><span class="input" style="width: 220px"><i data-i="search" class="s14 faint"></i><span class="ph">Search your looks</span></span></div>
+          <div class="partcell"><div class="row wrap g6"><span class="tag ok"><i data-i="check"></i>Dresser</span><span class="tag amber">In your bags</span><span class="tag miss">Missing</span><span class="tag star">★ On your wishlist</span><span class="tag new">New</span><span class="tag ink">Changes</span></div><small>Tags: ice, amber, pink, lavender, holo, lilac.</small></div>
+          <div class="partcell"><div class="row g6"><b class="it" data-it="42631" data-own></b><b class="it" data-it="13100" data-own="amber"></b><b class="it ghost" data-it="13101" data-own="pink"></b><b class="it empty"></b></div><small>Item tiles: the game's icon (a texture), a corner dot.</small></div>
+          <div class="partcell"><div class="palette" style="width: 200px" data-dyes="Pastel Purple,Midnight Blue,Pure White,Jet Black"></div><small>Palette strip.</small></div>
+          <div class="partcell"><span class="seal">MS</span><small>Seal (vertices turned 4°).</small></div>
+          <div class="partcell"><span class="ring" data-ring="5/7"><b>5/7</b></span><small>Ring (two arcs).</small></div>
+          <div class="partcell" style="width: 200px"><div class="meter" style="width: 200px"><span style="width: 70%"></span></div><small>Bar: ice; violet while working.</small></div>
+          <div class="partcell"><span class="sign"><b>Nothing yet</b><small>the hand says hi</small></span><small style="margin-top: 10px">The sign (turned 5°).</small></div>
+          <div class="partcell" style="width: 260px"><div class="slip" style="width: 260px"><div class="top"><span class="eyebrow">Take it into the game</span><div class="d d20 mt4">Plate 3</div></div><div class="perf"></div><div class="bot t12 muted">The plate slip: a ticket.</div></div></div>
+          <div class="partcell field" style="padding: 18px; border-radius: 20px"><div class="callout row g8"><b class="it s32" data-it="13099" data-own></b><span class="t12 ink b6">A callout on the field</span></div></div>
+          <div class="partcell"><span class="spark s22"></span><small>Holo sparkle (texture).</small></div>
+        </div>
+      </div>
+
+      <!-- ───────── What changes ───────── -->
+      <div class="sheet">
+        <h3>What changes from today's “Moonlit Atelier”</h3>
+        <table class="feat changes">
+          <tr><th>Today (0.6.16)</th><th>Character Sheet</th></tr>
+          <tr><td>The rail down the left (Home, Looks, Plates, Closet, Tidy up · Make room) and your character at its foot</td><td>The site's bar across the top: the tag and GLAMOUR STUDIO, the five places with counts and a holo underline; your character's initials and how its closet's sent in the pill on the right. 212px back for the screens.</td></tr>
+          <tr><td>Violet pill with white words that glows</td><td>The sticker: periwinkle, ink words, a 2px ink edge, a hard block; one a screen; turned over to ink on the field.</td></tr>
+          <tr><td>Lilac-edged “blush” hero cards</td><td>The field: one flat periwinkle moment a screen (the plate at the dresser, a look's sheet, the dresser's number, the first run).</td></tr>
+          <tr><td>Mint for yours, orchid for missing, lilac for where you are</td><td>Ice for yours, pink for missing, lavender for the wishlist, amber for what to see to.</td></tr>
+          <tr><td>Iridescent progress bar</td><td>Ice bars (violet while working); holo only for the tab you're on, new things, loves and wishes come true.</td></tr>
+          <tr><td>Outfit 700/600 in normal capitals</td><td>Bricolage Grotesque 800 in capitals; Shantell Sans for the hand voice.</td></tr>
+          <tr><td>A look: pieces as the gear window, ring in the middle, cards on the right</td><td>The same layout as a character sheet on the field: pieces as callouts, the name echoed behind, the palette strip, the plate slip.</td></tr>
+          <tr><td>Glow under the question card</td><td>No glow: ink, a strong hairline, 28px corners, its heading in display capitals.</td></tr>
+          <tr><td>Empty lists as a line of text</td><td>The sign, a cloud, one line, one action (no hand), as the site's empty pages.</td></tr>
+          <tr><td>“You could wear now”, “Wear now”, “Keep it as a look” for your outfit</td><td>“Wear today”, and “Copy my game outfit” (the site's words); “Keep it as a look” stays for a plate or someone examined.</td></tr>
+        </table>
+      </div>
+
+      <!-- ───────── Screens ───────── -->
+      <div class="frame-cap" id="screens"><h2>Every screen</h2><p>Eleven pages, 43 frames, each at its real size on the game behind it, numbered notes under each</p></div>
+      <div class="screens" style="margin-top: 22px">
+        <a href="pages/home.html"><img src="thumbs/home.webp" alt="" /><b>1 · Home</b><span>At the dresser with a plan (the field, Fill plate 3); filled; away from a dresser; the first run, not linked.</span></a>
+        <a href="pages/looks.html"><img src="thumbs/looks.webp" alt="" /><b>2 · Looks</b><span>Your looks with one picked; with Glamour Plates open (the plate slip); Wear today; empty, loading, nothing found, refused token.</span></a>
+        <a href="pages/look.html"><img src="thumbs/look.webp" alt="" /><b>3 · A look</b><span>Ready with the editor open; not ready (put away first, Into the armoire); Put on a plate…; a shot for the site.</span></a>
+        <a href="pages/plates.html"><img src="thumbs/plates.webp" alt="" /><b>4 · Plates</b><span>All twenty with one picked, Wear it, gearsets; Link to a gearset and Wear blocked; not read yet.</span></a>
+        <a href="pages/closet.html"><img src="thumbs/closet.webp" alt="" /><b>5 · Closet</b><span>Where your gear is, on the site, your wishlist and a wish come true; sending, a problem, off, not asked, not linked, empty.</span></a>
+        <a href="pages/make-room.html"><img src="thumbs/make-room.webp" alt="" /><b>6 · Make room</b><span>The dresser's number; it asks first (one set); storing with progress and Stop; done with one left; take out duplicates.</span></a>
+        <a href="pages/settings.html"><img src="thumbs/settings.webp" alt="" /><b>7 · Settings and the recorder</b><span>General; the whole column; recording and stopped; Account linked with characters; not linked, a bad token, Forget this character?</span></a>
+        <a href="pages/characters.html"><img src="thumbs/characters.webp" alt="" /><b>8 · Asking about a character</b><span>The question over the game, the chat lines, and the pill's character states.</span></a>
+        <a href="pages/companions-1.html"><img src="thumbs/companions-1.webp" alt="" /><b>9 · Beside the dresser and Glamour Plates</b><span>The dresser's panel, Plate it's menu, folded, Make room pressed twice, working, not linked; Glamour Plates with a plan, filled, saved, unsaved, no plan; the Character window's plates.</span></a>
+        <a href="pages/companions-2.html"><img src="thumbs/companions-2.webp" alt="" /><b>10 · Beside the other windows</b><span>Armoire, storing an outfit set, fitting room, Examine, dye, a retainer, the market board, a shop; tooltip lines and the right-click menu.</span></a>
+        <a href="pages/extras.html"><img src="thumbs/extras.webp" alt="" /><b>11 · Popups, toasts, the small window</b><span>900 × 600; toasts, tooltips, a combo, every state of the header's pill, a failed screen, refreshing.</span></a>
+      </div>
+
+      <!-- ───────── Features ───────── -->
+      <div class="sheet" id="features">
+        <h3>Nothing lost: every feature, and where it is</h3>
+        <span class="cap">Today's plugin (0.6.16, DETAILS.md “What it does” to “Asking about each character”), feature by feature. 112 in all; the last group has no screen of its own.</span>
+        <table class="feat" id="feat"></table>
+      </div>
+    </div>
+
+    <script>
+      const F = [
+        ['The window'],
+        ['One window, 1120 × 760 to start, fitted to the screen, 900 × 600 at the least', 'extras'],
+        ['Header: the mark and name, what’s going on (status pill), Refresh, Settings', 'home'],
+        ['Places: Home, Looks (count), Plates (n/20), Closet (pieces), Make room (n/800)', 'home'],
+        ['Your character, world and how its closet’s sent (was the rail’s foot)', 'characters'],
+        ['Under 1000 wide: the places as icons, names and counts as tooltips', 'extras'],
+        ['A screen below (a look, Settings): back at the top left, eyebrow and name, On the site', 'look'],
+        ['The question: a card over the window, its answers saying what happens, Esc', 'make-room'],
+        ['Toasts', 'extras'],
+        ['A screen that failed says so in its place', 'extras'],
+        ['Home'],
+        ['At the dresser: the plate open, what’s on it, saved or not', 'home'],
+        ['Fill plate N with the look planned for it, See the look', 'home'],
+        ['The plate’s twelve slots now and after; elsewhere dashed; dyes from your bags', 'home'],
+        ['After filling: Fill it again; how to wear it once saved', 'home'],
+        ['Away from a dresser: how to get there, how many plates are planned', 'home'],
+        ['Get started: three steps, Link your account, Open Glamour Studio', 'home'],
+        ['Ready for plate N / for a plate: up to six, planned first; All your looks', 'home'],
+        ['Sent from the site: newest first, the plate meant, Done with these: clear the list', 'home'],
+        ['Examining: their outfit, Try it on, Keep it as a look', 'home'],
+        ['Wear today (was You could wear now)', 'home'],
+        ['Looks'],
+        ['Tabs with counts: Your looks, Loved, Wear today', 'looks'],
+        ['Search by name, maker, job, mood', 'looks'],
+        ['Ready for a plate first (on by default), a job, a mood', 'looks'],
+        ['Each row: four icons, name, whose, how ready', 'looks'],
+        ['The look picked: icons, eyebrow and name, mood and job, the plate card', 'looks'],
+        ['Try on, Shot (public looks), Site, Open the look', 'looks'],
+        ['Its pieces with where each is (dresser, armoire, to put away, wishlist, missing)', 'looks'],
+        ['Empty, reading, nothing matches, not linked, token refused', 'looks'],
+        ['A look'],
+        ['Pieces laid out as the game’s gear window', 'look'],
+        ['Each piece: icon, name, slot, dyes, where; dye from bags or in the editor', 'look'],
+        ['An empty slot: emptied or left; weapons kept', 'look'],
+        ['How ready (a ring), what stands between it and a plate, its dyes, Try it on', 'look'],
+        ['The plate card: Put on plate N and what it will do; sent for another plate', 'look'],
+        ['After filling: On plate N, Wear plate N once saved, Fill it again', 'home'],
+        ['Closed: how to get there', 'look'],
+        ['Put on a plate… (dresser open): opens Glamour Plates, picks the plate, fills it', 'look'],
+        ['Put away first; Into the armoire with the armoire open; Storing…', 'look'],
+        ['Worn in game: Take a shot, its preview, a caption, Send it to the look, Take another, Discard', 'look'],
+        ['A shot grabbed after the HUD came back says so; sent, or refused by the limits', 'look'],
+        ['Plates'],
+        ['All twenty, five across: number, icons, look or pieces, planned dot, gearsets’ jobs, empty dashed', 'plates'],
+        ['What you’re wearing: Try it on, Copy my game outfit (Keep it as a look)', 'plates'],
+        ['When the game last had them', 'plates'],
+        ['The plate picked: what’s on it, its plan (On it / Not on it yet)', 'plates'],
+        ['Wear it, greyed with the reason (combat, dresser, plate windows, busy, sanctuary)', 'plates'],
+        ['Try it on, Keep it as a look (then Open it on the site)', 'plates'],
+        ['Gearsets: linked ones, Change to it, × unlink, Link to a gearset (with each’s plate)', 'plates'],
+        ['Its twelve slots', 'plates'],
+        ['Not read yet / not logged in', 'plates'],
+        ['Closet'],
+        ['The dresser: read when, used of 800, outfit sets would free, Make room', 'closet'],
+        ['Armoire, armoury chest, bags, saddlebags, retainers: how many and when, or what to open', 'closet'],
+        ['On the site: what was sent and when, Send now, Open', 'closet'],
+        ['Sending, a problem, sending by itself off, not asked, not linked', 'closet'],
+        ['Your wishlist: each piece with its look, where it is once yours, ×', 'closet'],
+        ['Wishes come true (seen in your wardrobe)', 'closet'],
+        ['Make room'],
+        ['Places used, free, up to how many gathering would free', 'make-room'],
+        ['Keep as outfits: each set, loose pieces, stored already, quality, dyed', 'make-room'],
+        ['Not in any look or plate (once looks are read)', 'make-room'],
+        ['Make room for me: asks first (sets, places, prisms, bag places, dyes lost)', 'make-room'],
+        ['The first time, one set (Try it on one set)', 'make-room'],
+        ['Progress, Stop, sets the game didn’t take, pieces left in your bags', 'make-room'],
+        ['Duplicates: Take out duplicates, asks first, progress', 'make-room'],
+        ['Beside the game’s windows'],
+        ['A 300-wide panel docked to the game window, either side, as tall as its content', 'companions-1'],
+        ['Its header: GLAMOUR STUDIO over what it’s beside, Refresh, open the window, fold', 'companions-1'],
+        ['Folded: a tab with its one number, remembered per window', 'companions-1'],
+        ['Not linked: the way to link, in each panel', 'companions-1'],
+        ['Glamour Dresser: places used, could leave, Make room (pressed twice), ready looks with Plate it', 'companions-1'],
+        ['Plate it’s menu of the twenty plates', 'companions-1'],
+        ['Your looks’ pieces in bags, armoury, saddlebags, retainers', 'companions-1'],
+        ['Glamour Plates: the plan, Another look, slot by slot, dyes, bottles to the wishlist, Fill plate N', 'companions-1'],
+        ['Glamour Plates: Press Save, saved (how to wear it), changes not saved, no plan (Fill with it)', 'companions-1'],
+        ['Plates from the Character window: by look, jobs, On, Wear', 'companions-1'],
+        ['Armoire: pieces in it, what it takes (Store, Store all), from the dresser', 'companions-2'],
+        ['Storing an outfit set: places freed, looks that use it, its pieces', 'companions-2'],
+        ['Fitting room: step through your looks, where each piece is, wishlist, Wear it · plate N, tried on by hand', 'companions-2'],
+        ['Examine: how many are yours, each piece, wishlist, Try it on, Keep it as a look', 'companions-2'],
+        ['Dye: your looks that dye it, bottles, missing dyes to the wishlist', 'companions-2'],
+        ['A retainer’s bags: your looks’ pieces, unused glamour, the armoire takes, other retainers', 'companions-2'],
+        ['Market board: sold here (cheapest, Search), not on it (Take off)', 'companions-2'],
+        ['Shops: what on your wishlist it sells', 'companions-2'],
+        ['Lines under gear’s tooltips', 'companions-2'],
+        ['The right-click menu: Add it to a look…, Try it on with…, Which looks use it, wishlist, Store in the armoire', 'companions-2'],
+        ['Settings'],
+        ['General and Account', 'settings'],
+        ['Empty the slots a look leaves bare', 'settings'],
+        ['Dye pieces with the dyes in your bags', 'settings'],
+        ['Open with the plate editor (greyed while the Glamour Plates panel is on)', 'settings'],
+        ['Show Glamour Studio beside the game’s windows; Side; Start folded', 'settings'],
+        ['Each window’s panel (ten switches)', 'settings'],
+        ['Glamour lines under item tooltips; Glamour Studio in the right-click menu', 'settings'],
+        ['Keep it up to date by itself; Send my plates and outfit; Say in chat when a wish comes true', 'settings'],
+        ['Forget this character (asks first)', 'settings'],
+        ['Account: linked, the token masked, Unlink, Link, Get a token, Open Glamour Studio, a bad token', 'settings'],
+        ['Characters: each a switch, its world, where it stands', 'settings'],
+        ['The version and What’s new', 'settings'],
+        ['Making a report'],
+        ['Record what I do: Start, Stop, lines and time', 'settings'],
+        ['Mark a step', 'settings'],
+        ['Write down the windows’ values', 'settings'],
+        ['Copy the recording; Save it as a file (and where)', 'settings'],
+        ['The header says it’s recording', 'settings'],
+        ['Asking about each character'],
+        ['The question: Yes, send it / No / Not now, over the game or the window', 'characters'],
+        ['A line in chat for each answer, and for wishes come true', 'characters'],
+        ['Where each character stands, in the pill and in Settings', 'characters'],
+        ['No screen of their own (unchanged)'],
+        ['/gstudio, /gstudio settings, send, refresh, record, mark, dump, save', '—'],
+        ['Reading the wardrobe every two seconds; the site read every ten minutes while open', '—'],
+        ['Opening with the plate editor; one panel at a time; gone in cutscenes, group pose, hidden HUD', '—'],
+      ]
+      const t = document.getElementById('feat')
+      let n = 0
+      t.innerHTML =
+        '<tr><th>#</th><th>Feature</th><th>Where</th></tr>' +
+        F.map((r) =>
+          r.length === 1
+            ? `<tr class="grp"><td></td><td colspan="2">${r[0]}</td></tr>`
+            : `<tr><td>${++n}</td><td>${r[0]}</td><td>${r[1] === '—' ? '<span class="faint">no screen</span>' : `<a href="pages/${r[1]}.html">${r[1]}</a>`}</td></tr>`,
+        ).join('')
+      document.querySelector('#features .cap').textContent = document.querySelector('#features .cap').textContent.replace('112', n)
+    </script>
+  </body>
+</html>

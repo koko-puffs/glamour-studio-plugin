@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Settings and the recorder · Glamour Studio plugin redesign</title>
+    <link rel="stylesheet" href="../assets/kit.css" />
+    <script src="../assets/kit.js"></script>
+    <style>
+      .sv { position: absolute; inset: 0; overflow: hidden; padding: 20px 0; }
+      .column { width: 640px; margin: 0 auto; display: grid; gap: 8px; align-content: start; }
+      .grp { color: var(--muted); font: 600 12px/1.3 var(--sans); margin: 14px 2px 0; }
+      .rows { padding: 0 18px; }
+      .srow { position: relative; display: flex; gap: 14px; align-items: center; min-height: 62px; padding: 11px 0; border-top: 1px solid var(--line); }
+      .srow:first-child { border-top: 0; }
+      .srow .tt { color: var(--ink); font: 600 13.5px/1.3 var(--sans); }
+      .srow .ln { color: var(--muted); font: 400 12px/1.4 var(--sans); }
+      .srow.sub { min-height: 40px; padding: 6px 0 6px 18px; }
+      .srow.sub .tt { font-weight: 500; font-size: 13px; }
+      .srow.dis { opacity: .45; }
+      .unrolled { width: 700px; padding: 26px 30px; border: 1px solid var(--line); border-radius: 14px; background: var(--ground); }
+      .unrolled .column { width: 640px; }
+      .char { display: flex; gap: 12px; align-items: center; min-height: 58px; border-top: 1px solid var(--line); }
+      .char:first-child { border-top: 0; }
+      .rec-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--danger); box-shadow: 0 0 0 4px rgb(255 122 154 / .18); flex: none; }
+    </style>
+  </head>
+  <body>
+    <div class="mock-head">
+      <a class="back" href="../index.html#screens"><i data-i="arrow-left" class="s14"></i>The deck</a>
+      <span class="where">Screens · 7</span>
+      <h1>Settings and the recorder</h1>
+      <div class="end">
+        <a href="make-room.html"><i data-i="arrow-left" class="s14"></i>Make room</a>
+        <a href="characters.html">Asking about a character<i data-i="arrow-right" class="s14"></i></a>
+        <button data-toggle="build">B · how it's built</button>
+        <button data-toggle="pins">P · pins</button>
+      </div>
+    </div>
+
+    <div class="mock-wrap">
+      <div class="mock-intro">
+        <span class="eyebrow-d">The main window · Settings</span>
+        <h2>Settings: plain and quiet</h2>
+        <p>
+          As the site's account and settings pages: one column (640 wide, as Housing Studio's and Raid Planner's plugins),
+          General and Account as a segmented pick, each group a quiet label over a card of rows, a switch or a button at
+          each row's end. No field, no holo, and a sticker only where linking is the thing to do. Every setting is
+          today's; the recorder lives at the foot of General.
+        </p>
+      </div>
+
+      <!-- ───────── 1 · General ───────── -->
+      <div class="frame-cap">
+        <h2>General</h2>
+        <p>Opened from the header's sliders, or Dalamud's cog, or <code>/gstudio settings</code></p>
+        <span class="size">1120 × 760</span>
+      </div>
+      <div class="stage">
+        <div class="win" style="width: 1120px; height: 760px" data-back="Back" data-head="Settings" data-noref data-nosettings>
+          <div class="body">
+            <div class="sv">
+              <div class="column">
+                <div class="row rel"><span class="seg"><span class="on">General</span><span>Account</span></span><span class="pin tr" style="right: auto; left: 190px; top: 8px">1</span></div>
+                <div class="grp">Glamour plates</div>
+                <div class="card rows">
+                  <div class="srow"><div class="grow"><div class="tt">Empty the slots a look leaves bare</div><div class="ln">So the plate is the look, exactly. Weapons are left alone unless the look has one.</div></div><span class="switch on"></span><span class="pin mr" style="right: -34px">2</span></div>
+                  <div class="srow"><div class="grow"><div class="tt">Dye pieces with the dyes in your bags</div><div class="ln">When your copy has other dyes. The game spends them when you save. Off: the plugin says which to dye.</div></div><span class="tag amber">New</span><span class="switch"></span></div>
+                  <div class="srow dis"><div class="grow"><div class="tt">Open with the plate editor</div><div class="ln">Off while the panel beside Glamour Plates is on</div></div><span class="switch on"></span><span class="pin mr" style="right: -34px">3</span></div>
+                </div>
+                <div class="grp">Beside the game's windows</div>
+                <div class="card rows">
+                  <div class="srow"><div class="grow"><div class="tt">Show Glamour Studio beside the game's windows</div><div class="ln">At the dresser, Glamour Plates, the armoire, the fitting room, Examine and the rest: what the plugin knows for that window, beside it.</div></div><span class="switch on"></span></div>
+                  <div class="srow"><div class="grow"><div class="tt">Side</div><div class="ln">Auto takes the side with room.</div></div><span class="seg sm"><span class="on">Auto</span><span>Left</span><span>Right</span></span><span class="pin mr" style="right: -34px">4</span></div>
+                  <div class="srow"><div class="grow"><div class="tt">Start folded</div><div class="ln">Just the tab on the window's edge, until you open it.</div></div><span class="switch"></span></div>
+                  <div class="srow"><div class="grow"><div class="tt">Each window's panel</div><div class="ln">11 of 11 on</div></div><span class="btn xs">Choose<i data-i="chev-d" class="s12"></i></span></div>
+                </div>
+              </div>
+              <span class="scrollbar" style="top: 20px; height: 260px; right: 6px"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <ol class="notes">
+        <li><span class="pin">1</span><span><b>General and Account, a segmented pick</b> (the site's <code>.gs-seg</code>: the picked one the field's violet with ink words, gliding to it). The bar is a screen below's: back at the top left, “Settings” in capitals.</span></li>
+        <li><span class="pin">2</span><span><b>A row</b>: its name, one line of why, and a switch (on: the field's violet with an ink knob; off: soft ink). Rows are 62px at least; the card's corners 18px.</span></li>
+        <li><span class="pin">3</span><span><b>A row that can't be changed</b> is dimmed with the reason as its line (here: the Glamour Plates panel does it instead).</span></li>
+        <li><span class="pin">4</span><span><b>Small choices inline</b>: Side as a small segmented pick; Each window's panel opens to its eleven switches (next frame, unrolled).</span></li>
+      </ol>
+
+      <!-- ───────── 2 · General, unrolled ───────── -->
+      <div class="frame-cap">
+        <h2>General, the whole column</h2>
+        <p>Every row, as it scrolls (the column unrolled, at its real width)</p>
+      </div>
+      <div class="stage free" style="padding: 30px; display: flex; gap: 28px; align-items: flex-start">
+        <div class="unrolled">
+          <div class="column">
+            <div class="grp" style="margin-top: 0">Beside the game's windows · Each window's panel</div>
+            <div class="card rows" style="padding: 6px 18px">
+              <div class="srow sub"><span class="grow tt">Glamour Dresser</span><span class="switch on"></span></div>
+              <div class="srow sub"><span class="grow tt">Glamour Plates</span><span class="switch on"></span></div>
+              <div class="srow sub"><span class="grow tt">Armoire</span><span class="switch on"></span></div>
+              <div class="srow sub"><span class="grow tt">Storing outfit sets</span><span class="switch on"></span></div>
+              <div class="srow sub"><span class="grow tt">Fitting Room</span><span class="switch on"></span></div>
+              <div class="srow sub"><span class="grow tt">Examine</span><span class="switch on"></span></div>
+              <div class="srow sub"><span class="grow tt">Dye</span><span class="switch on"></span></div>
+              <div class="srow sub"><span class="grow tt">Plates from the Character window</span><span class="switch on"></span></div>
+              <div class="srow sub"><span class="grow tt">Retainers' bags</span><span class="switch on"></span></div>
+              <div class="srow sub"><span class="grow tt">Market board and shops</span><span class="switch on"></span></div>
+            </div>
+            <div class="grp">In menus and tooltips</div>
+            <div class="card rows">
+              <div class="srow"><div class="grow"><div class="tt">Glamour lines under item tooltips</div><div class="ln">Which looks use a piece, its plate, a copy in the dresser, whether it's on your wishlist.</div></div><span class="switch on"></span></div>
+              <div class="srow"><div class="grow"><div class="tt">Glamour Studio in the right-click menu</div><div class="ln">On gear in your bags, the armoury, retainers and chat links.</div></div><span class="switch on"></span></div>
+            </div>
+            <div class="grp">Your closet on the site</div>
+            <div class="card rows">
+              <div class="srow"><div class="grow"><div class="tt">Keep it up to date by itself</div><div class="ln">Sends what changed, every few minutes at most. Off: only when you press Send now (Closet).</div></div><span class="switch on"></span></div>
+              <div class="srow"><div class="grow"><div class="tt">Send my plates and outfit</div><div class="ln">For the site's Plates and Copy my game outfit, with your character's name and world (only you see them).</div></div><span class="switch on"></span></div>
+              <div class="srow"><div class="grow"><div class="tt">Say in chat when a wish comes true</div><div class="ln">A piece from your wishlist, seen in your wardrobe.</div></div><span class="switch on"></span></div>
+            </div>
+            <div class="grp">What the plugin has read</div>
+            <div class="card rows">
+              <div class="srow"><div class="grow"><div class="tt">Forget this character</div><div class="ln">What the plugin has read of Koko Nyan here. It's read again as you play.</div></div><span class="btn sm danger">Forget</span></div>
+            </div>
+            <div class="grp">Making a report</div>
+            <div class="card rows">
+              <div class="srow"><div class="grow"><div class="tt">Record what I do</div><div class="ln">For the steps Koko asks you to record. It writes down what the game's glamour windows do and what the plugin does; it sends nothing anywhere.</div></div><span class="btn sm"><span class="rec-dot" style="width: 8px; height: 8px; box-shadow: none"></span>Start</span></div>
+            </div>
+            <div class="row mt16 t12 faint"><span class="logo s18"></span><span>Glamour Studio 0.6.16 · </span><span class="btn link t12">What's new</span></div>
+          </div>
+        </div>
+        <div class="col g16" style="width: 640px">
+          <div class="grp" style="margin-top: 0">Making a report · recording</div>
+          <div class="card rows rel" style="border-color: rgb(255 122 154 / .45)">
+            <div class="srow"><span class="rec-dot"></span><div class="grow"><div class="tt">Recording · 1,204 lines · 4:12</div><div class="ln">Before each step, say what you'll do (or <code>/gstudio mark …</code>): the whole state is written down with it.</div></div><span class="btn sm"><i data-i="stop" class="s14"></i>Stop</span></div>
+            <div class="srow"><div class="grow row g8"><span class="input sm grow"><span>2. Fill plate 3</span><span class="caret" style="margin-left: 0"></span></span><span class="btn sm">Mark</span></div></div>
+            <div class="srow"><div class="grow"><div class="tt">Write down the windows' values</div><div class="ln">Every value the open glamour windows hold, and the whole state. Do it with the window you're asked about open.</div></div><span class="btn sm">Write down</span></div>
+            <span class="pin tl">1</span>
+          </div>
+          <div class="grp">Making a report · stopped</div>
+          <div class="card rows rel">
+            <div class="srow"><span class="dot no"></span><div class="grow"><div class="tt">Stopped · 3,880 lines · Mark 4 written</div><div class="ln">Copy it with what the plugin knows, to paste in a message; or save it as a file for a long one.</div></div><span class="btn sm"><i data-i="play" class="s14"></i>Start again</span></div>
+            <div class="srow"><div class="grow row g8"><span class="btn sm"><i data-i="copy" class="s14"></i>Copy the recording</span><span class="btn sm"><i data-i="save" class="s14"></i>Save it as a file</span></div></div>
+            <div class="srow"><i data-i="check" class="s16 c-ice"></i><div class="grow"><div class="tt">Saved</div><div class="ln num">pluginConfigs/GlamourStudio/recordings/gstudio-2026-11-12-2140.txt</div></div><span class="btn sm quiet"><i data-i="folder" class="s14"></i>Show</span></div>
+            <span class="pin tl">2</span>
+          </div>
+          <div class="grp">The header while recording</div>
+          <div class="row"><span class="who rec"><span class="face">KN</span><span class="dot rec"></span><span class="st">Recording what you do · 1,204 lines</span></span><span class="pin">3</span></div>
+        </div>
+      </div>
+      <ol class="notes">
+        <li><span class="pin">1</span><span><b>Recording</b> is the one red-edged card (a recording dot, as any recorder has): lines and time in Geist Mono, Stop, Mark a step (a field and Mark: <code>/gstudio mark</code> too), Write down the windows' values (<code>/gstudio dump</code>).</span></li>
+        <li><span class="pin">2</span><span><b>Stopped</b>: Copy the recording (with the plugin's, Dalamud's and the game's versions, the plugins loaded, settings and the last send) and Save it as a file (<code>/gstudio save</code>), then where it was saved and Show (opens its folder). It keeps the last 20,000 lines and stops by itself after two hours.</span></li>
+        <li><span class="pin">3</span><span><b>The header says it's recording</b> on every screen, with a red dot, so it's never left on by mistake.</span></li>
+      </ol>
+
+      <!-- ───────── 3 · Account, linked ───────── -->
+      <div class="frame-cap">
+        <h2>Account, linked</h2>
+        <p>The token masked, your characters and what's sent of each</p>
+        <span class="size">1120 × 760</span>
+      </div>
+      <div class="stage">
+        <div class="win" style="width: 1120px; height: 760px" data-back="Back" data-head="Settings" data-noref data-nosettings>
+          <div class="body">
+            <div class="sv">
+              <div class="column">
+                <div class="row"><span class="seg"><span>General</span><span class="on">Account</span></span></div>
+                <div class="grp">Glamour Studio account</div>
+                <div class="card rows rel">
+                  <div class="srow"><span class="dot"></span><div class="grow"><div class="tt">Linked to Glamour Studio</div><div class="ln num">gsp_••••••••••••7Fq2</div></div><span class="btn sm">Unlink</span></div>
+                  <div class="srow"><div class="grow"><div class="ln">Anyone with the token can read and change your closet, so keep it to yourself. Revoke it on the site if it gets out.</div></div><span class="btn sm quiet"><i data-i="ext" class="s14"></i>Get a token</span><span class="btn sm quiet"><i data-i="ext" class="s14"></i>Open Glamour Studio</span></div>
+                  <span class="pin tl">1</span>
+                </div>
+                <div class="grp">Characters</div>
+                <div class="card rows rel">
+                  <div class="char"><span class="face l">KN</span><div class="grow"><div class="tt ink b6 t13">Koko Nyan <span class="tag ink" style="margin-left: 4px">you're on it</span></div><div class="t12 muted">Phoenix · Sent to the site</div></div><span class="switch on"></span></div>
+                  <div class="char"><span class="face l">KN</span><div class="grow"><div class="ink b6 t13">Kokomi Nyan</div><div class="t12 muted">Lich · Yes · telling the site…</div></div><span class="switch on"></span></div>
+                  <div class="char"><span class="face l off">RN</span><div class="grow"><div class="ink b6 t13">Ruby Nyan</div><div class="t12 muted">Zodiark · Not sent</div></div><span class="switch"></span></div>
+                  <div class="char"><span class="face l off">MN</span><div class="grow"><div class="ink b6 t13">Momo Nyan</div><div class="t12 c-amber">Shiva · Not asked yet</div></div><span class="switch"></span></div>
+                  <span class="pin tl">2</span>
+                </div>
+                <span class="t12 faint" style="margin: 4px 2px">On: its glamour dresser, armoire, bags, armoury chest, saddlebags, retainers, plates and outfit go to your closet on the site, private unless you show the character there. What's shown of each: the site's Settings → Glamour Studio → Characters.</span>
+                <div class="row mt8 t12 faint"><span class="logo s18"></span><span>Glamour Studio 0.6.16 · </span><span class="btn link t12">What's new</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <ol class="notes">
+        <li><span class="pin">1</span><span><b>Linked, in a line</b>: an ice dot, the token masked in Geist Mono with its last four, Unlink; Get a token and Open Glamour Studio quiet. Refused by the site: the danger edge and “The site doesn't know this token any more: unlink, and paste a new one”.</span></li>
+        <li><span class="pin">2</span><span><b>Characters</b>: the one you're on first, then each you've answered for, its initials on the field's violet when it's sent (soft ink when not), its world and where it stands (Sent to the site, Not sent, Not asked yet in amber, Yes · telling the site…, Checking with the site…), and a switch. Greyed out while not linked.</span></li>
+      </ol>
+
+      <!-- ───────── 4 · Account, not linked; forget ───────── -->
+      <div class="frame-cap">
+        <h2>Account, not linked · Forget this character?</h2>
+        <p>Linking is the thing to do, so Link is the sticker; and the question before forgetting</p>
+      </div>
+      <div class="stage free" style="padding: 30px; display: flex; gap: 28px; align-items: flex-start">
+        <div class="unrolled">
+          <div class="column">
+            <div class="row"><span class="seg"><span>General</span><span class="on">Account</span></span></div>
+            <div class="grp">Glamour Studio account</div>
+            <div class="card rows rel">
+              <div class="srow"><span class="dot no"></span><div class="grow"><div class="tt">Not linked</div><div class="ln">Make a token on the site (Settings → Glamour Studio → In-game plugin) and paste it here.</div></div><span class="btn sm quiet"><i data-i="ext" class="s14"></i>Get a token</span></div>
+              <div class="srow"><div class="grow col g6"><span class="input focus"><span class="num t13">gsp_Qm4rT9</span><span class="caret" style="margin-left: 0"></span></span></div><span class="sticker">Link</span></div>
+              <span class="pin tl">1</span>
+            </div>
+            <div class="card rows rel mt8">
+              <div class="srow"><div class="grow col g6"><span class="input bad"><span class="num t13">gsp_Qm4rT9xx</span></span><span class="t12 c-danger">That isn't a token: it starts gsp_ and is 47 letters long.</span></div><span class="sticker off">Link</span></div>
+              <span class="pin tl">2</span>
+            </div>
+            <div class="grp">Characters</div>
+            <div class="card rows" style="opacity: .5">
+              <div class="char"><span class="face l off">KN</span><div class="grow"><div class="ink b6 t13">Koko Nyan</div><div class="t12 muted">Phoenix · Link your account to send it</div></div><span class="switch off"></span></div>
+            </div>
+          </div>
+        </div>
+        <div class="rel" style="width: 560px; height: 360px; border-radius: 14px; overflow: hidden; border: 1px solid var(--line); background: var(--ground)">
+          <div class="scrim" style="z-index: 1"></div>
+          <div class="dialog" style="left: 50px; top: 40px; width: 460px; z-index: 2">
+            <h3 class="d d26">Forget this character?</h3>
+            <p class="mt10">Koko Nyan's dresser, armoire, saddlebags, retainers and plates as last read are forgotten here (they're read again as you open them).</p>
+            <p class="mt8 t13 muted">The site keeps what it was sent until you forget the character there too, or turn it off in Account → Characters.</p>
+            <div class="foot"><span class="btn">Keep</span><span class="btn danger" style="background: var(--danger); color: #2a0711; border-color: var(--danger)">Forget</span></div>
+            <span class="pin tl">3</span>
+          </div>
+        </div>
+      </div>
+      <ol class="notes">
+        <li><span class="pin">1</span><span><b>Not linked: Link is the sticker</b>, the only one in Settings. The field is ImGui's input, restyled (raised ink, 14px corners, a lilac edge while typing); the token is pasted, never shown again once linked.</span></li>
+        <li><span class="pin">2</span><span><b>A token that can't be one</b> says why under the field in the danger colour, and Link waits.</span></li>
+        <li><span class="pin">3</span><span><b>A danger question</b>: the same card, its answer the honest red (filled, dark words) instead of the sticker; Keep outlined. Unlink asks the same way (“Forget the token here. Revoke it on the site too if you won't use it again.”).</span></li>
+      </ol>
+    </div>
+  </body>
+</html>

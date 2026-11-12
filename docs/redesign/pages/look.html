@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>A look · Glamour Studio plugin redesign</title>
+    <link rel="stylesheet" href="../assets/kit.css" />
+    <script src="../assets/kit.js"></script>
+    <style>
+      .lv { display: grid; grid-template-columns: 772px minmax(0, 1fr); height: 100%; }
+      .lv .stagef { position: absolute; inset: 18px 0 18px 24px; padding: 18px; display: grid; grid-template-columns: 214px minmax(0, 1fr) 214px; gap: 16px; }
+      .lv .right { position: relative; padding: 18px 20px; overflow: hidden; display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; align-content: start; }
+      .lv .right > * { min-width: 0; }
+      .gear { display: grid; gap: 12px; align-content: start; }
+      .co { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 3px 10px; align-items: center; padding: 9px 10px; min-height: 88px; }
+      .co .it { grid-row: span 3; }
+      .co .nm { color: var(--ink); font: 600 12.5px/1.2 var(--sans); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .co .ln { display: flex; gap: 5px; align-items: center; color: var(--muted); font: 400 11.5px/1.2 var(--sans); white-space: nowrap; }
+      .co .tag { justify-self: start; height: 19px; font-size: 10.5px; }
+      .co.bare { border: 2px dashed rgb(22 13 51 / 0.38); background: transparent; box-shadow: none; display: flex; gap: 8px; align-items: center; min-height: 88px; color: var(--on-field-2); font: 600 12px/1.25 var(--sans); }
+      .co.bare b { display: grid; place-items: center; width: 40px; height: 40px; flex: none; border-radius: 9px; border: 1px dashed rgb(22 13 51 / 0.4); color: var(--on-field-2); font: 400 13px/1 var(--mono); }
+      .co.miss { box-shadow: 4px 4px 0 #000, inset 0 0 0 999px var(--pink-row); }
+      .mid { display: grid; gap: 14px; align-content: center; justify-items: center; text-align: center; }
+      .mid .ring.l b { font-size: 32px; }
+      .blockers { display: grid; gap: 6px; justify-items: start; text-align: left; width: 100%; }
+      .shot { position: relative; height: 150px; border-radius: 12px; overflow: hidden; background: #000 url('../assets/backdrop-city.svg') center / cover; border: 1px solid var(--line); }
+      .shot .fig { position: absolute; left: 50%; bottom: 0; width: 70px; height: 128px; margin-left: -35px; border-radius: 35px 35px 8px 8px; background: linear-gradient(#5b3a8a, #24183d); opacity: .9; }
+      .platepick { width: 330px; }
+      .platepick .mi { min-height: 40px; }
+      .platepick .pn { width: 26px; color: var(--muted); font: 500 12px/1 var(--mono); }
+    </style>
+  </head>
+  <body>
+    <div class="mock-head">
+      <a class="back" href="../index.html#screens"><i data-i="arrow-left" class="s14"></i>The deck</a>
+      <span class="where">Screens · 3</span>
+      <h1>A look</h1>
+      <div class="end">
+        <a href="looks.html"><i data-i="arrow-left" class="s14"></i>Looks</a>
+        <a href="plates.html">Plates<i data-i="arrow-right" class="s14"></i></a>
+        <button data-toggle="build">B · how it's built</button>
+        <button data-toggle="pins">P · pins</button>
+      </div>
+    </div>
+
+    <div class="mock-wrap">
+      <div class="mock-intro">
+        <span class="eyebrow-d">The main window · a look, opened</span>
+        <h2>A look: the full character sheet</h2>
+        <p>
+          The look's own screen is the site's look page in the game: the sheet on the field, its pieces called out round
+          it as the game's gear window lays them (weapon to feet down the left, off hand to rings down the right), how
+          ready it is in the middle, and the plate slip that takes it into the game beside it.
+        </p>
+      </div>
+
+      <!-- ───────── 1 · Ready, editor open ───────── -->
+      <div class="frame-cap">
+        <h2>Ready, with Glamour Plates open</h2>
+        <p>Every piece in the dresser or armoire; plate 3 open in the game</p>
+        <span class="size">1120 × 760</span>
+      </div>
+      <div class="stage">
+        <div class="win" style="width: 1120px; height: 760px" data-back="Back to your looks" data-eyebrow="Loved · by Mira Sol · Scholar" data-head="Moonlit Scholar" data-right='<span class="btn sm quiet"><svg class="i s14" viewBox="0 0 24 24"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>On the site</span>'>
+          <div class="body">
+            <div class="lv">
+              <div class="rel">
+                <div class="field stagef" data-build="field">
+                  <div class="echo"><span style="margin: 120px 0 0 -60px">Moonlit Scholar ·</span><span style="margin-left: 40px">Scholar · Moonlit</span><span style="margin-left: -120px">Moonlit Scholar ·</span><span style="margin-left: 80px">Scholar · Moon</span></div>
+                  <div class="gear">
+                    <div class="co bare"><b>—</b><span>Weapon<br /><span class="t11 b5">kept: a plate's weapon is its job's</span></span></div>
+                    <div class="co callout"><b class="it" data-it="42631" data-own></b><span class="nm">Pedagogy Mortarboard</span><span class="ln">Head · <span class="swatch" data-sw="Pastel Purple"></span><span class="swatch" data-sw=""></span></span><span class="tag ok"><i data-i="check"></i>Dresser</span><span class="pin tl">2</span></div>
+                    <div class="co callout"><b class="it" data-it="42632" data-own></b><span class="nm">Pedagogy Gown</span><span class="ln">Body · <span class="swatch" data-sw="Pastel Purple"></span><span class="swatch" data-sw="Midnight Blue"></span></span><span class="tag ok"><i data-i="check"></i>Dresser</span></div>
+                    <div class="co callout"><b class="it" data-it="42633" data-own></b><span class="nm">Pedagogy Halfgloves</span><span class="ln">Hands · <span class="swatch" data-sw="Jet Black"></span></span><span class="tag ok"><i data-i="check"></i>Dresser</span></div>
+                    <div class="co callout"><b class="it" data-it="42634" data-own="amber"></b><span class="nm">Pedagogy Culottes</span><span class="ln">Legs · <span class="swatch" data-sw="Midnight Blue"></span></span><span class="tag amber"><i data-i="droplet"></i>Armoire · dye from bags</span><span class="pin tr">3</span></div>
+                    <div class="co callout"><b class="it" data-it="42635" data-own></b><span class="nm">Pedagogy Longboots</span><span class="ln">Feet · <span class="swatch" data-sw="Jet Black"></span></span><span class="tag ok"><i data-i="check"></i>Dresser</span></div>
+                  </div>
+                  <div class="mid">
+                    <span class="ring l" data-ring="7/7"><b>7/7</b></span>
+                    <div class="col g4" style="justify-items: center">
+                      <span class="d d17">Ready for a plate</span>
+                      <span class="t12 b5 c-onfield2">every piece is in your dresser or armoire</span>
+                    </div>
+                    <div class="palette big" data-dyes="Pastel Purple,Midnight Blue,Jet Black" style="width: 100%"></div>
+                    <span class="btn sm"><i data-i="shirt" class="s14"></i>Try it on</span>
+                    <span class="pin abs" style="top: 150px; left: 50%">4</span>
+                  </div>
+                  <div class="gear">
+                    <div class="co bare"><b>—</b><span>Off hand<br /><span class="t11 b5">kept</span></span></div>
+                    <div class="co callout"><b class="it" data-it="4199" data-own></b><span class="nm">Moonlet</span><span class="ln">Ears · no dye</span><span class="tag ok"><i data-i="check"></i>Armoire</span></div>
+                    <div class="co callout"><b class="it" data-it="4303" data-own></b><span class="nm">Band of Eternal Passion</span><span class="ln">Neck · no dye</span><span class="tag ok"><i data-i="check"></i>Dresser</span></div>
+                    <div class="co bare"><b>×</b><span>No bracelets<br /><span class="t11 b5">emptied on the plate</span></span><span class="pin tr">5</span></div>
+                    <div class="co bare"><b>×</b><span>No ring (R)<br /><span class="t11 b5">emptied on the plate</span></span></div>
+                    <div class="co bare"><b>×</b><span>No ring (L)<br /><span class="t11 b5">emptied on the plate</span></span></div>
+                  </div>
+                  <span class="pin abs" style="left: 8px; top: 8px">1</span>
+                </div>
+              </div>
+              <div class="right side">
+                <div class="slip on-side">
+                  <div class="top row">
+                    <div class="grow col g4"><span class="eyebrow">Take it into the game</span><span class="d d26">Plate 3</span></div>
+                    <span class="tag ink l">Open now</span>
+                  </div>
+                  <div class="perf"></div>
+                  <div class="bot col g10">
+                    <div class="col g4 t12">
+                      <span class="row g8"><span class="dot"></span><span>All seven go on: six from the dresser, one from the armoire</span></span>
+                      <span class="row g8"><span class="dot amber"></span><span>Culottes dyed Midnight Blue from your bags</span></span>
+                      <span class="row g8"><span class="dot no"></span><span>The three slots it leaves bare are emptied</span></span>
+                    </div>
+                    <span class="sticker lg" style="justify-self: start"><i data-i="layers"></i>Put on plate 3</span>
+                    <span class="hand s13">nothing's saved till you press Save in the game</span>
+                  </div>
+                  <span class="pin tl">6</span>
+                </div>
+                <div class="card pad-s col g8">
+                  <div class="row"><span class="d d15">Worn in game</span><span class="end tag">Public look</span></div>
+                  <span class="t12 muted">Wear it, frame it, take a shot. You see it here before it's sent to the look's page.</span>
+                  <span class="btn sm" style="justify-self: start"><i data-i="camera" class="s14"></i>Take a shot</span>
+                  <span class="pin tl">7</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <span class="pin abs" style="left: 330px; top: 47px">8</span>
+        </div>
+      </div>
+      <ol class="notes">
+        <li><span class="pin">1</span><span><b>The sheet on the field.</b> The look's name echoed behind in the field's tone, four rows of it; its pieces as callouts round the middle, in the game's gear-window order. The field is the screen's one moment; the bar above holds its name in capitals.</span></li>
+        <li><span class="pin">2</span><span><b>A piece's callout</b>: ink card, black edge, black block (as the site's stage has them): its icon with the corner dot, name, slot, its two dyes as swatches (an empty ring for none), and where it is in the honest colours.</span></li>
+        <li><span class="pin">3</span><span><b>Dyes in amber when there's something to see to</b>: here, dyed from a bottle in your bags (Settings → Dye pieces with the dyes in your bags); with that off, “dye it in the plate editor”.</span></li>
+        <li><span class="pin">4</span><span><b>How ready, in the middle.</b> A big ring (draw list: two arcs), 7/7, its words under it, the palette strip with the dyes' names, and Try it on, outlined on the field (it isn't the one thing to do while a plate is open).</span></li>
+        <li><span class="pin">5</span><span><b>A slot it leaves bare</b> is a dashed outline on the field: emptied on the plate, or left as it is (with Empty the slots a look leaves bare off). Weapons are kept unless the look has one.</span></li>
+        <li><span class="pin">6</span><span><b>The plate slip has the sticker</b>: Put on plate 3, with what it'll do above it and the hand-lettered reminder under it.</span></li>
+        <li><span class="pin">7</span><span><b>Worn in game</b> (public looks only): Take a shot. The next frame shows the preview.</span></li>
+        <li><span class="pin">8</span><span><b>Back, its eyebrow and name, On the site.</b> The bar of a screen below: the back arrow at the top left (as Housing Studio's and Raid Planner's plugins), Refresh and Settings at the right.</span></li>
+      </ol>
+
+      <!-- ───────── 2 · Not ready: put away first ───────── -->
+      <div class="frame-cap">
+        <h2>Not ready yet: put away first</h2>
+        <p>Pieces in your bags, one you don't have; the armoire open at an inn</p>
+        <span class="size">1120 × 760</span>
+      </div>
+      <div class="stage">
+        <div class="win" style="width: 1120px; height: 760px" data-back="Back to your looks" data-eyebrow="Your look · Black Mage · sent for plate 3" data-head="Witching Hour" data-who="live|">
+          <div class="body">
+            <div class="lv">
+              <div class="rel">
+                <div class="field stagef">
+                  <div class="echo"><span style="margin: 120px 0 0 -60px">Witching Hour ·</span><span style="margin-left: 40px">Hour · Witching</span><span style="margin-left: -120px">Witching Hour ·</span><span style="margin-left: 80px">Hour · Witch</span></div>
+                  <div class="gear">
+                    <div class="co bare"><b>—</b><span>Weapon<br /><span class="t11 b5">kept: a plate's weapon is its job's</span></span></div>
+                    <div class="co callout"><b class="it" data-it="13099" data-own></b><span class="nm">Witch's Hat</span><span class="ln">Head · <span class="swatch" data-sw="Metallic Purple"></span><span class="swatch" data-sw="Jet Black"></span></span><span class="tag ok"><i data-i="check"></i>Dresser</span></div>
+                    <div class="co callout"><b class="it" data-it="13100" data-own="amber"></b><span class="nm">Witch's Coatee</span><span class="ln">Body · <span class="swatch" data-sw="Metallic Purple"></span><span class="swatch" data-sw="Jet Black"></span></span><span class="tag amber"><i data-i="bag"></i>In your bags</span></div>
+                    <div class="co callout miss"><b class="it ghost" data-it="13101" data-own="pink"></b><span class="nm">Witch's Gloves</span><span class="ln">Hands · <span class="swatch" data-sw="Jet Black"></span></span><span class="tag star"><i data-i="star" class="fill"></i>On your wishlist</span><span class="pin tr">1</span></div>
+                    <div class="co callout"><b class="it" data-it="10012" data-own="amber"></b><span class="nm">Bunny Tights</span><span class="ln">Legs · <span class="swatch" data-sw="Jet Black"></span></span><span class="tag amber"><i data-i="shield"></i>Armoury chest</span></div>
+                    <div class="co callout"><b class="it" data-it="13102" data-own></b><span class="nm">Witch's Thighboots</span><span class="ln">Feet · <span class="swatch" data-sw="Jet Black"></span></span><span class="tag ok"><i data-i="check"></i>Armoire</span></div>
+                  </div>
+                  <div class="mid">
+                    <span class="ring l" data-ring="2/5"><b>2/5</b></span>
+                    <div class="col g4" style="justify-items: center">
+                      <span class="d d17">Not ready yet</span>
+                      <span class="t12 b5 c-onfield2">what stands between it and a plate:</span>
+                    </div>
+                    <div class="callout blockers t12">
+                      <span class="row g6"><span class="dot amber"></span>2 to put away first</span>
+                      <span class="row g6"><span class="dot pink"></span>1 you don't have yet</span>
+                    </div>
+                    <div class="palette big" data-dyes="Metallic Purple,Jet Black" style="width: 100%"></div>
+                    <span class="sticker"><i data-i="shirt"></i>Try it on</span>
+                    <span class="pin abs" style="top: 336px; left: 6px">2</span>
+                  </div>
+                  <div class="gear">
+                    <div class="co bare"><b>—</b><span>Off hand<br /><span class="t11 b5">kept</span></span></div>
+                    <div class="co bare"><b>×</b><span>No earrings<br /><span class="t11 b5">emptied on the plate</span></span></div>
+                    <div class="co bare"><b>×</b><span>No necklace<br /><span class="t11 b5">emptied on the plate</span></span></div>
+                    <div class="co bare"><b>×</b><span>No bracelets<br /><span class="t11 b5">emptied on the plate</span></span></div>
+                    <div class="co bare"><b>×</b><span>No ring (R)<br /><span class="t11 b5">emptied on the plate</span></span></div>
+                    <div class="co bare"><b>×</b><span>No ring (L)<br /><span class="t11 b5">emptied on the plate</span></span></div>
+                  </div>
+                </div>
+              </div>
+              <div class="right side">
+                <div class="card pad-s col g8">
+                  <div class="panel-h" style="margin: 0"><span class="d">Put away first</span><span class="cnt">2</span></div>
+                  <span class="t12 muted">The armoire's open: the ones it takes go in from your bags or armoury chest. The rest go in your dresser.</span>
+                  <div class="prow"><b class="it s36" data-it="13100" data-own="amber"></b><div class="grow"><div class="nm">Witch's Coatee</div><div class="ln">In your bags · the armoire takes it</div></div><span class="btn xs">Into the armoire</span></div>
+                  <div class="prow"><b class="it s36" data-it="10012" data-own="amber"></b><div class="grow"><div class="nm">Bunny Tights</div><div class="ln">Armoury chest · storing…</div></div><span class="btn xs off">Storing…</span></div>
+                  <span class="pin tl">3</span>
+                </div>
+                <div class="slip on-side">
+                  <div class="top col g4"><span class="eyebrow">Take it into the game</span><span class="d d20">Plate 3, when it's ready</span></div>
+                  <div class="perf"></div>
+                  <div class="bot col g8 t12 muted">
+                    <span>Open Glamour Plates at a glamour dresser: the two you have go on now, the gloves' slot is left as it is.</span>
+                    <span class="btn sm" style="justify-self: start; color: var(--ink)">Add the gloves to your wishlist</span>
+                  </div>
+                  <span class="pin tl">4</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <ol class="notes">
+        <li><span class="pin">1</span><span><b>A piece you don't have</b> is washed pink, its icon faded, and says it's on your wishlist (lavender ★) or Missing (pink). The same three colours as everywhere.</span></li>
+        <li><span class="pin">2</span><span><b>No plate open: Try it on is the sticker</b>, on the field turned over to ink. The blockers are a small callout: how many to put away (amber), how many you don't have (pink).</span></li>
+        <li><span class="pin">3</span><span><b>Put away first</b>: each piece that's yours but not in the dresser or armoire, where it is, and with the armoire's window open, Into the armoire for the ones it takes. Once asked it says Storing… for five seconds (a second ask would be a second store). Not offered for a piece you're wearing.</span></li>
+        <li><span class="pin">4</span><span><b>The slip, closed</b>: how to get to a plate and what happens to the slot it can't fill. One button for the missing pieces' wishlist.</span></li>
+      </ol>
+
+      <!-- ───────── 3 · Put on a plate… ───────── -->
+      <div class="frame-cap">
+        <h2>Put on a plate…</h2>
+        <p>At the dresser, Glamour Plates not open yet: pick a plate and the plugin opens it, picks it and fills it</p>
+        <span class="size">1120 × 760</span>
+      </div>
+      <div class="stage">
+        <div class="win" style="width: 1120px; height: 760px" data-back="Back to your looks" data-eyebrow="Your look · Dancer" data-head="Fuath at Dusk">
+          <div class="body">
+            <div class="lv">
+              <div class="rel">
+                <div class="field stagef">
+                  <div class="echo"><span style="margin: 120px 0 0 -60px">Fuath at Dusk ·</span><span style="margin-left: 40px">Dusk · Fuath at</span><span style="margin-left: -120px">Fuath at Dusk ·</span><span style="margin-left: 80px">Dusk · Fuath</span></div>
+                  <div class="gear">
+                    <div class="co bare"><b>—</b><span>Weapon<br /><span class="t11 b5">kept</span></span></div>
+                    <div class="co callout"><b class="it" data-it="47207" data-own></b><span class="nm">Fuath Plumed Hat</span><span class="ln">Head · <span class="swatch" data-sw="Ink Blue"></span><span class="swatch" data-sw="Pearl White"></span></span><span class="tag ok"><i data-i="check"></i>Dresser</span></div>
+                    <div class="co callout"><b class="it" data-it="47208" data-own></b><span class="nm">Fuath Swallowtail</span><span class="ln">Body · <span class="swatch" data-sw="Ink Blue"></span><span class="swatch" data-sw="Turquoise Blue"></span></span><span class="tag ok"><i data-i="check"></i>Dresser</span></div>
+                    <div class="co callout"><b class="it" data-it="47209" data-own></b><span class="nm">Fuath Dress Gloves</span><span class="ln">Hands · <span class="swatch" data-sw="Pearl White"></span></span><span class="tag ok"><i data-i="check"></i>Dresser</span></div>
+                    <div class="co callout"><b class="it" data-it="47210" data-own></b><span class="nm">Fuath Pantaloons</span><span class="ln">Legs · <span class="swatch" data-sw="Ink Blue"></span></span><span class="tag ok"><i data-i="check"></i>Armoire</span></div>
+                    <div class="co callout"><b class="it" data-it="47211" data-own></b><span class="nm">Fuath Dress Shoes</span><span class="ln">Feet · <span class="swatch" data-sw="Ink Blue"></span></span><span class="tag ok"><i data-i="check"></i>Dresser</span></div>
+                  </div>
+                  <div class="mid">
+                    <span class="ring l" data-ring="5/5"><b>5/5</b></span>
+                    <span class="d d17">Ready for a plate</span>
+                    <div class="palette big" data-dyes="Ink Blue,Turquoise Blue,Pearl White" style="width: 100%"></div>
+                    <span class="btn sm"><i data-i="shirt" class="s14"></i>Try it on</span>
+                  </div>
+                  <div class="gear">
+                    <div class="co bare"><b>—</b><span>Off hand<br /><span class="t11 b5">kept</span></span></div>
+                    <div class="co bare"><b>×</b><span>No earrings<br /><span class="t11 b5">emptied</span></span></div>
+                    <div class="co bare"><b>×</b><span>No necklace<br /><span class="t11 b5">emptied</span></span></div>
+                    <div class="co bare"><b>×</b><span>No bracelets<br /><span class="t11 b5">emptied</span></span></div>
+                    <div class="co bare"><b>×</b><span>No ring (R)<br /><span class="t11 b5">emptied</span></span></div>
+                    <div class="co bare"><b>×</b><span>No ring (L)<br /><span class="t11 b5">emptied</span></span></div>
+                  </div>
+                </div>
+              </div>
+              <div class="right side">
+                <div class="slip on-side">
+                  <div class="top row">
+                    <div class="grow col g4"><span class="eyebrow">At the glamour dresser</span><span class="d d26">Put it on a plate</span></div>
+                  </div>
+                  <div class="perf"></div>
+                  <div class="bot col g10">
+                    <span class="t12 muted">Pick a plate: the plugin opens Glamour Plates, picks it and fills it. Nothing's saved until you press Save there.</span>
+                    <span class="sticker lg hover" style="justify-self: start"><i data-i="layers"></i>Put on a plate…<i data-i="chev-d" class="s14"></i></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="menu platepick" style="right: 22px; top: 222px" data-build="popup">
+              <div class="mh">Planned for this look</div>
+              <div class="mi on"><span class="pn">05</span><span class="grow">Plate 5<div class="sub">Empty · planned: Fuath at Dusk</div></span><i data-i="arrow-right" class="s14 c-accent"></i></div>
+              <div class="sep"></div>
+              <div class="mh">Empty</div>
+              <div class="mi"><span class="pn">04</span><span class="grow">Plate 4<div class="sub">Empty</div></span></div>
+              <div class="mi"><span class="pn">06</span><span class="grow">Plate 6<div class="sub">Empty</div></span></div>
+              <div class="sep"></div>
+              <div class="mh">The rest</div>
+              <div class="mi"><span class="pn">01</span><span class="grow">Plate 1<div class="sub">Tailor's Day Off</div></span></div>
+              <div class="mi"><span class="pn">02</span><span class="grow">Plate 2<div class="sub">8 pieces · planned: Moonlit Scholar</div></span></div>
+              <div class="mi"><span class="pn">03</span><span class="grow">Plate 3<div class="sub">Moonlit Scholar</div></span></div>
+              <div class="mi dis"><span class="pn">07</span><span class="grow">Plate 7<div class="sub">changes not saved: save them first</div></span></div>
+              <span class="pin tl">1</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <ol class="notes">
+        <li><span class="pin">1</span><span><b>Put on a plate…</b> appears while the dresser is open but Glamour Plates isn't. Its menu (an ImGui popup, restyled: raised ink, a strong hairline, 16px corners) lists the twenty plates, the one planned for this look first, then the empty ones, then the rest with what each has on it. The plugin presses the dresser's own Glamour Plates button, picks the plate and fills it, as today; it won't pick another plate over changes not yet saved.</span></li>
+      </ol>
+
+      <!-- ───────── 4 · A shot ───────── -->
+      <div class="frame-cap">
+        <h2>A shot for the site</h2>
+        <p>Taken: its preview, a caption, Send it to the look</p>
+        <span class="size">1120 × 760</span>
+      </div>
+      <div class="stage city">
+        <div class="win" style="width: 1120px; height: 760px" data-back="Back to your looks" data-eyebrow="Your look · public · Scholar" data-head="Exam Season">
+          <div class="body">
+            <div class="lv">
+              <div class="rel">
+                <div class="field stagef">
+                  <div class="echo"><span style="margin: 120px 0 0 -60px">Exam Season ·</span><span style="margin-left: 40px">Season · Exam</span><span style="margin-left: -120px">Exam Season ·</span><span style="margin-left: 80px">Season · Exam</span></div>
+                  <div class="gear">
+                    <div class="co bare"><b>—</b><span>Weapon<br /><span class="t11 b5">kept</span></span></div>
+                    <div class="co callout"><b class="it" data-it="42631" data-own></b><span class="nm">Pedagogy Mortarboard</span><span class="ln">Head</span><span class="tag ok"><i data-i="check"></i>Dresser</span></div>
+                    <div class="co callout"><b class="it" data-it="42632" data-own></b><span class="nm">Pedagogy Gown</span><span class="ln">Body</span><span class="tag ok"><i data-i="check"></i>Dresser</span></div>
+                    <div class="co callout"><b class="it" data-it="42633" data-own></b><span class="nm">Pedagogy Halfgloves</span><span class="ln">Hands</span><span class="tag ok"><i data-i="check"></i>Dresser</span></div>
+                    <div class="co callout"><b class="it" data-it="42634" data-own></b><span class="nm">Pedagogy Culottes</span><span class="ln">Legs</span><span class="tag ok"><i data-i="check"></i>Armoire</span></div>
+                    <div class="co callout"><b class="it" data-it="42635" data-own></b><span class="nm">Pedagogy Longboots</span><span class="ln">Feet</span><span class="tag ok"><i data-i="check"></i>Dresser</span></div>
+                  </div>
+                  <div class="mid">
+                    <span class="ring l" data-ring="5/5"><b>5/5</b></span>
+                    <span class="d d17">Ready for a plate</span>
+                    <div class="palette big" data-dyes="Iris Purple,Ink Blue" style="width: 100%"></div>
+                    <span class="sticker"><i data-i="shirt"></i>Try it on</span>
+                  </div>
+                  <div class="gear">
+                    <div class="co bare"><b>—</b><span>Off hand<br /><span class="t11 b5">kept</span></span></div>
+                    <div class="co bare"><b>×</b><span>No earrings</span></div>
+                    <div class="co bare"><b>×</b><span>No necklace</span></div>
+                    <div class="co bare"><b>×</b><span>No bracelets</span></div>
+                    <div class="co bare"><b>×</b><span>No ring (R)</span></div>
+                    <div class="co bare"><b>×</b><span>No ring (L)</span></div>
+                  </div>
+                </div>
+              </div>
+              <div class="right side">
+                <div class="card pad-s col g10">
+                  <div class="row"><span class="d d15">Worn in game</span><span class="end tag">3 a look at most</span></div>
+                  <div class="shot" data-build="texture: the shot (JPEG)"><span class="fig"></span></div>
+                  <span class="t11 faint num">2560 × 1440 · 1,284 KB</span>
+                  <span class="input sm"><span>Late-night revision at the Great Library<span class="caret" style="display: inline-block; margin-left: 1px; vertical-align: -3px"></span></span></span>
+                  <div class="row g8">
+                    <span class="btn sm" style="background: var(--soft)"><i data-i="send" class="s14"></i>Send it to the look</span>
+                    <span class="btn sm quiet">Take another</span>
+                    <span class="btn sm quiet end">Discard</span>
+                  </div>
+                  <span class="hand s13">wore it? show us!</span>
+                  <span class="pin tl">1</span>
+                </div>
+                <div class="card pad-s row g10" style="padding: 10px 14px">
+                  <span class="spark s16"></span><span class="t12 grow">Sent to the look: it's on its page under Worn in game.</span><span class="btn link t12">See it</span>
+                  <span class="pin tl">2</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <ol class="notes">
+        <li><span class="pin">1</span><span><b>The shot's preview is a texture</b> made from the JPEG (2560 at most on its long side, under 3 MB), its size under it in Geist Mono, a caption field, Send it to the look (outlined: the sticker stays Try it on), Take another, Discard. A shot grabbed after the HUD came back says so under its preview, in amber.</span></li>
+        <li><span class="pin">2</span><span><b>Sent</b>: a quiet line with the holo sparkle (it's new on the look's page) and See it on the site. Refused by the site's limits: its words, in amber, on the same line.</span></li>
+      </ol>
+    </div>
+  </body>
+</html>

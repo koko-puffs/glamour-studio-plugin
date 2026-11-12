@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Beside the dresser and Glamour Plates · Glamour Studio plugin redesign</title>
+    <link rel="stylesheet" href="../assets/kit.css" />
+    <script src="../assets/kit.js"></script>
+    <style>
+      .stage { padding: 28px; }
+      .pane .lrow .icons4 .it { width: 26px; height: 26px; border-radius: 6px; }
+      .slotrow { display: flex; gap: 8px; align-items: center; height: 34px; border-top: 1px solid var(--line); }
+      .slotrow:first-of-type { border-top: 0; }
+      .slotrow .sl { width: 52px; flex: none; color: var(--faint); font: 600 10.5px/1.1 var(--sans); }
+      .slotrow .nm { flex: 1; min-width: 0; overflow: hidden; color: var(--ink); font: 500 12px/1.2 var(--sans); text-overflow: ellipsis; white-space: nowrap; }
+      .slotrow .tag { height: 19px; font-size: 10.5px; padding: 0 6px; }
+      .pane .sticker { width: 100%; }
+      .plan { padding: 12px; }
+      .plan .nm { color: var(--ink); font: 800 15px/1.1 var(--display); letter-spacing: .02em; text-transform: uppercase; }
+      .prow.flat { min-height: 40px; }
+      .platerow { display: flex; gap: 9px; align-items: center; height: 44px; border-top: 1px solid var(--line); margin: 0 -8px; padding: 0 8px; border-radius: 0; }
+      .platerow:first-of-type { border-top: 0; }
+      .platerow .no { width: 20px; color: var(--muted); font: 500 12px/1 var(--mono); }
+      .platerow.sel { background: var(--accent-soft); border-radius: 10px; border-top-color: transparent; }
+      .platerow .nm { flex: 1; min-width: 0; color: var(--ink); font: 600 12.5px/1.2 var(--sans); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    </style>
+  </head>
+  <body>
+    <div class="mock-head">
+      <a class="back" href="../index.html#screens"><i data-i="arrow-left" class="s14"></i>The deck</a>
+      <span class="where">Screens · 9</span>
+      <h1>Beside the dresser and Glamour Plates</h1>
+      <div class="end">
+        <a href="characters.html"><i data-i="arrow-left" class="s14"></i>Asking</a>
+        <a href="companions-2.html">Beside the other windows<i data-i="arrow-right" class="s14"></i></a>
+        <button data-toggle="build">B · how it's built</button>
+        <button data-toggle="pins">P · pins</button>
+      </div>
+    </div>
+
+    <div class="mock-wrap">
+      <div class="mock-intro">
+        <span class="eyebrow-d">The panels · 300 wide, docked to the game's window</span>
+        <h2>Beside the game's windows: the dresser and its plates</h2>
+        <p>
+          A small panel in the plugin's look sits on the edge of the game window you have open, moving with it, as tall as
+          what's in it. Its header is the same everywhere: the clothes tag, GLAMOUR STUDIO over what it's beside in heavy
+          capitals, then Refresh, Open Glamour Studio and the fold. The game's windows here are only their outlines: they
+          are the game's.
+        </p>
+      </div>
+
+      <!-- ───────── 1 · The dresser ───────── -->
+      <div class="frame-cap">
+        <h2>At the glamour dresser</h2>
+        <p>The dresser's window open; Plate it's menu open on a look</p>
+      </div>
+      <div class="stage-row">
+        <div class="stage flexrow" style="padding-right: 170px">
+          <div class="gamewin" style="width: 380px; height: 560px">
+            <div class="gt">Glamour Dresser<span class="x">✕</span></div>
+            <div class="gb"><div class="slots"><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i></i><i></i><i></i></div>
+              <div class="row mt12" style="justify-content: space-between"><span class="gbtn">Glamour Plates</span><span class="gbtn">Outfit Glamour</span></div></div>
+            <span class="gnote">the game's window</span>
+          </div>
+          <div class="pane" data-pane="At the dresser">
+            <div class="pb">
+              <div class="sec rel">
+                <div class="row"><span class="num5 ink t13">612/800</span><span class="t12 muted">used · 188 free</span><span class="end btn xs"><i data-i="package" class="s12"></i>Make room</span></div>
+                <div class="meter"><span style="width: 76.5%"></span></div>
+                <span class="t11 muted">31 pieces could leave without breaking a look</span>
+                <span class="pin tl">1</span>
+              </div>
+              <div class="sec rel">
+                <div class="sec-h"><span class="d">Ready for a plate</span><span class="cnt">6</span></div>
+                <div class="lrow"><span class="icons4" data-look="moon" data-n="2"></span><div class="grow"><div class="nm">Moon Rabbit Nightwatch</div><div class="ln">planned for plate 7</div></div><span class="btn xs">Plate it</span></div>
+                <div class="lrow on"><span class="icons4" data-look="fuath" data-n="2"></span><div class="grow"><div class="nm">Fuath at Dusk</div><div class="ln">your look</div></div><span class="btn xs hover">Plate it<i data-i="chev-d" class="s12"></i></span></div>
+                <div class="lrow"><span class="icons4" data-look="scholar" data-n="2"></span><div class="grow"><div class="nm">Moonlit Scholar</div><div class="ln">loved · Mira Sol</div></div><span class="btn xs">Plate it</span></div>
+                <div class="lrow"><span class="icons4" data-look="witch" data-n="2"></span><div class="grow"><div class="nm">Witching Hour</div><div class="ln">sent for plate 3</div></div><span class="btn xs">Plate it</span></div>
+                <span class="more">and 2 more</span>
+                <span class="pin tl">2</span>
+              </div>
+              <div class="sec rel">
+                <div class="sec-h"><span class="d">Bring to the dresser</span><span class="cnt">3</span></div>
+                <div class="prow"><b class="it s32" data-it="13100" data-own="amber"></b><div class="grow"><div class="nm">Witch's Coatee</div><div class="ln">for Witching Hour</div></div><span class="tag amber"><i data-i="bag"></i>Bags</span></div>
+                <div class="prow"><b class="it s32" data-it="10012" data-own="amber"></b><div class="grow"><div class="nm">Bunny Tights</div><div class="ln">for Valentione Errand</div></div><span class="tag amber"><i data-i="users"></i>Mog Dahl</span></div>
+                <span class="t11 faint">Put them in the dresser from your bags and they count as ready above.</span>
+                <span class="pin tl">3</span>
+              </div>
+            </div>
+            <div class="menu" style="left: 168px; top: 196px; width: 250px">
+              <div class="mh">Put “Fuath at Dusk” on</div>
+              <div class="mi on"><span class="num t12 muted" style="width: 20px">05</span><span class="grow">Plate 5<div class="sub">empty · planned: Fuath at Dusk</div></span></div>
+              <div class="mi"><span class="num t12 muted" style="width: 20px">06</span><span class="grow">Plate 6<div class="sub">empty</div></span></div>
+              <div class="mi"><span class="num t12 muted" style="width: 20px">08</span><span class="grow">Plate 8<div class="sub">empty</div></span></div>
+              <div class="sep"></div>
+              <div class="mi"><span class="num t12 muted" style="width: 20px">01</span><span class="grow">Plate 1<div class="sub">Tailor's Day Off</div></span></div>
+              <div class="mi"><span class="num t12 muted" style="width: 20px">03</span><span class="grow">Plate 3<div class="sub">Moonlit Scholar</div></span></div>
+              <div class="mi" style="justify-content: center; color: var(--faint)"><i data-i="chev-d" class="s14"></i></div>
+              <span class="pin tr">4</span>
+            </div>
+          </div>
+        </div>
+        <div class="stage flexrow">
+          <div class="dock">
+            <div class="gamewin" style="width: 380px; height: 300px">
+              <div class="gt">Glamour Dresser<span class="x">✕</span></div>
+              <div class="gb"><div class="slots"><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i></div></div>
+            </div>
+            <div class="paneTab" style="margin-top: 20px" title="Glamour Studio: At the dresser"><i data-i="chev-r" class="s16" style="color: var(--body)"></i><span>6</span><span class="logo s18" style="margin-top: 2px"></span><span class="pin tr">5</span></div>
+          </div>
+          <div class="col g16">
+            <div class="pane" data-pane="At the dresser">
+              <div class="pb">
+                <div class="sec">
+                  <div class="row"><span class="num5 ink t13">612/800</span><span class="t12 muted">used · 188 free</span></div>
+                  <div class="meter"><span style="width: 76.5%"></span></div>
+                  <span class="btn sm hover" style="justify-self: start; border-color: var(--amber); color: var(--amber); background: var(--amber-soft)"><i data-i="package" class="s14"></i>Press again to store them</span>
+                  <span class="t11 muted">Stores 7 sets for you: frees 23 places, spends 14 glamour prisms (you have 97).</span>
+                </div>
+                <span class="pin tl" style="top: 62px; left: -27px">6</span>
+              </div>
+            </div>
+            <div class="pane" data-pane="At the dresser">
+              <div class="pb">
+                <div class="sec">
+                  <div class="row"><span class="t12 ink b6">Storing sets for you… 3 done</span><span class="end btn xs"><i data-i="stop" class="s12"></i>Stop</span></div>
+                  <div class="meter accent"><span style="width: 43%"></span></div>
+                  <span class="t11 muted">8 places freed. Keep the dresser open.</span>
+                </div>
+                <div class="card dash pad-s col g6">
+                  <span class="t12 muted">Link your account (Settings → Account) and your looks show here, the ones the dresser has everything for first.</span>
+                  <span class="btn xs" style="justify-self: start">Link your account</span>
+                </div>
+                <span class="pin tl" style="top: 62px; left: -27px">7</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <ol class="notes">
+        <li><span class="pin">1</span><span><b>The dresser in a line</b>: places used of 800 in Geist Mono, an ice bar, free, how many pieces could leave without breaking a look, and Make room (opens the plugin on Make room).</span></li>
+        <li><span class="pin">2</span><span><b>Ready for a plate</b>: the looks the dresser and armoire have everything for (yours, the ones you love, the ones sent to you), each with Plate it. Rows are the panel's own: two icons, a name in display capitals at 12.5px, one line. “and 2 more” shows the list whole.</span></li>
+        <li><span class="pin">3</span><span><b>Bring to the dresser</b>: your looks' pieces still in your bags, armoury chest, saddlebags or on retainers, each with where (amber).</span></li>
+        <li><span class="pin">4</span><span><b>Plate it's menu</b>: the twenty plates (by look name, what's planned), the planned one first, then the empty ones. Picking one presses the dresser's own Glamour Plates button, picks the plate and fills it; you press Save in the game's window.</span></li>
+        <li><span class="pin">5</span><span><b>Folded</b>: a slim tab on the window's edge, its one number (here: six looks ready), the clothes tag under it. Folded or not is remembered for each window.</span></li>
+        <li><span class="pin">6</span><span><b>Make room in the panel is pressed twice</b>: the first press turns it amber with what it'll do (“Press again to store them”), so there's no question card over the game.</span></li>
+        <li><span class="pin">7</span><span><b>While it works</b>, the panel shows the run with Stop. Not linked: a dashed card with the way to link, in every panel that needs it.</span></li>
+      </ol>
+
+      <!-- ───────── 2 · Glamour Plates ───────── -->
+      <div class="frame-cap">
+        <h2>Glamour Plates, at a dresser</h2>
+        <p>Plate 3 picked in the game, a look planned for it</p>
+      </div>
+      <div class="stage-row">
+        <div class="stage flexrow">
+          <div class="gamewin" style="width: 380px; height: 640px">
+            <div class="gt">Glamour Plates<span class="x">✕</span></div>
+            <div class="gb">
+              <div class="row g6 wrap"><span class="gbtn">1</span><span class="gbtn">2</span><span class="gbtn" style="background: #6a5a3a">3</span><span class="gbtn">4</span><span class="gbtn">5</span><span class="gbtn">…</span></div>
+              <div class="slots mt12" style="grid-template-columns: repeat(3, 1fr)"><i class="f"></i><i></i><i class="f"></i><i class="f"></i><i class="f"></i><i></i><i class="f"></i><i class="f"></i><i></i><i class="f"></i><i class="f"></i><i class="f"></i></div>
+              <div class="row mt12" style="justify-content: flex-end"><span class="gbtn">Save</span></div>
+            </div>
+            <span class="gnote">the game's window</span>
+          </div>
+          <div class="pane" data-pane="Plate 3">
+            <div class="pb">
+              <div class="card plan col g8 rel">
+                <span class="eyebrow">Planned on the site</span>
+                <div class="row"><span class="nm grow">Moonlit Scholar</span><span class="tag">Not on it yet</span></div>
+                <div class="row g4" data-look="scholar" data-n="7" data-s="28"></div>
+                <div class="row"><span class="btn link t12">Another look<i data-i="chev-d" class="s12"></i></span><span class="end t11 faint">opens it in the plugin</span></div>
+                <span class="pin tl">1</span>
+              </div>
+              <div class="sec rel">
+                <div class="sec-h"><span class="d">Slot by slot</span><span class="cnt">7 to change</span></div>
+                <div>
+                  <div class="slotrow"><span class="sl">Weapon</span><span class="nm faint">kept</span></div>
+                  <div class="slotrow"><span class="sl">Head</span><b class="it s24" data-it="42631"></b><span class="nm">Pedagogy Mortarboard</span><span class="tag ink">Changes</span></div>
+                  <div class="slotrow"><span class="sl">Body</span><b class="it s24" data-it="42632"></b><span class="nm">Pedagogy Gown</span><span class="tag ink">Changes</span></div>
+                  <div class="slotrow"><span class="sl">Hands</span><b class="it s24" data-it="42633"></b><span class="nm">Pedagogy Halfgloves</span><span class="tag ok">On it</span></div>
+                  <div class="slotrow"><span class="sl">Legs</span><b class="it s24" data-it="42634"></b><span class="nm">Pedagogy Culottes</span><span class="tag ok">Armoire</span></div>
+                  <div class="slotrow"><span class="sl">Feet</span><b class="it s24" data-it="42635"></b><span class="nm">Pedagogy Longboots</span><span class="tag amber">In your bags…</span></div>
+                  <div class="slotrow"><span class="sl">Ears</span><b class="it s24 ghost" data-it="4199"></b><span class="nm">Moonlet</span><span class="tag miss">Don't have</span></div>
+                  <div class="slotrow"><span class="sl">Neck</span><b class="it s24" data-it="4303"></b><span class="nm">Band of Eternal Passion</span><span class="tag ink">Changes</span></div>
+                  <div class="slotrow"><span class="sl">Rings</span><span class="nm faint">2 emptied · wrists emptied</span><span class="tag">Emptied</span></div>
+                </div>
+                <span class="pin tl">2</span>
+              </div>
+              <div class="sec rel">
+                <div class="row g6 t12"><i data-i="droplet" class="s14 c-ice"></i><span>Dyes from your bags: Midnight Blue ×1</span></div>
+                <div class="row g6 t12"><i data-i="droplet" class="s14 c-amber"></i><span>Gown: dye Pastel Purple in the editor</span></div>
+                <span class="btn xs" style="justify-self: start"><i data-i="star" class="s12"></i>Add Pastel Purple to your wishlist</span>
+                <span class="pin tl">3</span>
+              </div>
+              <div class="col g6 rel">
+                <span class="sticker lg"><i data-i="layers"></i>Fill plate 3</span>
+                <span class="t11 faint" style="text-align: center">Fills the plate in the game's window. Nothing's saved until you press Save there.</span>
+                <span class="pin tl">4</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="stage col g16" style="padding: 28px 28px 28px 40px; display: grid">
+          <div class="pane" data-pane="Plate 3">
+            <div class="pb">
+              <div class="card plan col g8" style="border-color: rgb(140 226 255 / .45)">
+                <span class="eyebrow" style="color: var(--ice)"><i data-i="check" class="s12"></i>Filled · not saved yet</span>
+                <span class="nm">Moonlit Scholar</span>
+                <span class="hand s13">now press Save in the game</span>
+              </div>
+              <span class="btn sm quiet" style="justify-self: start">Fill it again</span>
+              <span class="pin tl" style="top: 62px; left: -27px">5</span>
+            </div>
+          </div>
+          <div class="pane" data-pane="Plate 3">
+            <div class="pb">
+              <div class="card plan col g8">
+                <span class="eyebrow" style="color: var(--ice)"><i data-i="check" class="s12"></i>Saved · on plate 3</span>
+                <span class="nm">Moonlit Scholar</span>
+                <span class="t12 muted">To wear it, close Glamour Plates and the dresser, then Wear plate 3 in the plugin's Plates (or the Character window's Glamour Plate).</span>
+              </div>
+              <span class="pin tl" style="top: 62px; left: -27px">6</span>
+            </div>
+          </div>
+          <div class="pane" data-pane="Plate 7">
+            <div class="pb">
+              <div class="card warn pad-s row top g8"><i data-i="alert" class="s16 c-amber"></i><span class="t12">Plate 7 has changes not saved: save them, or put it back, first.</span></div>
+              <span class="pin tl" style="top: 62px; left: -27px">7</span>
+            </div>
+          </div>
+        </div>
+        <div class="stage col g16" style="padding: 28px 28px 28px 40px; display: grid">
+          <div class="pane rel" data-pane="Plate 4">
+            <div class="pb">
+              <span class="t12 muted">No plan for plate 4. Fill it with one of the looks the dresser has everything for:</span>
+              <div class="sec">
+                <div class="lrow"><span class="icons4" data-look="moon" data-n="2"></span><div class="grow"><div class="nm">Moon Rabbit Nightwatch</div><div class="ln">all 4 here</div></div><span class="btn xs">Fill with it</span></div>
+                <div class="lrow"><span class="icons4" data-look="fuath" data-n="2"></span><div class="grow"><div class="nm">Fuath at Dusk</div><div class="ln">all 5 here</div></div><span class="btn xs">Fill with it</span></div>
+                <div class="lrow"><span class="icons4" data-look="weaver" data-n="2"></span><div class="grow"><div class="nm">Tailor's Day Off</div><div class="ln">all 6 here</div></div><span class="btn xs">Fill with it</span></div>
+              </div>
+              <span class="t11 faint">Or plan a look for this plate on the site: it shows up here.</span>
+              <span class="pin tl" style="top: 62px; left: -27px">8</span>
+            </div>
+          </div>
+          <div class="pane" data-pane="Your plates" style="margin-top: 0">
+            <div class="pb">
+              <div>
+                <div class="platerow"><span class="no">01</span><span class="nm">Tailor's Day Off</span><span class="tag job" style="height: 18px; font: 500 10px/1 var(--mono)">WAR</span><span class="btn xs">Wear</span></div>
+                <div class="platerow sel"><span class="no">03</span><span class="nm">Moonlit Scholar</span><span class="tag" style="height: 18px; font: 500 10px/1 var(--mono)">WHM</span><span class="btn xs">Wear</span></div>
+                <div class="platerow"><span class="no">04</span><span class="nm">Fuath at Dusk</span><span class="tag ok">On</span></div>
+                <div class="platerow"><span class="no">06</span><span class="nm">Moon Rabbit Nightwatch</span><span class="btn xs">Wear</span></div>
+                <div class="platerow"><span class="no">11</span><span class="nm faint">5 pieces</span><span class="btn xs">Wear</span></div>
+              </div>
+              <span class="t11 faint">Wear puts a plate on you, as the window's own apply does. To fill a plate, open Glamour Plates at a glamour dresser.</span>
+              <span class="pin tl" style="top: 62px; left: -27px">9</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <ol class="notes">
+        <li><span class="pin">1</span><span><b>The plan for the plate picked in the game</b>: its name (opens it in the plugin), its pieces, whether it's on the plate (ice On it when it is). Another look lists the ready ones, then the rest of yours; a pick made here is for this plate.</span></li>
+        <li><span class="pin">2</span><span><b>Slot by slot</b>, each marked in the honest colours: On it and From the armoire in ice, Changes in lilac, In your bags… in amber, Don't have in pink, Emptied plain.</span></li>
+        <li><span class="pin">3</span><span><b>Dyes</b>: from your bags (ice), to do in the editor (amber), and the missing bottles onto your wishlist.</span></li>
+        <li><span class="pin">4</span><span><b>Fill plate 3 is the panel's sticker</b>, the full width of the panel, the one thing to do beside Glamour Plates. The plugin's main window, if open, shows the same moment on Home.</span></li>
+        <li><span class="pin">5</span><span><b>Filled</b>: an ice edge, the hand voice says the one thing left (Save in the game). Fill it again stays, quiet.</span></li>
+        <li><span class="pin">6</span><span><b>Saved</b>: how to wear it (the game won't change gearset at a dresser).</span></li>
+        <li><span class="pin">7</span><span><b>Changes not saved</b> on another plate: Plate it and Fill wait, in amber.</span></li>
+        <li><span class="pin">8</span><span><b>No plan</b>: the ready looks, each with Fill with it (outlined: with several, none of them is the one thing).</span></li>
+        <li><span class="pin">9</span><span><b>From the Character window</b> (Glamour Plate there only shows and applies): every plate with something on it, by its look's name, its gearsets' jobs, On for the one you wear, Wear for the rest (the window's own apply). It fills no plate.</span></li>
+      </ol>
+    </div>
+  </body>
+</html>

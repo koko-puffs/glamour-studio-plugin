@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+  <!-- Context only: a city square at dusk in the game, softly out of focus. Not part of the design. -->
+  <defs>
+    <filter id="b" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="20"/></filter>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1b1b3f"/><stop offset=".45" stop-color="#4a3566"/><stop offset=".7" stop-color="#b0656a"/><stop offset="1" stop-color="#2a1c22"/></linearGradient>
+    <radialGradient id="l" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffd59a" stop-opacity=".9"/><stop offset="1" stop-color="#ff9d4a" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="1600" height="1000" fill="url(#sky)"/>
+  <g filter="url(#b)">
+    <rect x="40" y="300" width="300" height="520" fill="#241a2a"/>
+    <rect x="300" y="380" width="260" height="440" fill="#2d2033"/>
+    <path d="M620 820V260l120-90 120 90v560Z" fill="#1f1726"/>
+    <rect x="980" y="330" width="280" height="490" fill="#2a1e2e"/>
+    <rect x="1240" y="250" width="340" height="570" fill="#1d1522"/>
+    <circle cx="220" cy="560" r="90" fill="url(#l)"/><circle cx="760" cy="520" r="120" fill="url(#l)"/>
+    <circle cx="1120" cy="600" r="90" fill="url(#l)"/><circle cx="1420" cy="500" r="110" fill="url(#l)"/>
+    <rect x="0" y="800" width="1600" height="200" fill="#3a2a2a"/>
+    <ellipse cx="820" cy="760" rx="70" ry="190" fill="#120d18" opacity=".8"/>
+  </g>
+  <rect width="1600" height="1000" fill="#0c0a12" opacity=".32"/>
+</svg>

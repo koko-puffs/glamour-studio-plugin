@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 110" fill="none" stroke="#c9b8ff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+  <!-- The cloud (the site's GsMotif cloud). In the plugin: a texture, tinted per use. -->
+  <path d="M30 92C14 92 12 70 28 66c-2-18 20-26 32-16 4-20 32-26 44-10 8-18 42-18 48 4 14-8 36 2 30 20 18 0 22 28 4 28Z"/>
+  <path d="M60 50c10 2 14 12 8 18s-16 2-14-6c1-5 7-5 8-1"/><path d="M152 44c-12 4-14 16-6 20s14-4 10-8c-3-3-8-1-7 3"/><path d="M104 40c4 8 2 16-6 18"/>
+  <path d="M8 100h56M150 100h62" opacity=".6"/>
+</svg>

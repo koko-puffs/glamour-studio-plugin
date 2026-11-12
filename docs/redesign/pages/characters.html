@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Asking about a character · Glamour Studio plugin redesign</title>
+    <link rel="stylesheet" href="../assets/kit.css" />
+    <script src="../assets/kit.js"></script>
+    <style>
+      .screen { position: relative; width: 1400px; height: 760px; overflow: hidden; border-radius: 14px; background: url('../assets/backdrop-city.svg') center / cover; }
+      .hud { position: absolute; border-radius: 6px; background: rgb(0 0 0 / .4); border: 1px solid rgb(240 220 170 / .25); }
+      .ask { position: absolute; left: 50%; top: 40px; width: 440px; margin-left: -220px; padding: 22px 24px 20px; border: 1px solid var(--line-strong); border-radius: 28px; background: var(--card); }
+      .ask h3 { color: var(--ink); font: 800 22px/1.05 var(--display); letter-spacing: .015em; text-transform: uppercase; }
+      .ask p { color: var(--body); font-size: 13.5px; line-height: 1.5; }
+      .ask .foot { display: flex; gap: 8px; align-items: center; margin-top: 18px; }
+    </style>
+  </head>
+  <body>
+    <div class="mock-head">
+      <a class="back" href="../index.html#screens"><i data-i="arrow-left" class="s14"></i>The deck</a>
+      <span class="where">Screens · 8</span>
+      <h1>Asking about a character</h1>
+      <div class="end">
+        <a href="settings.html"><i data-i="arrow-left" class="s14"></i>Settings</a>
+        <a href="companions-1.html">Beside the game's windows<i data-i="arrow-right" class="s14"></i></a>
+        <button data-toggle="build">B · how it's built</button>
+        <button data-toggle="pins">P · pins</button>
+      </div>
+    </div>
+
+    <div class="mock-wrap">
+      <div class="mock-intro">
+        <span class="eyebrow-d">The question · a card of its own, window open or not</span>
+        <h2>Asking first, on each new character</h2>
+        <p>
+          Before anything of a character goes to the site, the plugin asks. The card is its own small window at the top
+          of the screen, whether Glamour Studio's window is open or not, gone in cutscenes, group pose and while the HUD
+          is hidden. Its answer is the sticker; the other two are plain.
+        </p>
+      </div>
+
+      <div class="frame-cap">
+        <h2>The question, over the game</h2>
+        <p>Logged in on a character not asked about yet, Glamour Studio's window closed</p>
+        <span class="size">440 wide, on a 1400 × 760 screen</span>
+      </div>
+      <div class="stage free">
+        <div class="screen">
+          <div class="hud" style="left: 24px; top: 24px; width: 260px; height: 64px"></div>
+          <div class="hud" style="right: 24px; top: 24px; width: 180px; height: 180px; border-radius: 50%"></div>
+          <div class="hud" style="left: 50%; bottom: 20px; width: 560px; margin-left: -280px; height: 54px"></div>
+          <div class="ask" data-build="its own window: NoTitleBar, kept in front">
+            <div class="row g10"><span class="logo s22"></span><span class="eyebrow">A new character on Lich</span></div>
+            <h3 class="mt10">Send Kokomi Nyan's wardrobe to Glamour Studio?</h3>
+            <p class="mt10">Its glamour dresser, armoire, bags, armoury chest, saddlebags, retainers, plates and outfit go to your closet on the site, so it knows what you own.</p>
+            <p class="mt8 t13 muted">It stays private unless you show the character there. Nothing is sent until you say yes.</p>
+            <div class="foot">
+              <span class="btn sm quiet">Not now</span>
+              <span class="end btn">No</span>
+              <span class="sticker">Yes, send it</span>
+            </div>
+            <span class="pin tl">1</span>
+          </div>
+          <div class="chat" style="position: absolute; left: 24px; bottom: 90px">
+            <div class="sys">You change to white mage.</div>
+            <div class="gs">Glamour Studio: Kokomi Nyan's wardrobe goes to the site now (private unless you show it).</div>
+            <div class="gs">Glamour Studio: nothing of Ruby Nyan goes to the site. Change it in Settings → Account.</div>
+            <div class="gs">Glamour Studio: Witch's Gloves came off your wishlist: seen in your wardrobe.</div>
+            <span class="pin tr">2</span>
+          </div>
+        </div>
+      </div>
+      <ol class="notes">
+        <li><span class="pin">1</span><span><b>The card</b>: 440 wide, ink with 28px corners and a strong hairline (no glow), the logo and an eyebrow saying why it's asking (a new character, its world), the question in display capitals, what goes and that it stays private, and that nothing's sent until yes. <b>Yes, send it</b> is the sticker: told to the site, then the closet goes at once and its plans and Wear today are read as that character. <b>No</b> (outlined): told to the site, which lets go of what it had. <b>Not now</b> (quiet): not asked again until the plugin loads again.</span></li>
+        <li><span class="pin">2</span><span><b>A line in chat says what you chose</b> (and, with Say in chat when a wish comes true on, which wishes came off your list), in the plugin's lilac (the game's chat colours are the game's: only the words are ours).</span></li>
+      </ol>
+
+      <div class="frame-cap">
+        <h2>What the header says, character by character</h2>
+        <p>The pill on every screen, and Settings → Account's line for each</p>
+      </div>
+      <div class="stage free" style="padding: 30px; display: grid; grid-template-columns: repeat(2, max-content); gap: 18px 40px; align-items: center">
+        <span class="who" style="position: relative"><span class="face off">KN</span><span class="dot no"></span><span class="st">This character isn't sent yet: say yes or no</span><span class="pin tl">1</span></span><span class="t13 muted">Asked and not answered (Not now): faint dot, the initials on soft ink.</span>
+        <span class="who live"><span class="face">KN</span><span class="dot live"></span><span class="st">Yes · telling the site…</span></span><span class="t13 muted">Your answer stands until the site has it; nothing's sent meanwhile.</span>
+        <span class="who"><span class="face">KN</span><span class="dot"></span><span class="st">Closet sent 2 min ago</span></span><span class="t13 muted">Sent: the initials on the field's violet, an ice dot.</span>
+        <span class="who"><span class="face off">RN</span><span class="dot no"></span><span class="st">This character isn't sent to the site</span></span><span class="t13 muted">You said no (here or on the site: the site's word wins).</span>
+        <span class="who danger"><span class="face">KN</span><span class="dot danger"></span><span class="st">Glamour Studio couldn't ask about this character</span></span><span class="t13 muted">The site couldn't be reached to check: asked again a minute later.</span>
+      </div>
+      <ol class="notes">
+        <li><span class="pin">1</span><span><b>The same pill everywhere</b> (Home, Looks, Plates, Closet, Make room): your character's initials and one line for what's going on. Pointing at it shows the name and world; pressing it opens Settings → Account. In front of these, while they happen: Recording what you do, Plate editor open · plate 3, Sending your closet…, Link again: the site doesn't know this token.</span></li>
+      </ol>
+    </div>
+  </body>
+</html>

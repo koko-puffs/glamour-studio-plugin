@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Make room · Glamour Studio plugin redesign</title>
+    <link rel="stylesheet" href="../assets/kit.css" />
+    <script src="../assets/kit.js"></script>
+    <style>
+      .mr-field { height: 206px; padding: 22px 26px; display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 26px; }
+      .mr-field .big { color: #f6f3ff; font: 800 60px/0.95 var(--display); text-shadow: 3px 3px 0 var(--field-deep), 5px 5px 0 #000; }
+      .mr-field .big small { font-size: 30px; }
+      .cols2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; margin-top: 18px; }
+      .setrow { display: flex; gap: 10px; align-items: center; min-height: 50px; border-top: 1px solid var(--line); }
+      .setrow:first-of-type { border-top: 0; }
+      .setrow .nm { color: var(--ink); font: 600 13px/1.25 var(--sans); }
+      .setrow .ln { color: var(--muted); font: 400 12px/1.3 var(--sans); }
+      .spin { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--soft); border-top-color: var(--accent); flex: none; }
+    </style>
+  </head>
+  <body>
+    <div class="mock-head">
+      <a class="back" href="../index.html#screens"><i data-i="arrow-left" class="s14"></i>The deck</a>
+      <span class="where">Screens · 6</span>
+      <h1>Make room</h1>
+      <div class="end">
+        <a href="closet.html"><i data-i="arrow-left" class="s14"></i>Closet</a>
+        <a href="settings.html">Settings<i data-i="arrow-right" class="s14"></i></a>
+        <button data-toggle="build">B · how it's built</button>
+        <button data-toggle="pins">P · pins</button>
+      </div>
+    </div>
+
+    <div class="mock-wrap">
+      <div class="mock-intro">
+        <span class="eyebrow-d">The main window · Make room</span>
+        <h2>Make room: the dresser's number is the moment</h2>
+        <p>
+          How full the dresser is, on the field, with the one thing to do: Make room for me, which gathers outfit sets'
+          loose pieces into their sets. It always asks first, tries one set the first time, shows its progress and can
+          be stopped. Below, the sets to gather, the pieces no look or plate uses, and the duplicates.
+        </p>
+      </div>
+
+      <!-- ───────── 1 · Overview ───────── -->
+      <div class="frame-cap">
+        <h2>At the dresser</h2>
+        <p>Read just now; seven sets to gather</p>
+        <span class="size">1120 × 760</span>
+      </div>
+      <div class="stage">
+        <div class="win" style="width: 1120px; height: 760px" data-place="room">
+          <div class="body">
+            <div class="page">
+              <div class="field mr-field" data-build="field">
+                <div class="echo"><span style="margin: -6px 0 0 460px">Make room ·</span><span style="margin-left: 200px">Make room · Make</span><span style="margin-left: 520px">room ·</span></div>
+                <div class="col g8">
+                  <span class="eyebrow"><i data-i="hanger" class="s14"></i>Glamour dresser · read just now</span>
+                  <span class="big">612<small> / 800</small></span>
+                  <div class="meter l" style="max-width: 560px"><span style="width: 76.5%"></span></div>
+                  <span class="t13 b5 c-onfield2">188 free · gathering 7 outfit sets frees up to 23 places</span>
+                  <span class="pin abs" style="left: 8px; top: 8px">1</span>
+                </div>
+                <div class="col g10" style="align-content: center">
+                  <span class="sticker lg" style="justify-self: start"><i data-i="package"></i>Make room for me</span>
+                  <span class="hand s13" style="line-height: 1.2">it asks first, and does one set the first time so you can check</span>
+                  <span class="pin abs" style="left: 690px; top: 52px">2</span>
+                </div>
+              </div>
+              <div class="cols2">
+                <div class="card pad-s">
+                  <div class="panel-h"><span class="d">Keep as outfits</span><span class="cnt">7</span><span class="end t12 c-amber">frees up to 23</span></div>
+                  <div class="setrow"><b class="it s36" data-it="8559"></b><div class="grow"><div class="nm">Crescent Moon Attire</div><div class="ln">3 of 4 pieces loose in your dresser</div></div><span class="tag ink">Frees 2</span></div>
+                  <div class="setrow"><b class="it s36" data-it="13100"></b><div class="grow"><div class="nm">Witch's Attire</div><div class="ln">4 of 5 loose · 1 in your bags</div></div><span class="tag ink">Frees 4</span></div>
+                  <div class="setrow"><b class="it s36" data-it="6973"></b><div class="grow"><div class="nm">Valentione Attire</div><div class="ln">The set's in your dresser: 2 pieces join it</div></div><span class="tag ink">Frees 2</span></div>
+                  <div class="setrow"><b class="it s36" data-it="42632"></b><div class="grow"><div class="nm">Pedagogy Attire</div><div class="ln">5 of 5 loose · high quality</div></div><span class="tag ink">Frees 4</span><span class="pin tr" style="right: -22px">3</span></div>
+                  <div class="setrow"><b class="it s36" data-it="47208"></b><div class="grow"><div class="nm">Fuath Attire</div><div class="ln">3 of 5 loose · 2 of them dyed</div></div><span class="tag ink">Frees 2</span></div>
+                </div>
+                <div class="col g14">
+                  <div class="card pad-s">
+                    <div class="panel-h"><span class="d">Not in any look or plate</span><span class="cnt">31</span></div>
+                    <span class="t12 muted" style="display: block; margin: -4px 0 4px">None of your looks, the ones you love, your plans or your plates uses these.</span>
+                    <div class="prow"><b class="it s32" data-it="2925"></b><div class="grow"><div class="nm">Weaver's Gibus</div><div class="ln">Head · Wine Red</div></div></div>
+                    <div class="prow"><b class="it s32" data-it="3486"></b><div class="grow"><div class="nm">Weaver's Trousers</div><div class="ln">Legs · undyed</div></div></div>
+                    <div class="btn link t12 mt4">and 29 more</div>
+                    <span class="pin tr">4</span>
+                  </div>
+                  <div class="card pad-s row g12">
+                    <div class="grow col g4"><span class="d d15">Duplicates</span><span class="t12 muted">4 second copies with the same dyes, and 1 set stored twice</span></div>
+                    <span class="btn sm">Take out duplicates</span>
+                    <span class="pin tr">5</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <ol class="notes">
+        <li><span class="pin">1</span><span><b>The number is the field's moment</b>: places used of 800 in heavy capitals (an outfit's pieces share one place), the bar in ink on the field, how many are free and how many gathering would free.</span></li>
+        <li><span class="pin">2</span><span><b>Make room for me is the sticker</b>, turned over on the field, the hand voice saying the two things that make it safe to press. Needs the dresser open; greyed with its reason otherwise (“Open your glamour dresser first”, “Close Glamour Plates first”).</span></li>
+        <li><span class="pin">3</span><span><b>Keep as outfits</b>: each set with two or more loose pieces (one when the set's stored already), the most freed first: how many are loose, in your bags, joining a stored set, high quality, or dyed (a dyed copy loses its dye).</span></li>
+        <li><span class="pin">4</span><span><b>Not in any look or plate</b>: shown only once your looks have been read (“Reading your looks from the site…” meanwhile; not linked, it says to link).</span></li>
+        <li><span class="pin">5</span><span><b>Duplicates</b>: second copies with the same dyes, an undyed copy of a piece a stored set holds, a set stored twice. Take out duplicates asks first too (frame 4).</span></li>
+      </ol>
+
+      <!-- ───────── 2 · The question ───────── -->
+      <div class="frame-cap">
+        <h2>It asks first</h2>
+        <p>The first run: one set, so you can check it before it does them all</p>
+        <span class="size">1120 × 760</span>
+      </div>
+      <div class="stage">
+        <div class="win" style="width: 1120px; height: 760px" data-place="room">
+          <div class="body">
+            <div class="page">
+              <div class="field mr-field">
+                <div class="echo"><span style="margin: -6px 0 0 460px">Make room ·</span><span style="margin-left: 200px">Make room · Make</span></div>
+                <div class="col g8"><span class="eyebrow">Glamour dresser · read just now</span><span class="big">612<small> / 800</small></span><div class="meter l" style="max-width: 560px"><span style="width: 76.5%"></span></div></div>
+                <div class="col g10" style="align-content: center"><span class="sticker lg pressed" style="justify-self: start"><i data-i="package"></i>Make room for me</span></div>
+              </div>
+            </div>
+            <div class="scrim"></div>
+            <div class="dialog" style="left: 50%; top: 120px; margin-left: -230px; width: 460px" data-build="the question: its own window over ours">
+              <span class="eyebrow">Make room · the first time</span>
+              <h3 class="d d26 mt6">Try it on one set?</h3>
+              <p class="mt10">It stores <b class="ink">Crescent Moon Attire</b>: its three loose pieces go to your bags and back in as the set, spending three glamour prisms (you have 97). Its pieces already in your bags go in with it.</p>
+              <div class="col g6 mt12 t13">
+                <span class="row g8"><span class="dot"></span>Frees 2 places in your dresser</span>
+                <span class="row g8"><span class="dot amber"></span>Needs 3 free bag places at a time (you have 22)</span>
+                <span class="row g8"><span class="dot no"></span>Keep the dresser open while it works</span>
+              </div>
+              <p class="mt10 t13 muted">Once it's worked, the next press does the other six.</p>
+              <div class="foot"><span class="btn">Not now</span><span class="sticker">Try it</span></div>
+              <span class="pin tl">1</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <ol class="notes">
+        <li><span class="pin">1</span><span><b>The question is a card over the window</b>, as today: its own ImGui window the size of ours, the ink at 75% over it, the card (28px corners, a strong hairline, no glow) opening on its heading in display capitals. What it'll do in the honest colours, the prisms and bag places it needs. Its answer is the screen's sticker; Not now is outlined; Esc is Not now. After the first set: “Store the sets for you?” with all of them, the places freed, the prisms, the dyes lost.</span></li>
+      </ol>
+
+      <!-- ───────── 3 · Working ───────── -->
+      <div class="frame-cap">
+        <h2>Storing sets for you</h2>
+        <p>Three done, four to go</p>
+        <span class="size">1120 × 760</span>
+      </div>
+      <div class="stage">
+        <div class="win" style="width: 1120px; height: 760px" data-place="room" data-who="live|Storing sets · 3 of 7" data-counts="|32|14/20|612|606/800">
+          <div class="body">
+            <div class="page">
+              <div class="field mr-field">
+                <div class="echo"><span style="margin: -6px 0 0 460px">Storing ·</span><span style="margin-left: 200px">Storing · Storing</span></div>
+                <div class="col g8">
+                  <span class="eyebrow"><i data-i="package" class="s14"></i>Storing sets for you · keep the dresser open</span>
+                  <span class="big">3<small> of 7 sets</small></span>
+                  <div class="meter l" style="max-width: 560px"><span style="width: 43%"></span></div>
+                  <span class="t13 b5 c-onfield2">8 places freed so far · now: Pedagogy Attire, piece 3 of 5 to your bags</span>
+                </div>
+                <div class="col g10" style="align-content: center">
+                  <span class="btn" style="justify-self: start"><i data-i="stop" class="s14"></i>Stop</span>
+                  <span class="t12 b5 c-onfield2">Stops once the step the game is answering is done.</span>
+                </div>
+                <span class="pin abs" style="left: 8px; top: 8px">1</span>
+              </div>
+              <div class="cols2">
+                <div class="card pad-s">
+                  <div class="panel-h"><span class="d">Keep as outfits</span><span class="cnt">3 of 7 done</span></div>
+                  <div class="setrow"><b class="it s36" data-it="8559"></b><div class="grow"><div class="nm">Crescent Moon Attire</div><div class="ln">Stored · freed 2</div></div><span class="tag ok"><i data-i="check"></i>Done</span></div>
+                  <div class="setrow"><b class="it s36" data-it="13100"></b><div class="grow"><div class="nm">Witch's Attire</div><div class="ln">Stored · freed 4</div></div><span class="tag ok"><i data-i="check"></i>Done</span></div>
+                  <div class="setrow"><b class="it s36" data-it="6973"></b><div class="grow"><div class="nm">Valentione Attire</div><div class="ln">Joined the stored set · freed 2</div></div><span class="tag ok"><i data-i="check"></i>Done</span></div>
+                  <div class="setrow"><b class="it s36" data-it="42632"></b><div class="grow"><div class="nm">Pedagogy Attire</div><div class="ln">Pieces to your bags… 3 of 5</div></div><span class="spin"></span><span class="pin tr" style="right: -22px">2</span></div>
+                  <div class="setrow" style="opacity: .55"><b class="it s36" data-it="47208"></b><div class="grow"><div class="nm">Fuath Attire</div><div class="ln">Next</div></div></div>
+                </div>
+                <div class="col g14">
+                  <div class="card pad-s col g6">
+                    <span class="d d15">While it works</span>
+                    <span class="t12 muted">Each piece is restored to your bags, then they go in as the set, a glamour prism a piece, as storing by hand spends. A refused step is asked again for up to ten seconds; a set the game doesn't take is left, its pieces in your bags, and the run goes on (three in a row and it stops).</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <ol class="notes">
+        <li><span class="pin">1</span><span><b>Progress takes the field</b>: what it's doing in words, how many sets of how many, the bar, what's freed so far, and the step it's on. Stop (outlined: it isn't the thing to do) waits for the step the game is answering. The header's pill and the bar's Make room count follow it.</span></li>
+        <li><span class="pin">2</span><span><b>Each set's row says where it is</b>: Done in ice with what it freed, the one at work with a small turning ring (draw list: an arc, rotating), the rest waiting, dimmed.</span></li>
+      </ol>
+
+      <!-- ───────── 4 · Done, one left; duplicates ───────── -->
+      <div class="frame-cap">
+        <h2>Done (one set left), then the duplicates</h2>
+        <p>The run's end, and Take out duplicates asking first</p>
+        <span class="size">1120 × 760</span>
+      </div>
+      <div class="stage">
+        <div class="win" style="width: 1120px; height: 760px" data-place="room" data-counts="|32|14/20|612|591/800">
+          <div class="body">
+            <div class="page">
+              <div class="field mr-field">
+                <div class="echo"><span style="margin: -6px 0 0 460px">Make room ·</span><span style="margin-left: 200px">Make room · Make</span></div>
+                <div class="col g8">
+                  <span class="eyebrow"><i data-i="check" class="s14"></i>Made room · 21 places freed</span>
+                  <span class="big">591<small> / 800</small></span>
+                  <div class="meter l" style="max-width: 560px"><span style="width: 73.9%"></span></div>
+                  <span class="t13 b5 c-onfield2">209 free · 6 of 7 sets stored</span>
+                </div>
+              </div>
+              <div class="cols2">
+                <div class="card pad-s warn row top g12">
+                  <i data-i="alert" class="s18 c-amber mt4"></i>
+                  <div class="grow col g4"><span class="ink b6 t13">Fuath Attire wasn't taken</span><span class="t12 muted">The game didn't store it. Its three pieces are in your bags: put them back in the dresser, or store the set by hand under Outfit Glamour.</span></div>
+                  <span class="pin tl">1</span>
+                </div>
+                <div class="card pad-s row g12">
+                  <div class="grow col g4"><span class="d d15">Duplicates</span><span class="t12 muted">4 second copies with the same dyes, and 1 set stored twice</span></div>
+                  <span class="btn sm">Take out duplicates</span>
+                </div>
+              </div>
+            </div>
+            <div class="scrim"></div>
+            <div class="dialog" style="left: 50%; top: 150px; margin-left: -220px">
+              <h3 class="d d26">Take out the duplicates?</h3>
+              <p class="mt10">They come out to your bags, one at a time: four pieces, and the second copy of Witch's Attire (its five pieces all come out). It needs 9 free bag places (you have 22).</p>
+              <p class="mt8 t13 muted">Never the last copy, never a Unique piece you hold. Nothing's thrown away: sell or discard them yourself.</p>
+              <div class="foot"><span class="btn">Not now</span><span class="sticker">Take them out</span></div>
+              <span class="pin tl">2</span>
+            </div>
+            <span class="toast" style="left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 20"><span class="spark s16"></span>Made room: 6 sets stored, 21 places freed</span>
+          </div>
+        </div>
+      </div>
+      <ol class="notes">
+        <li><span class="pin">1</span><span><b>What's left is said plainly</b>, in amber (something to see to, not a failure of yours): which set, where its pieces are, what to do. A run that stops (bags full, the dresser closed, three refusals) says so the same way.</span></li>
+        <li><span class="pin">2</span><span><b>Take out the duplicates?</b> The same question card: what comes out, the bag places, and the two promises. Taking out shows its progress on the field as storing does (“Taking out duplicates… 2 out, 3 to go”).</span></li>
+      </ol>
+    </div>
+  </body>
+</html>

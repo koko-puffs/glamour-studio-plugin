@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Looks · Glamour Studio plugin redesign</title>
+    <link rel="stylesheet" href="../assets/kit.css" />
+    <script src="../assets/kit.js"></script>
+    <style>
+      .lk { display: grid; grid-template-columns: 548px minmax(0, 1fr); height: 100%; }
+      .lk .list { position: relative; padding: 14px 20px 0 24px; overflow: hidden; }
+      .lk .pick { position: relative; padding: 18px 22px; overflow: hidden; }
+      .filters { display: flex; gap: 6px; align-items: center; margin: 12px 0 8px; }
+      .filters .input { flex: 1; min-width: 0; }
+      .lrow .right { display: grid; justify-items: end; gap: 4px; }
+      .lk .lrow { margin: 0 -12px; }
+      .sheetf { height: 214px; padding: 18px 20px; display: grid; gap: 8px; align-content: start; }
+      .sheetf h3 { color: #f6f3ff; font: 800 34px/0.98 var(--display); letter-spacing: 0.015em; text-transform: uppercase; text-shadow: 3px 3px 0 var(--field-deep), 5px 5px 0 #000; max-width: 400px; }
+      .sheetf .seal { position: absolute; top: 18px; right: 20px; }
+      .pieces9 { display: flex; gap: 5px; }
+      .skel { height: 64px; display: flex; gap: 12px; align-items: center; }
+      .skel i { display: block; border-radius: 8px; background: var(--soft); }
+      .board { position: relative; width: 548px; height: 420px; overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: var(--ground); padding: 14px 20px 0 24px; }
+    </style>
+  </head>
+  <body>
+    <div class="mock-head">
+      <a class="back" href="../index.html#screens"><i data-i="arrow-left" class="s14"></i>The deck</a>
+      <span class="where">Screens · 2</span>
+      <h1>Looks</h1>
+      <div class="end">
+        <a href="home.html"><i data-i="arrow-left" class="s14"></i>Home</a>
+        <a href="look.html">A look<i data-i="arrow-right" class="s14"></i></a>
+        <button data-toggle="build">B · how it's built</button>
+        <button data-toggle="pins">P · pins</button>
+      </div>
+    </div>
+
+    <div class="mock-wrap">
+      <div class="mock-intro">
+        <span class="eyebrow-d">The main window · Looks</span>
+        <h2>Looks: yours, the ones you love, the ones you could wear today</h2>
+        <p>
+          A list down the left and the look picked as a small character sheet on the right: its name on the field, its
+          dyes as a palette strip, its pieces with where each one is. The three tabs, the search and the filters are
+          today's; the words follow the site's (Wear today, loves, Discover).
+        </p>
+      </div>
+
+      <!-- ───────── 1 · Your looks ───────── -->
+      <div class="frame-cap">
+        <h2>Your looks, one picked</h2>
+        <p>Away from a dresser: Try it on is the one thing to do</p>
+        <span class="size">1120 × 760</span>
+      </div>
+      <div class="stage">
+        <div class="win" style="width: 1120px; height: 760px" data-place="looks">
+          <div class="body">
+            <div class="lk">
+              <div class="list">
+                <div class="tabs rel"><span class="on">Your looks <span class="n">23</span></span><span>Loved <span class="n">41</span></span><span>Wear today <span class="n">14</span></span><span class="pin tl" style="top: 4px">1</span></div>
+                <div class="filters rel">
+                  <span class="input sm pill"><i data-i="search" class="s14 faint"></i><span class="ph">Search your looks</span></span>
+                  <span class="combo"><i data-i="check" class="s14 c-ice"></i>Ready first</span>
+                  <span class="combo">Any job<i data-i="chev-d" class="s14"></i></span>
+                  <span class="combo">Any mood<i data-i="chev-d" class="s14"></i></span>
+                  <span class="pin tr">2</span>
+                </div>
+                <div class="lrow on"><span class="icons4" data-look="scholar" data-n="4" data-s="32"></span><div class="grow"><div class="nm">Moonlit Scholar</div><div class="ln">Loved · by Mira Sol · Scholar</div></div><div class="right"><span class="tag ok"><i data-i="check"></i>Ready for a plate</span></div><span class="pin ml">3</span></div>
+                <div class="lrow"><span class="icons4" data-look="moon" data-n="4" data-s="32"></span><div class="grow"><div class="nm">Moon Rabbit Nightwatch</div><div class="ln">Your look · planned for plate 7</div></div><div class="right"><span class="tag ok"><i data-i="check"></i>Ready for a plate</span></div></div>
+                <div class="lrow"><span class="icons4" data-look="fuath" data-n="4" data-s="32"></span><div class="grow"><div class="nm">Fuath at Dusk</div><div class="ln">Your look · Dancer · moody</div></div><div class="right"><span class="tag ok"><i data-i="check"></i>Ready for a plate</span></div></div>
+                <div class="lrow"><span class="icons4" data-look="weaver" data-n="4" data-s="32"></span><div class="grow"><div class="nm">Tailor's Day Off</div><div class="ln">Your look · Weaver</div></div><div class="right"><span class="tag amber">2 to store</span><span class="pin mr" style="right: -30px">4</span></div></div>
+                <div class="lrow"><span class="icons4" data-look="witch" data-n="4" data-s="32"></span><div class="grow"><div class="nm">Witching Hour</div><div class="ln">Your look · sent for plate 3</div></div><div class="right"><span class="tag">3 of 5 yours</span><span class="tag miss">2 missing</span></div></div>
+                <div class="lrow"><span class="icons4" data-look="valen" data-n="4" data-s="32"></span><div class="grow"><div class="nm">Valentione Errand</div><div class="ln">Your look · cute</div></div><div class="right"><span class="tag">4 of 5 yours</span><span class="tag miss">1 missing</span></div></div>
+                <div class="lrow"><span class="icons4" data-look="wed" data-n="4" data-s="32"></span><div class="grow"><div class="nm">Wedding Guest</div><div class="ln">Your look · formal</div></div><div class="right"><span class="tag">2 of 5 yours</span><span class="tag miss">3 missing</span></div></div>
+                <div class="lrow"><span class="icons4" data-look="scholar" data-n="4" data-s="32"></span><div class="grow"><div class="nm">Exam Season</div><div class="ln">Your look · Scholar</div></div><div class="right"><span class="tag">1 of 7 yours</span></div></div>
+                <span class="scrollbar" style="top: 110px; height: 220px; right: 6px"></span>
+              </div>
+              <div class="pick side">
+                <div class="field sheetf" data-build="field">
+                  <div class="echo s72"><span style="margin: 54px 0 0 120px">Moonlit Scholar ·</span><span style="margin-left: -40px">Scholar · Moonlit</span></div>
+                  <span class="eyebrow">Loved · by Mira Sol · Scholar · moody</span>
+                  <h3>Moonlit Scholar</h3>
+                  <span class="seal">MS</span>
+                  <div class="palette big mt4" data-dyes="Pastel Purple,Midnight Blue,Pure White,Jet Black" data-build="palette: filled rects" style="max-width: 420px"></div>
+                  <span class="pin tl" style="top: 8px; left: 8px">5</span>
+                </div>
+                <div class="row g8 mt16">
+                  <span class="sticker"><i data-i="shirt"></i>Try it on<span class="pin tr">6</span></span>
+                  <span class="btn sm"><i data-i="camera" class="s14"></i>Shot</span>
+                  <span class="btn sm quiet"><i data-i="ext" class="s14"></i>Site</span>
+                  <span class="btn sm end">Open the look<i data-i="arrow-right" class="s14"></i></span>
+                </div>
+                <div class="card pad-s row g10 mt16" style="padding: 11px 14px">
+                  <i data-i="layers" class="s18 c-accent"></i>
+                  <div class="grow"><div class="ink b6 t13">Ready for a plate: all seven in your dresser or armoire</div><div class="t12 muted">At a glamour dresser, open Glamour Plates and it goes on in one press.</div></div>
+                  <span class="pin tr">7</span>
+                </div>
+                <div class="panel-h mt16" style="margin-bottom: 2px"><span class="d d15">Pieces</span><span class="cnt">7</span></div>
+                <div class="prow"><b class="it s36" data-it="42631" data-own></b><div class="grow"><div class="nm">Pedagogy Mortarboard</div><div class="ln">Head · Pastel Purple</div></div><span class="tag ok"><i data-i="check"></i>Dresser</span><span class="pin ml" style="left: -26px">8</span></div>
+                <div class="prow"><b class="it s36" data-it="42632" data-own></b><div class="grow"><div class="nm">Pedagogy Gown</div><div class="ln">Body · Pastel Purple, Midnight Blue</div></div><span class="tag ok"><i data-i="check"></i>Dresser</span></div>
+                <div class="prow"><b class="it s36" data-it="42634" data-own></b><div class="grow"><div class="nm">Pedagogy Culottes</div><div class="ln">Legs · Midnight Blue</div></div><span class="tag ok"><i data-i="check"></i>Armoire</span></div>
+                <div class="prow"><b class="it s36" data-it="42633" data-own></b><div class="grow"><div class="nm">Pedagogy Halfgloves</div><div class="ln">Hands · Jet Black</div></div><span class="tag ok"><i data-i="check"></i>Dresser</span></div>
+                <span class="scrollbar" style="top: 300px; height: 120px"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <ol class="notes">
+        <li><span class="pin">1</span><span><b>Tabs with counts, the site's tabs.</b> Your looks, Loved and Wear today (the public looks you own every piece of: <code>gs_plugin_wearable</code>, 60 at most, the most loved first). The one picked has the holo underline that glides to it (300 ms, a slight overshoot).</span></li>
+        <li><span class="pin">2</span><span><b>Search and filters on one 34px row.</b> Name, maker, job or mood; Ready first (on by default: a combo that toggles, ice tick when on); Any job and Any mood as combos (ImGui's, restyled: a pill, a chevron, a menu of the glass's solid twin).</span></li>
+        <li><span class="pin">3</span><span><b>A look's row.</b> Four of its pieces' icons, its name in display capitals, whose it is and what it's for, and how ready it is on the right. The row picked is lilac-washed with a lilac hairline (no glow).</span></li>
+        <li><span class="pin">4</span><span><b>Three honest colours for readiness.</b> Ice: ready for a plate. Amber: yours but in your bags or armoury chest (to store first). Pink: pieces you don't have. The same words and colours as the site's closet and a look's “What you own of it”.</span></li>
+        <li><span class="pin">5</span><span><b>The picked look is the screen's field.</b> A small character sheet: who made it and its job and mood as an eyebrow, the name in heavy capitals with its stacked shadow (drawn three times: deep violet, black, white), echoed behind, the maker's seal, and the palette strip with the dyes' names.</span></li>
+        <li><span class="pin">6</span><span><b>Try it on is the sticker</b> when no plate editor is open: violet, ink words, a 2px ink edge and the deep-violet block it presses into. Shot (public looks only), Site and Open the look are outlined or quiet.</span></li>
+        <li><span class="pin">7</span><span><b>The plate line, closed.</b> With the editor closed it says what's ready and how to get there; with it open it becomes the plate slip with Put on plate 3 (next frame).</span></li>
+        <li><span class="pin">8</span><span><b>Each piece and where it is.</b> Ice Dresser or Armoire with a tick; amber In your bags (to put away first); lavender ★ On your wishlist; pink Missing. Hovering a row shows the full line as a tooltip.</span></li>
+      </ol>
+
+      <!-- ───────── 2 · Editor open ───────── -->
+      <div class="frame-cap">
+        <h2>With Glamour Plates open</h2>
+        <p>The plate slip takes the sticker: Put on plate 3</p>
+        <span class="size">1120 × 760</span>
+      </div>
+      <div class="stage">
+        <div class="win" style="width: 1120px; height: 760px" data-place="looks" data-who="live|Plate editor open · plate 3">
+          <div class="body">
+            <div class="lk">
+              <div class="list">
+                <div class="tabs"><span class="on">Your looks <span class="n">23</span></span><span>Loved <span class="n">41</span></span><span>Wear today <span class="n">14</span></span></div>
+                <div class="filters">
+                  <span class="input sm pill"><i data-i="search" class="s14 faint"></i>witch<span class="caret"></span><span class="end btn round r28 quiet" style="margin-right: -8px"><i data-i="x" class="s14"></i></span></span>
+                  <span class="combo"><i data-i="check" class="s14 c-ice"></i>Ready first</span>
+                  <span class="combo">Any job<i data-i="chev-d" class="s14"></i></span>
+                  <span class="combo">Any mood<i data-i="chev-d" class="s14"></i></span>
+                </div>
+                <div class="lrow on"><span class="icons4" data-look="witch" data-n="4" data-s="32"></span><div class="grow"><div class="nm">Witching Hour</div><div class="ln">Your look · sent for plate 3</div></div><div class="right"><span class="tag ok"><i data-i="check"></i>Ready for a plate</span></div></div>
+                <div class="lrow"><span class="icons4" data-look="witch" data-n="4" data-s="32"></span><div class="grow"><div class="nm">Coven Secretary</div><div class="ln">Loved · by Tal Nox</div></div><div class="right"><span class="tag">4 of 5 yours</span><span class="tag miss">1 missing</span></div></div>
+                <div class="lrow"><span class="icons4" data-look="witch" data-n="3" data-s="32"></span><div class="grow"><div class="nm">Witch, Off Duty</div><div class="ln">Your look · Black Mage</div></div><div class="right"><span class="tag amber">1 to store</span></div></div>
+              </div>
+              <div class="pick side">
+                <div class="field sheetf" style="height: 196px">
+                  <div class="echo s72"><span style="margin: 50px 0 0 150px">Witching Hour ·</span><span style="margin-left: -20px">Hour · Witching</span></div>
+                  <span class="eyebrow">Your look · Black Mage · sent for plate 3</span>
+                  <h3>Witching Hour</h3>
+                  <span class="seal">KN</span>
+                  <div class="palette big mt4" data-dyes="Metallic Purple,Jet Black" style="max-width: 420px"></div>
+                </div>
+                <div class="row g8 mt12">
+                  <span class="btn sm"><i data-i="shirt" class="s14"></i>Try it on</span>
+                  <span class="btn sm quiet"><i data-i="ext" class="s14"></i>Site</span>
+                  <span class="btn sm end">Open the look<i data-i="arrow-right" class="s14"></i></span>
+                </div>
+                <div class="slip on-side mt12" data-build="ticket: rect + 2 circles + dashed line">
+                  <div class="top row">
+                    <div class="grow col g4"><span class="eyebrow">Take it into the game</span><span class="d d26">Plate 3</span></div>
+                    <span class="tag ok l"><i data-i="check"></i>Sent for this plate</span>
+                  </div>
+                  <div class="perf"></div>
+                  <div class="bot col g10">
+                    <div class="col g4 t13">
+                      <span class="row g8"><span class="dot"></span><span>All five go on: four from the dresser, one from the armoire</span></span>
+                      <span class="row g8"><span class="dot amber"></span><span>Gloves: dye Metallic Purple in the plate editor</span></span>
+                      <span class="row g8"><span class="dot no"></span><span>The slots it leaves bare are emptied</span></span>
+                    </div>
+                    <div class="row g10">
+                      <span class="sticker lg"><i data-i="layers"></i>Put on plate 3</span>
+                      <span class="hand s13" style="line-height: 1.15">nothing's saved till you press Save</span>
+                    </div>
+                  </div>
+                  <span class="pin tl">1</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <ol class="notes">
+        <li><span class="pin">1</span><span><b>The plate slip</b>, as the site's look page takes a look into the game: a ticket with its two notches and a dashed tear line (a rounded rect, two ground-coloured circles, a dashed line: draw-list shapes). Above the line, which plate; below, what it'll do: how many go on and from where, which need dyeing (amber), dyes from your bags, bare slots emptied. Then the sticker, Put on plate 3. A look sent for another plate says so in place of the ice tag (“Sent for plate 5: pick plate 5 in the game's window”).</span></li>
+      </ol>
+
+      <!-- ───────── 3 · Wear today ───────── -->
+      <div class="frame-cap">
+        <h2>Wear today</h2>
+        <p>Public looks you own every piece of, the most loved first</p>
+        <span class="size">1120 × 760</span>
+      </div>
+      <div class="stage city">
+        <div class="win" style="width: 1120px; height: 760px" data-place="looks">
+          <div class="body">
+            <div class="lk">
+              <div class="list">
+                <div class="tabs"><span>Your looks <span class="n">23</span></span><span>Loved <span class="n">41</span></span><span class="on">Wear today <span class="n">14</span></span></div>
+                <div class="filters">
+                  <span class="input sm pill"><i data-i="search" class="s14 faint"></i><span class="ph">Name, maker, job or mood</span></span>
+                  <span class="combo">Any job<i data-i="chev-d" class="s14"></i></span>
+                  <span class="combo">Any mood<i data-i="chev-d" class="s14"></i></span>
+                </div>
+                <div class="lrow"><span class="icons4" data-look="scholar" data-n="4" data-s="32"></span><div class="grow"><div class="nm">Moonlit Scholar</div><div class="ln">Mira Sol · Scholar</div></div><div class="right"><span class="tag" style="background: var(--pink-soft); color: var(--pink)"><i data-i="heart" class="fill"></i>1,284</span></div></div>
+                <div class="lrow on"><span class="icons4" data-look="moon" data-n="4" data-s="32"></span><div class="grow"><div class="nm">Sleepover</div><div class="ln">Rhea Vale · any job</div></div><div class="right"><span class="tag" style="background: var(--pink-soft); color: var(--pink)"><i data-i="heart" class="fill"></i>812</span></div></div>
+                <div class="lrow"><span class="icons4" data-look="fuath" data-n="4" data-s="32"></span><div class="grow"><div class="nm">Sea Breeze Ball</div><div class="ln">Oto Ren · Dancer</div></div><div class="right"><span class="tag" style="background: var(--pink-soft); color: var(--pink)"><i data-i="heart" class="fill"></i>377</span></div></div>
+                <div class="lrow"><span class="icons4" data-look="weaver" data-n="4" data-s="32"></span><div class="grow"><div class="nm">Guild Apprentice</div><div class="ln">Tal Nox · Weaver</div></div><div class="right"><span class="tag" style="background: var(--pink-soft); color: var(--pink)"><i data-i="heart" class="fill"></i>94</span></div></div>
+                <div class="lrow"><span class="icons4" data-look="wed" data-n="4" data-s="32"></span><div class="grow"><div class="nm">Garden Vows</div><div class="ln">Mira Sol · formal</div></div><div class="right"><span class="tag" style="background: var(--pink-soft); color: var(--pink)"><i data-i="heart" class="fill"></i>61</span></div></div>
+              </div>
+              <div class="pick side">
+                <div class="field sheetf" style="height: 196px">
+                  <div class="echo s72"><span style="margin: 50px 0 0 120px">Sleepover · Sleep</span><span style="margin-left: -40px">over · Sleepover</span></div>
+                  <span class="eyebrow">Wear today · by Rhea Vale · you own it all</span>
+                  <h3>Sleepover</h3>
+                  <span class="seal">RV</span>
+                  <div class="palette big mt4" data-dyes="Snow White,Sky Blue,Lavender Purple" style="max-width: 420px"></div>
+                </div>
+                <div class="row g8 mt12">
+                  <span class="sticker"><i data-i="shirt"></i>Try it on</span>
+                  <span class="btn sm"><i data-i="camera" class="s14"></i>Shot</span>
+                  <span class="btn sm quiet"><i data-i="ext" class="s14"></i>Site</span>
+                  <span class="btn sm end">Open the look<i data-i="arrow-right" class="s14"></i></span>
+                </div>
+                <div class="panel-h mt16" style="margin-bottom: 2px"><span class="d d15">Pieces</span><span class="cnt">4 · all yours</span></div>
+                <div class="prow"><b class="it s36" data-it="8558" data-own></b><div class="grow"><div class="nm">Crescent Moon Nightcap</div><div class="ln">Head · Snow White</div></div><span class="tag ok"><i data-i="check"></i>Dresser</span></div>
+                <div class="prow"><b class="it s36" data-it="8559" data-own></b><div class="grow"><div class="nm">Crescent Moon Nightgown</div><div class="ln">Body · Snow White, Sky Blue</div></div><span class="tag ok"><i data-i="check"></i>Armoire</span></div>
+                <div class="prow"><b class="it s36" data-it="8560" data-own="amber"></b><div class="grow"><div class="nm">Crescent Moon Bottoms</div><div class="ln">Legs · Lavender Purple</div></div><span class="tag amber"><i data-i="bag"></i>In your bags</span></div>
+                <div class="prow"><b class="it s36" data-it="8561" data-own></b><div class="grow"><div class="nm">Crescent Moon Slippers</div><div class="ln">Feet · undyed</div></div><span class="tag ok"><i data-i="check"></i>Dresser</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <ol class="notes">
+        <li><span class="pin">1</span><span><b>Loves are pink, as on the site.</b> Each row says who made it and its loves; the eyebrow on the field says why it's here (you own it all). A piece that's yours but in your bags says so in amber: it's wearable today, but a plate needs it stored first.</span></li>
+      </ol>
+
+      <!-- ───────── 4 · States ───────── -->
+      <div class="frame-cap">
+        <h2>Empty, loading, nothing found, not linked</h2>
+        <p>The list's states, at its real width (548 × 420 shown)</p>
+      </div>
+      <div class="stage free" style="padding: 32px; display: grid; grid-template-columns: repeat(2, 548px); gap: 28px">
+        <div class="board">
+          <div class="tabs"><span>Your looks <span class="n">23</span></span><span class="on">Loved <span class="n">0</span></span><span>Wear today <span class="n">14</span></span></div>
+          <div class="empty-s mt16" style="height: 320px; align-content: center">
+            <span class="cloud"></span>
+            <span class="sign"><b>No loved looks yet</b><small>go find one you love</small></span>
+            <span class="line">Love a look on Glamour Studio's Discover page and it's here.</span>
+            <span class="btn sm"><i data-i="ext" class="s14"></i>Open Discover</span>
+          </div>
+          <span class="pin abs" style="left: 6px; top: 6px">1</span>
+        </div>
+        <div class="board">
+          <div class="tabs"><span class="on">Your looks</span><span>Loved</span><span>Wear today</span></div>
+          <div class="filters"><span class="input sm pill"><i data-i="search" class="s14 faint"></i><span class="ph">Name, maker, job or mood</span></span><span class="combo">Any job<i data-i="chev-d" class="s14"></i></span></div>
+          <div class="skel"><i style="width: 140px; height: 32px"></i><div class="col g6"><i style="width: 180px; height: 12px"></i><i style="width: 110px; height: 10px; opacity: .6"></i></div></div>
+          <div class="skel" style="opacity: .7"><i style="width: 140px; height: 32px"></i><div class="col g6"><i style="width: 150px; height: 12px"></i><i style="width: 90px; height: 10px; opacity: .6"></i></div></div>
+          <div class="skel" style="opacity: .45"><i style="width: 140px; height: 32px"></i><div class="col g6"><i style="width: 200px; height: 12px"></i><i style="width: 120px; height: 10px; opacity: .6"></i></div></div>
+          <div class="row g8 mt12"><span class="hand s13">reading your looks…</span></div>
+          <span class="pin abs" style="left: 6px; top: 6px">2</span>
+        </div>
+        <div class="board">
+          <div class="tabs"><span class="on">Your looks <span class="n">23</span></span><span>Loved <span class="n">41</span></span><span>Wear today <span class="n">14</span></span></div>
+          <div class="filters"><span class="input sm pill focus"><i data-i="search" class="s14 faint"></i>gold saucer<span class="caret"></span></span><span class="combo">Healer<i data-i="chev-d" class="s14"></i></span><span class="combo">Any mood<i data-i="chev-d" class="s14"></i></span></div>
+          <div class="empty-s nob" style="padding-top: 40px">
+            <span class="d d17">Nothing matches</span>
+            <span class="line">No look matches “gold saucer” for a healer.</span>
+            <span class="btn sm">Clear the filters</span>
+          </div>
+          <span class="pin abs" style="left: 6px; top: 6px">3</span>
+        </div>
+        <div class="board">
+          <div class="tabs"><span class="on">Your looks</span><span>Loved</span><span>Wear today</span></div>
+          <div class="card bad pad-s row top g12 mt16">
+            <i data-i="key" class="s20 c-danger"></i>
+            <div class="grow col g6"><span class="ink b6 t14">Link again</span><span class="t13 muted">The site doesn't know this token any more (it was revoked, or made again). Make a new one on the site and paste it in Settings → Account.</span>
+              <div class="row g8 mt4"><span class="btn sm">Settings → Account</span><span class="btn sm quiet"><i data-i="ext" class="s14"></i>Get a token</span></div></div>
+          </div>
+          <div class="empty-s mt16" style="height: 190px; align-content: center">
+            <span class="d d17 muted">Your looks show here once you're linked</span>
+            <span class="line">Link your account (Settings → Account) and your looks from Glamour Studio are here, ready to put on a plate.</span>
+          </div>
+          <span class="pin abs" style="left: 6px; top: 6px">4</span>
+        </div>
+      </div>
+      <ol class="notes">
+        <li><span class="pin">1</span><span><b>An empty tab is drawn</b>: the sign (title in display capitals, a few hand-lettered words), a cloud, one line, one action. No looks yet and No loved looks yet both; Wear today's empty says your closet grows as you open your dresser, armoire and retainers once.</span></li>
+        <li><span class="pin">2</span><span><b>Loading is quiet</b>: rows' shapes in the soft ink, fading down the list, and the hand voice saying what it's doing. (The site sweeps a halftone over them; here a slow alpha pulse is enough.)</span></li>
+        <li><span class="pin">3</span><span><b>Nothing found isn't an empty page</b>: no sign, just a heading, the line saying what was searched for, and Clear the filters.</span></li>
+        <li><span class="pin">4</span><span><b>A refused token is said as a problem</b>: the danger edge and colour on the card, never a toast that goes away. Not linked at all: the dashed empty with one line.</span></li>
+      </ol>
+    </div>
+  </body>
+</html>

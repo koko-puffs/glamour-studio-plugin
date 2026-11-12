@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Closet · Glamour Studio plugin redesign</title>
+    <link rel="stylesheet" href="../assets/kit.css" />
+    <script src="../assets/kit.js"></script>
+    <style>
+      .cv { display: grid; grid-template-columns: minmax(0, 1fr) 380px; height: 100%; }
+      .cv .left { position: relative; padding: 18px 20px 0 24px; overflow: hidden; display: grid; gap: 14px; align-content: start; }
+      .cv .right { position: relative; padding: 18px 20px; overflow: hidden; }
+      .place-row { display: flex; gap: 12px; align-items: center; height: 50px; border-top: 1px solid var(--line); }
+      .place-row:first-child { border-top: 0; }
+      .place-row .pi { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: var(--soft); color: var(--accent); flex: none; }
+      .place-row.unread .pi { background: transparent; border: 1px dashed var(--line-strong); color: var(--faint); }
+      .place-row .cnt { width: 70px; text-align: right; color: var(--ink); font: 500 13px/1 var(--mono); }
+      .big { color: var(--ink); font: 800 40px/1 var(--display); letter-spacing: .01em; }
+      .board { position: relative; width: 640px; padding: 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--ground); }
+    </style>
+  </head>
+  <body>
+    <div class="mock-head">
+      <a class="back" href="../index.html#screens"><i data-i="arrow-left" class="s14"></i>The deck</a>
+      <span class="where">Screens · 5</span>
+      <h1>Closet</h1>
+      <div class="end">
+        <a href="plates.html"><i data-i="arrow-left" class="s14"></i>Plates</a>
+        <a href="make-room.html">Make room<i data-i="arrow-right" class="s14"></i></a>
+        <button data-toggle="build">B · how it's built</button>
+        <button data-toggle="pins">P · pins</button>
+      </div>
+    </div>
+
+    <div class="mock-wrap">
+      <div class="mock-intro">
+        <span class="eyebrow-d">The main window · Closet</span>
+        <h2>Closet: what the plugin has read, and your wishlist</h2>
+        <p>
+          The site's Closet → In the game, from the game's side: where your gear is and when each place was read, what to
+          open so it can read the rest, your closet on the site and when it was sent, and the wishlist that ticks itself.
+          No field and no sticker: nothing here is the one thing to do.
+        </p>
+      </div>
+
+      <div class="frame-cap">
+        <h2>Where your gear is</h2>
+        <p>Linked, sent two minutes ago, one wish come true</p>
+        <span class="size">1120 × 760</span>
+      </div>
+      <div class="stage">
+        <div class="win" style="width: 1120px; height: 760px" data-place="closet">
+          <div class="body">
+            <div class="cv">
+              <div class="left">
+                <div class="card pad">
+                  <div class="row"><span class="logo s18" style="display: none"></span><i data-i="hanger" class="s18 c-accent"></i><span class="d d17">Glamour dresser</span><span class="t12 muted">read 2 hours ago</span><span class="end btn sm"><i data-i="package" class="s14"></i>Make room</span></div>
+                  <div class="row base g10 mt12"><span class="big">612</span><span class="t13 muted">of 800 places used · 188 free</span><span class="end t12 c-amber">gathering outfit sets frees up to 23</span></div>
+                  <div class="meter l mt10"><span style="width: 76.5%"></span></div>
+                  <span class="pin tl">1</span>
+                </div>
+                <div class="card list-card" style="padding: 4px 18px">
+                  <div class="place-row"><span class="pi"><i data-i="archive"></i></span><div class="grow"><div class="ink b6 t13">Armoire</div><div class="t12 muted">read 2 hours ago</div></div><span class="cnt">148</span></div>
+                  <div class="place-row"><span class="pi"><i data-i="shield"></i></span><div class="grow"><div class="ink b6 t13">Armoury chest</div><div class="t12 muted">read just now</div></div><span class="cnt">96</span></div>
+                  <div class="place-row"><span class="pi"><i data-i="bag"></i></span><div class="grow"><div class="ink b6 t13">Bags</div><div class="t12 muted">read just now</div></div><span class="cnt">12</span></div>
+                  <div class="place-row unread"><span class="pi"><i data-i="package"></i></span><div class="grow"><div class="ink b6 t13">Saddlebags</div><div class="t12 c-amber">not read yet: open them once since logging in</div></div><span class="pin">2</span><span class="cnt faint">—</span></div>
+                  <div class="place-row"><span class="pi"><i data-i="users"></i></span><div class="grow"><div class="ink b6 t13">Retainers</div><div class="t12 muted">2 of 3 read · Mog Dahl's bags not yet</div></div><span class="cnt">41</span></div>
+                </div>
+                <div class="card pad row g14">
+                  <i data-i="globe" class="s20 c-accent"></i>
+                  <div class="grow col g4"><span class="eyebrow">Your closet on Glamour Studio</span><span class="t13 ink b6">612 pieces, sent 2 minutes ago</span><span class="t12 muted">It's sent by itself as it changes, every few minutes at most.</span></div>
+                  <span class="btn sm"><i data-i="send" class="s14"></i>Send now</span>
+                  <span class="btn sm quiet"><i data-i="ext" class="s14"></i>Open</span>
+                  <span class="pin tl">3</span>
+                </div>
+              </div>
+              <div class="right side">
+                <div class="panel-h"><span class="d">Your wishlist</span><span class="cnt">7</span><span class="pin">4</span></div>
+                <div class="card pad-s row top g10" style="padding: 11px 13px; border-color: var(--accent-line)">
+                  <span class="spark s16 mt4"></span>
+                  <div class="grow col g4"><span class="hand s13">a wish came true!</span><span class="t12 muted">2 hours ago: Witch's Gloves and Bunny Tights, seen in your wardrobe. They're off the list.</span></div>
+                  <span class="pin tr">5</span>
+                </div>
+                <div class="mt10">
+                  <div class="prow"><b class="it s36" data-it="42634" data-own="star"></b><div class="grow"><div class="nm">Pedagogy Culottes</div><div class="ln">For Moonlit Scholar · Midnight Blue</div></div><span class="btn round r28 quiet" title="Take it off the list"><i data-i="x" class="s14"></i></span></div>
+                  <div class="prow"><b class="it s36" data-it="42635" data-own="star"></b><div class="grow"><div class="nm">Pedagogy Longboots</div><div class="ln">For Moonlit Scholar</div></div><span class="btn round r28 quiet"><i data-i="x" class="s14"></i></span></div>
+                  <div class="prow"><b class="it s36" data-it="6977" data-own="star"></b><div class="grow"><div class="nm">Valentione Pattens</div><div class="ln">Rose Pink</div></div><span class="btn round r28 quiet"><i data-i="x" class="s14"></i></span></div>
+                  <div class="prow"><b class="it s36" data-it="8672" data-own="star"></b><div class="grow"><div class="nm">Gloves of Eternal Innocence</div><div class="ln">For Wedding Guest</div></div><span class="btn round r28 quiet"><i data-i="x" class="s14"></i></span></div>
+                  <div class="prow"><b class="it s36" data-it="8681" data-own></b><div class="grow"><div class="nm">Veil of Eternal Innocence</div><div class="ln c-ice">Yours now · in your bags</div></div><span class="btn round r28 quiet"><i data-i="x" class="s14"></i></span><span class="pin abs" style="right: 40px; top: 14px">6</span></div>
+                  <div class="prow"><b class="it s36" data-it="3932" data-own="star"></b><div class="grow"><div class="nm">Weaver's Thighboots</div><div class="ln">For Tailor's Day Off</div></div><span class="btn round r28 quiet"><i data-i="x" class="s14"></i></span></div>
+                </div>
+                <span class="t12 faint" style="display: block; margin-top: 8px">A piece the plugin sees in your wardrobe comes off the list by itself; × takes one off.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <ol class="notes">
+        <li><span class="pin">1</span><span><b>The dresser first</b>: places used of 800 as a big display number and an ice bar, free, how many places gathering outfit sets would free (amber: something to see to), and Make room. When it was read, always: the game has it only at a dresser.</span></li>
+        <li><span class="pin">2</span><span><b>Each place and when it was read</b>, or dashed with what to open so it can be read (amber). The armoire, armoury chest, bags, saddlebags and retainers, each with how many pieces in Geist Mono.</span></li>
+        <li><span class="pin">3</span><span><b>On the site</b>: what was sent and when, Send now and Open. Under 1000 wide the buttons become “Send” and an icon, as today.</span></li>
+        <li><span class="pin">4</span><span><b>Your wishlist</b>, lavender (starred): each piece with the look it's for and its dyes, × to take it off (off here at once, back should the site say no).</span></li>
+        <li><span class="pin">5</span><span><b>A wish come true is a little joy</b>: the holo sparkle (special), the hand voice, and which pieces came off the list. It stays until the window closes.</span></li>
+        <li><span class="pin">6</span><span><b>Yours now</b>, in ice, with where it is, until the site has heard (the next send takes it off).</span></li>
+      </ol>
+
+      <!-- ───────── 2 · On the site: its states ───────── -->
+      <div class="frame-cap">
+        <h2>On the site: sending, a problem, off, not asked</h2>
+        <p>The card's states, at its width in the window (640)</p>
+      </div>
+      <div class="stage free" style="padding: 32px; display: grid; grid-template-columns: repeat(2, 640px); gap: 24px">
+        <div class="board">
+          <div class="card pad row g14">
+            <i data-i="globe" class="s20 c-accent"></i>
+            <div class="grow col g4"><span class="eyebrow">Your closet on Glamour Studio</span><span class="t13 ink b6">Sending your closet…</span><div class="meter accent" style="width: 220px"><span style="width: 45%"></span></div></div>
+            <span class="btn sm off"><i data-i="send" class="s14"></i>Sending…</span>
+            <span class="btn sm quiet"><i data-i="ext" class="s14"></i>Open</span>
+          </div>
+          <span class="pin abs" style="left: 6px; top: 6px">1</span>
+        </div>
+        <div class="board">
+          <div class="card pad bad row top g14">
+            <i data-i="alert" class="s20 c-danger"></i>
+            <div class="grow col g4"><span class="eyebrow" style="color: var(--danger)">Closet not sent</span><span class="t13 ink b6">No answer from the site (the connection was lost)</span><span class="t12 muted">Your closet is safe here; it's sent again in a few minutes, or now.</span></div>
+            <span class="btn sm"><i data-i="refresh" class="s14"></i>Try again</span>
+          </div>
+          <span class="pin abs" style="left: 6px; top: 6px">2</span>
+        </div>
+        <div class="board">
+          <div class="card pad row g14">
+            <i data-i="globe" class="s20 faint"></i>
+            <div class="grow col g4"><span class="eyebrow faint">Your closet on Glamour Studio</span><span class="t13 ink b6">Sent yesterday at 21:40</span><span class="t12 muted">Sending by itself is off (Settings): it's sent only when you press Send now.</span></div>
+            <span class="btn sm"><i data-i="send" class="s14"></i>Send now</span>
+          </div>
+          <span class="pin abs" style="left: 6px; top: 6px">3</span>
+        </div>
+        <div class="board">
+          <div class="card pad row top g14">
+            <span class="face l">KN</span>
+            <div class="grow col g4"><span class="eyebrow">Not sent yet</span><span class="t13 ink b6">Koko Nyan isn't sent to the site: say yes or no</span><span class="t12 muted">Nothing of this character is sent until you say yes.</span></div>
+            <span class="btn sm">Ask me</span>
+          </div>
+          <span class="pin abs" style="left: 6px; top: 6px">4</span>
+        </div>
+        <div class="board">
+          <div class="card pad dash row g14">
+            <i data-i="key" class="s20 faint"></i>
+            <div class="grow col g4"><span class="t13 ink b6">Link your account and your closet on the site keeps itself up to date.</span><span class="t12 muted">The wishlist shows here too, each piece with where it is once you have it.</span></div>
+            <span class="btn sm">Link your account</span>
+          </div>
+          <span class="pin abs" style="left: 6px; top: 6px">5</span>
+        </div>
+        <div class="board">
+          <div class="empty-s" style="padding: 22px 16px 18px">
+            <span class="cloud"></span>
+            <span class="sign"><b>Nothing on it</b><small>wish for something</small></span>
+            <span class="line">On the site, a look's pieces you don't have yet can go on your list.</span>
+          </div>
+          <span class="pin abs" style="left: 6px; top: 6px">6</span>
+        </div>
+      </div>
+      <ol class="notes">
+        <li><span class="pin">1</span><span><b>Sending</b>: the line says so, a violet bar while it goes (the header's pill says it too, with a lilac dot); Send now waits.</span></li>
+        <li><span class="pin">2</span><span><b>A problem is said as one</b>: the danger edge, what went wrong in words (the site's own refusals as they are), that nothing's lost, and Try again. The header's pill: “Closet not sent: see Closet” in red.</span></li>
+        <li><span class="pin">3</span><span><b>Sending by itself off</b>: when it was last sent, and that it's sent only on Send now.</span></li>
+        <li><span class="pin">4</span><span><b>Not asked yet</b> (Not now was pressed): Ask me brings the question back (Send now in Closet asks again, as today).</span></li>
+        <li><span class="pin">5</span><span><b>Not linked</b>: dashed, what linking gives, and the way there.</span></li>
+        <li><span class="pin">6</span><span><b>An empty wishlist</b>, drawn small: the sign, the cloud, one line.</span></li>
+      </ol>
+    </div>
+  </body>
+</html>

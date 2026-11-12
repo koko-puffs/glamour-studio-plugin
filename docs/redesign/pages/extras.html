@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Popups, toasts and the small window · Glamour Studio plugin redesign</title>
+    <link rel="stylesheet" href="../assets/kit.css" />
+    <script src="../assets/kit.js"></script>
+    <style>
+      .lk { display: grid; grid-template-columns: 420px minmax(0, 1fr); height: 100%; }
+      .lk .list { position: relative; padding: 14px 16px 0 20px; overflow: hidden; }
+      .lk .lrow { margin: 0 -10px; }
+      .lk .pick { position: relative; padding: 16px 18px; overflow: hidden; }
+      .board2 { position: relative; display: grid; gap: 16px; align-content: start; padding: 22px; border: 1px solid var(--line); border-radius: 14px; background: var(--ground); }
+      .board2 .cap { padding-left: 16px; color: var(--faint); font: 650 10.5px/1 var(--sans); letter-spacing: .1em; text-transform: uppercase; }
+      .toast.st { position: static; justify-self: start; }
+    </style>
+  </head>
+  <body>
+    <div class="mock-head">
+      <a class="back" href="../index.html#screens"><i data-i="arrow-left" class="s14"></i>The deck</a>
+      <span class="where">Screens · 11</span>
+      <h1>Popups, toasts and the small window</h1>
+      <div class="end">
+        <a href="companions-2.html"><i data-i="arrow-left" class="s14"></i>Beside the other windows</a>
+        <a href="../index.html">The deck<i data-i="arrow-right" class="s14"></i></a>
+        <button data-toggle="build">B · how it's built</button>
+        <button data-toggle="pins">P · pins</button>
+      </div>
+    </div>
+
+    <div class="mock-wrap">
+      <div class="mock-intro">
+        <span class="eyebrow-d">Everything that floats, and the window at its smallest</span>
+        <h2>The small parts</h2>
+        <p>
+          Toasts, tooltips, menus and combos, the header's pill in all its states, a screen that failed, and the window at
+          900 × 600, its least, where the bar's places become icons.
+        </p>
+      </div>
+
+      <div class="frame-cap"><h2>The window at its least</h2><p>900 × 600: the bar's places as icons, the pill as the face and a dot</p><span class="size">900 × 600</span></div>
+      <div class="stage">
+        <div class="win" style="width: 900px; height: 600px" data-place="looks" data-narrow>
+          <div class="body">
+            <div class="lk">
+              <div class="list">
+                <div class="tabs"><span class="on">Your looks <span class="n">23</span></span><span>Loved <span class="n">41</span></span><span>Wear today <span class="n">14</span></span></div>
+                <div class="row g6" style="margin: 10px 0 6px"><span class="input sm pill grow"><i data-i="search" class="s14 faint"></i><span class="ph">Search</span></span><span class="combo"><i data-i="check" class="s14 c-ice"></i>Ready</span><span class="combo">Job<i data-i="chev-d" class="s14"></i></span></div>
+                <div class="lrow on"><span class="icons4" data-look="scholar" data-n="3" data-s="28"></span><div class="grow"><div class="nm">Moonlit Scholar</div><div class="ln">Loved · Mira Sol</div></div><span class="tag ok"><i data-i="check"></i>Ready</span></div>
+                <div class="lrow"><span class="icons4" data-look="moon" data-n="3" data-s="28"></span><div class="grow"><div class="nm">Moon Rabbit Nightwatch</div><div class="ln">Your look</div></div><span class="tag ok"><i data-i="check"></i>Ready</span></div>
+                <div class="lrow"><span class="icons4" data-look="weaver" data-n="3" data-s="28"></span><div class="grow"><div class="nm">Tailor's Day Off</div><div class="ln">Your look</div></div><span class="tag amber">2 to store</span></div>
+                <div class="lrow"><span class="icons4" data-look="witch" data-n="3" data-s="28"></span><div class="grow"><div class="nm">Witching Hour</div><div class="ln">Your look</div></div><span class="tag miss">2 missing</span></div>
+                <div class="lrow"><span class="icons4" data-look="wed" data-n="3" data-s="28"></span><div class="grow"><div class="nm">Wedding Guest</div><div class="ln">Your look</div></div><span class="tag miss">3 missing</span></div>
+              </div>
+              <div class="pick side">
+                <div class="field" style="height: 168px; padding: 16px 18px; display: grid; gap: 8px; align-content: start">
+                  <div class="echo s72"><span style="margin: 40px 0 0 100px">Moonlit Scholar ·</span></div>
+                  <span class="eyebrow">Loved · by Mira Sol</span>
+                  <span style="color: #f6f3ff; font: 800 28px/1 var(--display); text-transform: uppercase; text-shadow: 3px 3px 0 var(--field-deep), 5px 5px 0 #000">Moonlit Scholar</span>
+                  <div class="palette big mt4" data-dyes="Pastel Purple,Midnight Blue,Pure White,Jet Black"></div>
+                </div>
+                <div class="row g8 mt12"><span class="sticker sm"><i data-i="shirt" class="s14"></i>Try it on</span><span class="btn sm round" title="Shot"><i data-i="camera" class="s14"></i></span><span class="btn sm round" title="Site"><i data-i="ext" class="s14"></i></span><span class="btn sm end">Open</span></div>
+                <div class="prow mt8"><b class="it s32" data-it="42631" data-own></b><div class="grow"><div class="nm">Pedagogy Mortarboard</div><div class="ln">Head</div></div><span class="tag ok"><i data-i="check"></i>Dresser</span></div>
+                <div class="prow"><b class="it s32" data-it="42632" data-own></b><div class="grow"><div class="nm">Pedagogy Gown</div><div class="ln">Body</div></div><span class="tag ok"><i data-i="check"></i>Dresser</span></div>
+                <div class="prow"><b class="it s32" data-it="42634" data-own></b><div class="grow"><div class="nm">Pedagogy Culottes</div><div class="ln">Legs</div></div><span class="tag ok"><i data-i="check"></i>Armoire</span></div>
+              </div>
+            </div>
+            <div class="tip" style="left: 230px; top: -14px; z-index: 60">Plates <span class="num faint">14/20</span></div>
+          </div>
+          <span class="pin abs" style="left: 14px; top: 46px">1</span>
+          <span class="pin abs" style="left: 440px; top: 300px">2</span>
+        </div>
+      </div>
+      <ol class="notes">
+        <li><span class="pin">1</span><span><b>Under 1000 wide the bar keeps its icons</b>: the logo without the wordmark, the places as icons (their names and counts as tooltips), the pill as your character's face and its dot (its line as the tooltip). Refresh and Settings stay.</span></li>
+        <li><span class="pin">2</span><span><b>Everything else narrows, nothing reflows</b>: the list takes 420, the pane the rest; buttons lose their words for icons (Shot, Site) and Open the look becomes Open; filters shorten (Ready, Job). Each width is a choice in the code, not a web layout.</span></li>
+      </ol>
+
+      <div class="frame-cap"><h2>Toasts, tooltips, menus, the pill</h2><p>The parts that float, each at its real size</p></div>
+      <div class="stage free" style="width: 100%; padding: 28px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px">
+        <div class="board2">
+          <span class="cap">Toasts · at the window's foot</span>
+          <span class="toast st"><span class="spark s16"></span>Kept as “Plate 3” in your looks</span>
+          <span class="toast st"><span class="spark s16"></span>Reading it all again</span>
+          <span class="toast st warn"><i data-i="alert"></i>The site said no: three shots a look at most</span>
+          <span class="toast st warn"><i data-i="alert"></i>Something went wrong (see /xllog)</span>
+          <span class="pin abs" style="left: 6px; top: 6px">1</span>
+        </div>
+        <div class="board2" style="min-height: 330px">
+          <span class="cap">Tooltips</span>
+          <div class="tip" style="position: static">Read it all again: your looks, list and plans from the site, your wardrobe from the game</div>
+          <div class="tip" style="position: static; max-width: 280px"><b>Pedagogy Culottes</b><br />Legs · Midnight Blue<br /><span class="c-amber">Yours, in your bags. A plate takes pieces from the dresser or the armoire: put it away first.</span></div>
+          <div class="tip" style="position: static"><b>Fill plate 3</b> isn't possible yet<br />None of its pieces is in your dresser or armoire</div>
+          <span class="pin abs" style="left: 6px; top: 6px">2</span>
+        </div>
+        <div class="board2" style="min-height: 330px">
+          <span class="cap">A combo, open</span>
+          <span class="combo hover" style="justify-self: start; border-color: var(--accent)">Healer<i data-i="chev-u" class="s14"></i></span>
+          <div class="menu" style="position: static; width: 220px">
+            <div class="mi">Any job</div>
+            <div class="mh">Tanks</div>
+            <div class="mi">Paladin <span class="k">PLD</span></div>
+            <div class="mh">Healers</div>
+            <div class="mi on">Healer (any) <i data-i="check" class="s14 c-accent" style="margin-left: auto"></i></div>
+            <div class="mi">White Mage <span class="k">WHM</span></div>
+            <div class="mi">Scholar <span class="k">SCH</span></div>
+          </div>
+          <span class="pin abs" style="left: 6px; top: 6px">3</span>
+        </div>
+        <div class="board2" style="grid-column: span 2">
+          <span class="cap">The header's pill, in front of everything else, in this order</span>
+          <div class="row wrap g10">
+            <span class="who rec"><span class="face">KN</span><span class="dot rec"></span><span class="st">Recording what you do · 1,204 lines</span></span>
+            <span class="who live"><span class="face">KN</span><span class="dot live"></span><span class="st">Plate editor open · plate 3</span></span>
+            <span class="who"><span class="face off">KN</span><span class="dot no"></span><span class="st">Not linked to Glamour Studio</span></span>
+            <span class="who danger"><span class="face">KN</span><span class="dot danger"></span><span class="st">Link again: the site doesn't know this token</span></span>
+            <span class="who live"><span class="face">KN</span><span class="dot live"></span><span class="st">Sending your closet…</span></span>
+            <span class="who danger"><span class="face">KN</span><span class="dot danger"></span><span class="st">Closet not sent: see Closet</span></span>
+            <span class="who"><span class="face off">KN</span><span class="dot no"></span><span class="st">This character isn't sent yet: say yes or no</span></span>
+            <span class="who"><span class="face">KN</span><span class="dot"></span><span class="st">Closet up to date · sent 2 min ago</span></span>
+            <span class="who"><span class="face">KN</span><span class="dot"></span><span class="st">Linked · sends your closet as you play</span></span>
+            <span class="who"><span class="face off">?</span><span class="dot no"></span><span class="st">Log in to a character</span></span>
+          </div>
+          <span class="pin abs" style="left: 6px; top: 6px">4</span>
+        </div>
+        <div class="board2">
+          <span class="cap">A screen that failed</span>
+          <div class="card bad pad-s row g10" style="justify-self: start"><i data-i="alert" class="s16 c-danger"></i><span class="t13">This screen failed (see /xllog)</span></div>
+          <span class="t12 muted">Said once in the log, a note in the screen's place; the bar and the rest of the window keep working.</span>
+          <span class="cap mt8">Refresh, while reading</span>
+          <div class="row g10"><span class="btn round r36" style="opacity: .5"><i data-i="refresh"></i></span><span class="t12 muted">Reading… (dimmed, its arrow turning)</span></div>
+          <span class="pin abs" style="left: 6px; top: 6px">5</span>
+        </div>
+      </div>
+      <ol class="notes">
+        <li><span class="pin">1</span><span><b>Toasts</b>: one at a time, a pill of raised ink rising at the window's foot (or the panel's, when the window's closed), gone in four seconds. Good news starts with the holo sparkle; a warning or a failure is amber with a warning sign, never the sparkle (a failure mustn't twinkle).</span></li>
+        <li><span class="pin">2</span><span><b>Tooltips</b>: the same raised ink, a strong hairline, 10px corners, 12.5px Figtree; a name in semibold, amber for what to see to. A disabled button's tooltip says why.</span></li>
+        <li><span class="pin">3</span><span><b>Combos and menus</b> are ImGui's own, restyled: the pill opens a popup of raised ink with 16px corners, group names as faint spaced capitals, codes in Geist Mono, the pick lilac-washed with a tick.</span></li>
+        <li><span class="pin">4</span><span><b>The pill's states</b>, the first that's true winning, as today's status pill: recording, the plate editor, not linked, a refused token, sending, a failed send, a character not asked yet or said no, then sent and when.</span></li>
+        <li><span class="pin">5</span><span><b>A screen that failed</b> and <b>Refresh while reading</b>: small, honest, and the rest keeps working.</span></li>
+      </ol>
+    </div>
+  </body>
+</html>

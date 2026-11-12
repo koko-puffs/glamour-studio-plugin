@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Home · Glamour Studio plugin redesign</title>
+    <link rel="stylesheet" href="../assets/kit.css" />
+    <script src="../assets/kit.js"></script>
+    <style>
+      .hero { height: 236px; padding: 22px 26px; display: flex; gap: 26px; }
+      .hero .left { width: 470px; display: grid; align-content: start; gap: 8px; }
+      .hero h2 { color: #f6f3ff; font: 800 44px/0.98 var(--display); letter-spacing: 0.015em; text-transform: uppercase; text-shadow: 3px 3px 0 var(--field-deep), 5px 5px 0 #000; }
+      .callout { background: var(--card); border: 2px solid #000; border-radius: 16px; box-shadow: 4px 4px 0 #000; color: var(--body); padding: 12px 14px; }
+      .slots12 { display: flex; gap: 5px; }
+      .slots12 .it { width: 30px; height: 30px; border-radius: 7px; }
+      .slotlab { width: 44px; flex: none; color: var(--faint); font: 650 10px/1 var(--sans); letter-spacing: .08em; text-transform: uppercase; }
+      .lower { display: grid; grid-template-columns: minmax(0, 1fr) 356px; gap: 20px; margin-top: 20px; }
+      .cards3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+      .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 4px; }
+      .step { display: grid; gap: 4px; align-content: start; }
+      .step .n { color: var(--accent); font: 800 26px/1 var(--display); }
+    </style>
+  </head>
+  <body>
+    <div class="mock-head">
+      <a class="back" href="../index.html#screens"><i data-i="arrow-left" class="s14"></i>The deck</a>
+      <span class="where">Screens · 1</span>
+      <h1>Home</h1>
+      <div class="end">
+        <a href="looks.html">Looks<i data-i="arrow-right" class="s14"></i></a>
+        <button data-toggle="build">B · how it's built</button>
+        <button data-toggle="pins">P · pins</button>
+      </div>
+    </div>
+
+    <div class="mock-wrap">
+      <div class="mock-intro">
+        <span class="eyebrow-d">The main window · 1120 × 760 to start, 900 × 600 at the least</span>
+        <h2>Home: the plate in front of you</h2>
+        <p>
+          Home answers one question: what can I put on a plate right now? At a glamour dresser the answer is the
+          screen's one field, the plate open in the game with the look planned for it and the sticker that fills it.
+          Away from one, the looks ready for a plate, the ones sent from the site, and what you could wear today.
+        </p>
+      </div>
+
+      <!-- ───────── 1 · At the dresser, a look planned ───────── -->
+      <div class="frame-cap">
+        <h2>At the glamour dresser</h2>
+        <p>Glamour Plates open on plate 3, a look planned for it on the site</p>
+        <span class="size">1120 × 760</span>
+      </div>
+      <div class="stage">
+        <div class="win" style="width: 1120px; height: 760px" data-place="home" data-who="live|Plate editor open · plate 3">
+          <div class="body">
+            <div class="page">
+              <div class="field hero" data-build="field: rect + floor (multicolour rect) + dots.png">
+                <div class="echo"><span style="margin: -10px 0 0 380px">Plate 3 · Plate 3</span><span style="margin-left: 120px">Plate 3 · Plate 3</span><span style="margin-left: 420px">Plate 3 ·</span></div>
+                <div class="left">
+                  <span class="eyebrow"><i data-i="layers" class="s14"></i>Plate 3 · open in the game · not saved yet</span>
+                  <h2>Moonlit Scholar</h2>
+                  <span class="t13 b5 c-onfield2">Planned for this plate on the site · by Mira Sol · 7 pieces</span>
+                  <div class="row g6 mt6">
+                    <span class="tag onfield">6 go on</span><span class="tag onfield">1 from the armoire</span><span class="tag onfield">1 dye from your bags</span><span class="tag onfield">4 slots emptied</span>
+                  </div>
+                  <div class="row g10 mt8">
+                    <span class="sticker lg"><i data-i="layers"></i>Fill plate 3</span>
+                    <span class="btn">See the look</span>
+                    <span class="hand s13" style="margin-left: 6px; max-width: 130px; line-height: 1.15">you press Save in the game</span>
+                  </div>
+                </div>
+                <div class="grow" style="display: grid; align-content: center">
+                  <div class="callout col g10">
+                    <div class="row"><span class="eyebrow faint">The plate's twelve slots</span><span class="end t12 muted">weapon kept · bare slots emptied</span></div>
+                    <div class="row g6"><span class="slotlab">Now</span>
+                      <div class="slots12">
+                        <b class="it" data-it="3234"></b><b class="it" data-it="2925"></b><b class="it" data-it="3711"></b><b class="it" data-it="3486"></b><b class="it" data-it="3932"></b><b class="it empty"></b><b class="it empty"></b><b class="it empty"></b><b class="it" data-it="6132"></b><b class="it empty"></b><b class="it empty"></b><b class="it empty"></b>
+                      </div>
+                    </div>
+                    <div class="row g6"><span class="slotlab" style="color: var(--accent)">After</span>
+                      <div class="slots12">
+                        <b class="it" data-it="3234" style="opacity: .4"></b><b class="it" data-it="42631" data-own></b><b class="it" data-it="42632" data-own></b><b class="it" data-it="42633" data-own></b><b class="it" data-it="42634" data-own="amber"></b><b class="it" data-it="42635" data-own></b><b class="it" data-it="4199" data-own></b><b class="it" data-it="4303" data-own></b><b class="it empty"><span class="x">×</span></b><b class="it empty"><span class="x">×</span></b><b class="it empty"><span class="x">×</span></b><b class="it empty"><span class="x">×</span></b>
+                      </div>
+                    </div>
+                    <div class="row g12 t12 muted"><span class="row g4"><span class="dot"></span>dresser</span><span class="row g4"><span class="dot amber"></span>armoire · dyed from your bags</span><span class="row g4"><span class="t11 num faint">×</span>emptied</span></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="lower">
+                <div>
+                  <div class="panel-h"><span class="d">Ready for plate 3</span><span class="cnt">6 of 23</span><span class="end btn link t13">All your looks<i data-i="arrow-right" class="s14"></i></span></div>
+                  <div class="cards3">
+                    <div class="sheet-card"><div class="tiles" data-look="scholar" data-own="1,1,1,1"></div><div class="row top"><div class="grow"><div class="nm">Moonlit Scholar</div><div class="ln">Planned · loved · by Mira Sol</div></div><span class="seal">MS</span></div><div class="row"><span class="tag ok"><i data-i="check"></i>Ready for a plate</span></div><div class="palette" data-dyes="Pastel Purple,Midnight Blue,Pure White,Jet Black"></div></div>
+                    <div class="sheet-card"><div class="tiles" data-look="moon" data-own="1,1,1,1"></div><div class="row top"><div class="grow"><div class="nm">Moon Rabbit Nightwatch</div><div class="ln">Your look · 4 pieces</div></div><span class="seal">KN</span></div><div class="row"><span class="tag ok"><i data-i="check"></i>Ready for a plate</span></div><div class="palette" data-dyes="Snow White,Sky Blue,Lavender Purple"></div></div>
+                    <div class="sheet-card"><div class="tiles" data-look="fuath" data-own="1,1,1,1"></div><div class="row top"><div class="grow"><div class="nm">Fuath at Dusk</div><div class="ln">Your look · 5 pieces</div></div><span class="seal">KN</span></div><div class="row"><span class="tag ok"><i data-i="check"></i>Ready for a plate</span></div><div class="palette" data-dyes="Ink Blue,Turquoise Blue,Pearl White"></div></div>
+                    <div class="sheet-card"><div class="tiles" data-look="weaver" data-own="1,1,1,1"></div><div class="row top"><div class="grow"><div class="nm">Tailor's Day Off</div><div class="ln">Your look · 6 pieces</div></div><span class="seal">KN</span></div><div class="row"><span class="tag ok"><i data-i="check"></i>Ready for a plate</span></div><div class="palette" data-dyes="Wine Red,Cream Yellow"></div></div>
+                    <div class="sheet-card"><div class="tiles" data-look="wed" data-own="1,1,1,1"></div><div class="row top"><div class="grow"><div class="nm">Wedding Guest</div><div class="ln">Your look · 5 pieces</div></div><span class="seal">KN</span></div><div class="row"><span class="tag ok"><i data-i="check"></i>Ready for a plate</span></div><div class="palette" data-dyes="Pure White,Lotus Pink"></div></div>
+                    <div class="sheet-card"><div class="tiles" data-look="valen" data-own="1,1,1,1"></div><div class="row top"><div class="grow"><div class="nm">Valentione Errand</div><div class="ln">Loved · by Tal Nox</div></div><span class="seal">TN</span></div><div class="row"><span class="tag ok"><i data-i="check"></i>Ready for a plate</span></div><div class="palette" data-dyes="Rose Pink,Dalamud Red,Snow White"></div></div>
+                  </div>
+                </div>
+                <div class="col g12">
+                  <div class="card pad-s">
+                    <div class="panel-h"><span class="d">Sent from the site</span><span class="cnt">2</span></div>
+                    <div class="lrow" style="margin: 0 -8px"><span class="icons4" data-look="witch" data-n="2" data-s="32"></span><div class="grow"><div class="row g6"><span class="spark" data-build="texture: spark"></span><span class="nm">Witching Hour</span></div><div class="ln">For plate 3 · sent 4 min ago</div></div></div>
+                    <div class="lrow" style="margin: 0 -8px"><span class="icons4" data-look="valen" data-n="2" data-s="32"></span><div class="grow"><div class="nm">Valentione Errand</div><div class="ln">Sent yesterday</div></div></div>
+                    <div class="btn link t12 mt4" style="color: var(--muted)">Done with these: clear the list</div>
+                  </div>
+                  <div class="card pad-s">
+                    <div class="panel-h"><span class="d">Wear today</span><span class="cnt">14</span><span class="end btn link t12">All<i data-i="arrow-right" class="s12"></i></span></div>
+                    <div class="lrow" style="margin: 0 -8px"><span class="icons4" data-look="scholar" data-n="2" data-s="32"></span><div class="grow"><div class="nm">Moonlit Scholar</div><div class="ln">Mira Sol · <span class="c-pink">♥</span> 1,284</div></div></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <span class="scrollbar" style="top: 268px; height: 300px"></span>
+          </div>
+          <span class="pin abs" style="left: 16px; top: 44px">1</span>
+          <span class="pin abs" style="left: 692px; top: 70px">2</span>
+          <span class="pin abs" style="left: 14px; top: 104px">3</span>
+          <span class="pin abs" style="left: 240px; top: 306px">4</span>
+          <span class="pin abs" style="left: 556px; top: 120px">5</span>
+          <span class="pin abs" style="left: 262px; top: 405px">6</span>
+          <span class="pin abs" style="left: 752px; top: 352px">7</span>
+        </div>
+      </div>
+      <ol class="notes">
+        <li><span class="pin">1</span><span><b>Dalamud's title bar stays Dalamud's.</b> Its ▼, title, ☰ and × are drawn by Dalamud (only its colours are the plugin's: the ink's second step). Under it, the plugin's own bar: the clothes-tag logo (a texture) and GLAMOUR STUDIO in Bricolage's heavy capitals, as the site's bar has them.</span></li>
+        <li><span class="pin">2</span><span><b>The rail becomes the site's bar.</b> Home · Looks · Plates · Closet · Make room across the top, each with its count in Geist Mono and a holo underline under the one you're on (a strip of the holo texture). The 212px the rail took goes back to the screens; your character moves into the pill on the right.</span></li>
+        <li><span class="pin">3</span><span><b>The one field: the plate in front of you.</b> Periwinkle, ink-violet words, its name echoed huge behind in the field's tone (Bricolage at 104px, capitals and digits only in the atlas). Only Home at a dresser, a look, Make room and the first run have a field; at most one a screen.</span></li>
+        <li><span class="pin">4</span><span><b>One sticker, turned over on the field.</b> Fill plate 3 is ink with white words and a hard black block under it, as the site's sticker is on its field. The hand-lettered voice says the one thing to remember: you press Save in the game. Greyed out (half opacity, a tooltip saying why) when none of its pieces is in the dresser or armoire.</span></li>
+        <li><span class="pin">5</span><span><b>Now and after, as a callout.</b> An ink card with a black edge and block shadow (as the site's piece callouts sit on its field): the plate's twelve slots now, and after filling. A corner dot says where each piece comes from (ice: the dresser; amber: the armoire or a dye to see to); × is a slot emptied.</span></li>
+        <li><span class="pin">6</span><span><b>Ready for plate 3: small character sheets.</b> Each look a card: its pieces on a raised well, its name in display capitals, the maker's seal turned a little in the corner, and its dyes as a palette strip along the foot. The planned look first, then yours and the ones you love that the dresser and armoire have every piece of.</span></li>
+        <li><span class="pin">7</span><span><b>Sent from the site.</b> Looks you pressed Send to game for, newest first, with the plate they were meant for. One that arrived since you last looked has the holo sparkle (holo means new); it leaves the list once it's on a plate, or with Done with these.</span></li>
+      </ol>
+
+      <!-- ───────── 2 · Filled ───────── -->
+      <div class="frame-cap">
+        <h2>Filled, and someone examined</h2>
+        <p>Right after Fill plate 3; the game's Examine window open on someone</p>
+        <span class="size">1120 × 760</span>
+      </div>
+      <div class="stage">
+        <div class="win" style="width: 1120px; height: 760px" data-place="home" data-who="live|Plate editor open · plate 3">
+          <div class="body">
+            <div class="page">
+              <div class="field hero">
+                <div class="echo"><span style="margin: -10px 0 0 380px">Plate 3 · Plate 3</span><span style="margin-left: 120px">Plate 3 · Plate 3</span><span style="margin-left: 420px">Plate 3 ·</span></div>
+                <div class="left">
+                  <span class="eyebrow"><i data-i="check" class="s14"></i>Plate 3 · filled · not saved yet</span>
+                  <h2>Moonlit Scholar</h2>
+                  <span class="t13 b5 c-onfield2">All seven went on, one dyed Midnight Blue from your bags. Four slots emptied.</span>
+                  <div class="row g10 mt12">
+                    <span class="hand s18" style="line-height: 1.1">now press Save in the game's window</span>
+                  </div>
+                  <div class="row g10 mt8">
+                    <span class="btn sm">Fill it again</span>
+                    <span class="btn sm quiet">See the look</span>
+                  </div>
+                </div>
+                <div class="grow" style="display: grid; align-content: center; justify-items: end">
+                  <div class="callout row g16" style="padding: 14px 18px">
+                    <span class="ring" data-ring="7/7" data-size="76" data-w="7"><b>7/7</b></span>
+                    <div class="col g4" style="width: 250px">
+                      <span class="d d17" style="color: var(--ink)">On plate 3</span>
+                      <span class="t12 muted">To wear it: save, close Glamour Plates and the dresser, then Wear plate 3 in Plates. The game won't change gearset while they're open.</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="lower">
+                <div>
+                  <div class="panel-h"><span class="d">Ready for plate 3</span><span class="cnt">6 of 23</span><span class="end btn link t13">All your looks<i data-i="arrow-right" class="s14"></i></span></div>
+                  <div class="cards3">
+                    <div class="sheet-card"><div class="tiles" data-look="moon" data-own="1,1,1,1"></div><div class="row top"><div class="grow"><div class="nm">Moon Rabbit Nightwatch</div><div class="ln">Your look · 4 pieces</div></div><span class="seal">KN</span></div><div class="row"><span class="tag ok"><i data-i="check"></i>Ready for a plate</span></div><div class="palette" data-dyes="Snow White,Sky Blue,Lavender Purple"></div></div>
+                    <div class="sheet-card"><div class="tiles" data-look="fuath" data-own="1,1,1,1"></div><div class="row top"><div class="grow"><div class="nm">Fuath at Dusk</div><div class="ln">Your look · 5 pieces</div></div><span class="seal">KN</span></div><div class="row"><span class="tag ok"><i data-i="check"></i>Ready for a plate</span></div><div class="palette" data-dyes="Ink Blue,Turquoise Blue,Pearl White"></div></div>
+                    <div class="sheet-card"><div class="tiles" data-look="weaver" data-own="1,1,1,1"></div><div class="row top"><div class="grow"><div class="nm">Tailor's Day Off</div><div class="ln">Your look · 6 pieces</div></div><span class="seal">KN</span></div><div class="row"><span class="tag ok"><i data-i="check"></i>Ready for a plate</span></div><div class="palette" data-dyes="Wine Red,Cream Yellow"></div></div>
+                  </div>
+                </div>
+                <div class="col g12">
+                  <div class="card pad-s">
+                    <div class="panel-h"><span class="d">Examining</span><span class="end tag ok">5 of 7 yours</span></div>
+                    <div class="row g10"><span class="face l" style="background: var(--soft); color: var(--accent)">MS</span><div class="grow"><div class="b6 ink t13">Mira Sol's outfit</div><div class="t12 muted">Glamour and dyes as shown</div></div></div>
+                    <div class="row g4 mt10" data-look="scholar" data-n="7" data-s="36" data-own="1,1,1,pink,1,1,pink"></div>
+                    <div class="row g6 mt12"><span class="btn sm"><i data-i="shirt" class="s14"></i>Try it on</span><span class="btn sm">Keep it as a look</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <span class="toast" style="left: 50%; bottom: 18px; transform: translateX(-50%)"><span class="spark s16"></span>Plate 3: done. Press Save in the game's window.</span>
+          </div>
+          <span class="pin abs" style="left: 14px; top: 104px">1</span>
+          <span class="pin abs" style="left: 700px; top: 150px">2</span>
+          <span class="pin abs" style="left: 752px; top: 352px">3</span>
+          <span class="pin abs" style="left: 380px; top: 700px">4</span>
+        </div>
+      </div>
+      <ol class="notes">
+        <li><span class="pin">1</span><span><b>The field says what happened, the hand says what's next.</b> After filling there's nothing more to press here, so there's no sticker: the plate is filled but not saved, and the one thing left is the game's Save. Fill it again and See the look stay, outlined and quiet.</span></li>
+        <li><span class="pin">2</span><span><b>On plate 3, in a ring.</b> Seven of seven, the ring drawn with the draw list (an arc, stroked). Wear plate 3 isn't offered here: the game refuses to change gearset at a dresser, so the words say how instead (as today).</span></li>
+        <li><span class="pin">3</span><span><b>Examining takes the right column</b> while the game's Examine window shows someone: their outfit as shown (glamour and dyes), how many pieces are yours (an ice tag), the ones you don't have with a pink dot, Try it on and Keep it as a look (a private look named “Mira Sol's outfit”, their body for the mannequin).</span></li>
+        <li><span class="pin">4</span><span><b>Toasts rise at the window's foot.</b> One at a time, a solid pill of raised ink (no glass: ImGui can't blur), the holo sparkle at its start for good news. Gone in four seconds.</span></li>
+      </ol>
+
+      <!-- ───────── 3 · Away from the dresser ───────── -->
+      <div class="frame-cap">
+        <h2>Away from the dresser</h2>
+        <p>Linked, in a city: what's ready, what's sent, what you could wear today</p>
+        <span class="size">1120 × 760</span>
+      </div>
+      <div class="stage city">
+        <div class="win" style="width: 1120px; height: 760px" data-place="home">
+          <div class="body">
+            <div class="page">
+              <div class="card pad row g16" style="padding: 16px 20px">
+                <span class="btn round r40 ink" style="border-color: transparent; color: var(--accent)"><i data-i="layers" class="s20"></i></span>
+                <div class="grow col g4">
+                  <span class="eyebrow">At a glamour dresser</span>
+                  <span class="t14 ink b6">Open Glamour Plates and pick a plate: it shows here with the look planned for it, ready to fill.</span>
+                  <span class="t12 muted">Every inn room has a glamour dresser. You've planned 2 plates on the site: plate 2 and plate 7.</span>
+                </div>
+                <span class="btn sm quiet"><i data-i="ext" class="s14"></i>Plan plates on the site</span>
+              </div>
+              <div class="lower" style="margin-top: 18px">
+                <div>
+                  <div class="panel-h"><span class="d">Ready for a plate</span><span class="cnt">6 of 23</span><span class="end btn link t13">All your looks<i data-i="arrow-right" class="s14"></i></span></div>
+                  <div class="cards3">
+                    <div class="sheet-card"><div class="tiles" data-look="moon" data-own="1,1,1,1"></div><div class="row top"><div class="grow"><div class="nm">Moon Rabbit Nightwatch</div><div class="ln">Planned for plate 7 · 4 pieces</div></div><span class="seal">KN</span></div><div class="row"><span class="tag ok"><i data-i="check"></i>Ready for a plate</span></div><div class="palette" data-dyes="Snow White,Sky Blue,Lavender Purple"></div></div>
+                    <div class="sheet-card"><div class="tiles" data-look="fuath" data-own="1,1,1,1"></div><div class="row top"><div class="grow"><div class="nm">Fuath at Dusk</div><div class="ln">Your look · 5 pieces</div></div><span class="seal">KN</span></div><div class="row"><span class="tag ok"><i data-i="check"></i>Ready for a plate</span></div><div class="palette" data-dyes="Ink Blue,Turquoise Blue,Pearl White"></div></div>
+                    <div class="sheet-card"><div class="tiles" data-look="scholar" data-own="1,1,1,1"></div><div class="row top"><div class="grow"><div class="nm">Moonlit Scholar</div><div class="ln">Loved · by Mira Sol</div></div><span class="seal">MS</span></div><div class="row"><span class="tag ok"><i data-i="check"></i>Ready for a plate</span></div><div class="palette" data-dyes="Pastel Purple,Midnight Blue,Pure White,Jet Black"></div></div>
+                    <div class="sheet-card"><div class="tiles" data-look="weaver" data-own="1,1,1,1"></div><div class="row top"><div class="grow"><div class="nm">Tailor's Day Off</div><div class="ln">Your look · 6 pieces</div></div><span class="seal">KN</span></div><div class="row"><span class="tag ok"><i data-i="check"></i>Ready for a plate</span></div><div class="palette" data-dyes="Wine Red,Cream Yellow"></div></div>
+                    <div class="sheet-card"><div class="tiles" data-look="wed" data-own="1,1,1,1"></div><div class="row top"><div class="grow"><div class="nm">Wedding Guest</div><div class="ln">Your look · 5 pieces</div></div><span class="seal">KN</span></div><div class="row"><span class="tag ok"><i data-i="check"></i>Ready for a plate</span></div><div class="palette" data-dyes="Pure White,Lotus Pink"></div></div>
+                    <div class="sheet-card"><div class="tiles" data-look="valen" data-own="1,1,1,1"></div><div class="row top"><div class="grow"><div class="nm">Valentione Errand</div><div class="ln">Loved · by Tal Nox</div></div><span class="seal">TN</span></div><div class="row"><span class="tag ok"><i data-i="check"></i>Ready for a plate</span></div><div class="palette" data-dyes="Rose Pink,Dalamud Red,Snow White"></div></div>
+                  </div>
+                </div>
+                <div class="col g12">
+                  <div class="card pad-s">
+                    <div class="panel-h"><span class="d">Sent from the site</span><span class="cnt">2</span></div>
+                    <div class="lrow" style="margin: 0 -8px"><span class="icons4" data-look="witch" data-n="2" data-s="32"></span><div class="grow"><div class="row g6"><span class="spark"></span><span class="nm">Witching Hour</span></div><div class="ln">For plate 3 · sent 4 min ago</div></div></div>
+                    <div class="lrow" style="margin: 0 -8px"><span class="icons4" data-look="valen" data-n="2" data-s="32"></span><div class="grow"><div class="nm">Valentione Errand</div><div class="ln">Sent yesterday</div></div></div>
+                    <div class="btn link t12 mt4" style="color: var(--muted)">Done with these: clear the list</div>
+                  </div>
+                  <div class="card pad-s">
+                    <div class="panel-h"><span class="d">Wear today</span><span class="cnt">14</span><span class="end btn link t12">All<i data-i="arrow-right" class="s12"></i></span></div>
+                    <div class="lrow" style="margin: 0 -8px"><span class="icons4" data-look="scholar" data-n="2" data-s="32"></span><div class="grow"><div class="nm">Moonlit Scholar</div><div class="ln">Mira Sol · <span class="c-pink">♥</span> 1,284</div></div></div>
+                    <div class="lrow" style="margin: 0 -8px"><span class="icons4" data-look="moon" data-n="2" data-s="32"></span><div class="grow"><div class="nm">Sleepover</div><div class="ln">Rhea Vale · <span class="c-pink">♥</span> 812</div></div></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <span class="scrollbar" style="top: 80px; height: 340px"></span>
+          </div>
+          <span class="pin abs" style="left: 14px; top: 96px">1</span>
+          <span class="pin abs" style="left: 14px; top: 196px">2</span>
+          <span class="pin abs" style="left: 1076px; top: 440px">3</span>
+        </div>
+      </div>
+      <ol class="notes">
+        <li><span class="pin">1</span><span><b>No field when there's no moment.</b> Away from a dresser, a quiet ink card says how to get there and what's planned. No sticker either: nothing here is the one thing to do, so nothing is filled.</span></li>
+        <li><span class="pin">2</span><span><b>Ready for a plate, up to six.</b> The planned looks first, then yours and the ones you love whose every piece is in the dresser or armoire. Each card opens the look; All your looks goes to Looks with Ready for a plate first on. Scrolls when the window is short.</span></li>
+        <li><span class="pin">3</span><span><b>Wear today</b> (the site's word, was "You could wear now"): the public looks you own every piece of, the most loved first, their loves in pink (loves are pink, a love you gave is holo). All opens Looks on its tab.</span></li>
+      </ol>
+
+      <!-- ───────── 4 · First run ───────── -->
+      <div class="frame-cap">
+        <h2>First run, not linked</h2>
+        <p>Installed, logged in, no token yet</p>
+        <span class="size">1120 × 760</span>
+      </div>
+      <div class="stage">
+        <div class="win" style="width: 1120px; height: 760px" data-place="home" data-who="no|Not linked to Glamour Studio" data-counts="||||">
+          <div class="body">
+            <div class="page">
+              <div class="field" style="height: 352px; padding: 24px 28px; display: grid; align-content: start; gap: 10px">
+                <div class="echo"><span style="margin: 0 0 0 470px">Get started ·</span><span style="margin-left: 260px">Get started ·</span><span style="margin-left: 520px">Get st</span></div>
+                <span class="eyebrow">Three steps · once</span>
+                <h2 style="color: #f6f3ff; font: 800 44px/0.98 var(--display); letter-spacing: .015em; text-transform: uppercase; text-shadow: 3px 3px 0 var(--field-deep), 5px 5px 0 #000">Link your game</h2>
+                <span class="t14 b5 c-onfield2" style="max-width: 520px">Your looks from Glamour Studio on your plates, and your closet on the site kept up to date by itself.</span>
+                <div class="steps">
+                  <div class="step callout"><span class="n">1</span><b class="ink t13">Link your account</b><span class="t12 muted">Make a token on the site (Settings → Glamour Studio → In-game plugin) and paste it in Settings → Account.</span></div>
+                  <div class="step callout"><span class="n">2</span><b class="ink t13">Open your dresser and armoire once</b><span class="t12 muted">The game only shows them then. The plugin remembers them, and your bags, armoury chest, saddlebags and retainers.</span></div>
+                  <div class="step callout"><span class="n">3</span><b class="ink t13">Put a look on a plate</b><span class="t12 muted">At a glamour dresser, open Glamour Plates, pick a look and press Put on plate.</span></div>
+                </div>
+                <div class="row g10 mt4">
+                  <span class="sticker lg"><i data-i="key"></i>Link your account</span>
+                  <span class="btn"><i data-i="ext" class="s14"></i>Open Glamour Studio</span>
+                </div>
+              </div>
+              <div class="lower" style="margin-top: 18px; grid-template-columns: minmax(0, 1fr) 356px">
+                <div class="empty-s" style="height: 222px; align-content: center; padding-top: 18px">
+                  <span class="cloud" data-build="texture: cloud"></span>
+                  <span class="sign" data-build="rotated vertices"><b>No looks yet</b><small>link and they're all here</small></span>
+                  <span class="line">Dress the mannequin on Glamour Studio and save a look: it's here, ready for a plate.</span>
+                </div>
+                <div class="card pad-s col g10" style="align-self: start">
+                  <div class="panel-h" style="margin: 0"><span class="d">Already here</span></div>
+                  <div class="row g10"><span class="btn round r36 ink" style="border-color: transparent"><i data-i="shirt"></i></span><div class="grow"><div class="ink b6 t13">Try it on</div><div class="t12 muted">Any plate in the fitting room, no account needed.</div></div></div>
+                  <div class="row g10"><span class="btn round r36 ink" style="border-color: transparent"><i data-i="package"></i></span><div class="grow"><div class="ink b6 t13">Make room</div><div class="t12 muted">Outfit sets to gather in your dresser.</div></div></div>
+                  <div class="row g10"><span class="btn round r36 ink" style="border-color: transparent"><i data-i="layers"></i></span><div class="grow"><div class="ink b6 t13">Your plates</div><div class="t12 muted">Wear one, link it to a gearset.</div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <span class="pin abs" style="left: 14px; top: 104px">1</span>
+          <span class="pin abs" style="left: 238px; top: 398px">2</span>
+          <span class="pin abs" style="left: 14px; top: 466px">3</span>
+          <span class="pin abs" style="left: 728px; top: 466px">4</span>
+          <span class="pin abs" style="left: 784px; top: 47px">5</span>
+        </div>
+      </div>
+      <ol class="notes">
+        <li><span class="pin">1</span><span><b>The first run is the field's moment.</b> LINK YOUR GAME (the site's own words for it) on the field, the three steps as ink callouts side by side, unchanged from today's Get started.</span></li>
+        <li><span class="pin">2</span><span><b>Link your account is the sticker.</b> It opens Settings → Account with the token field focused. Open Glamour Studio opens the site in your browser.</span></li>
+        <li><span class="pin">3</span><span><b>Empty pages are drawn, as the site's are.</b> The sign: a white card in display capitals with a few hand-lettered words under them, turned 5° (the vertices rotated after drawing) with a hard deep-violet block; a cloud drifting at its foot (a texture, tinted). No hand holds it.</span></li>
+        <li><span class="pin">4</span><span><b>What works without a link</b> says so: trying plates on, Make room's outfit sets, your plates and gearsets. The counts in the bar are left out until there's something to count.</span></li>
+        <li><span class="pin">5</span><span><b>The pill says you're not linked</b>, a faint dot, your character's initials on the soft ink rather than the field's violet. Not logged in at all: a <i>?</i> in the face and “Log in to a character”.</span></li>
+      </ol>
+    </div>
+  </body>
+</html>
