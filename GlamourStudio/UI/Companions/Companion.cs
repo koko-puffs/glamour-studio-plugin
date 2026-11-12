@@ -263,9 +263,14 @@ public sealed partial class MainWindow
         | ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse | ImGuiWindowFlags.NoCollapse
         | ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoFocusOnAppearing | ImGuiWindowFlags.NoNav;
 
+    /// <summary>The panel's header, its line included (the mock's <c>.pane .ph</c>), and the body's padding round what's in it.</summary>
+    private const float PaneHeadCss = 54;
+
+    private const float PanePadTopCss = 12, PanePadXCss = 14, PanePadBottomCss = 14;
+
     private void DrawCompanionPanel(Pane pane, string key, WindowRect rect, bool right, float width, float gap, Vector2 vpPos, Vector2 vpSize)
     {
-        var headerH = S(56);
+        var headerH = S(PaneHeadCss);
         // As tall as what's in it, whatever the game window's height: it scrolls only when the screen
         // runs out (it was held to the game window's height, and a few pixels short of its content).
         var maxH = vpSize.Y - S(16);
@@ -278,7 +283,10 @@ public sealed partial class MainWindow
         ImGui.SetNextWindowPos(new Vector2(x, y), ImGuiCond.Always);
         ImGui.SetNextWindowSize(new Vector2(width, height), ImGuiCond.Always);
         Theme.PushFrame();
+        // (The panel's corners are the mock's 14, the main window's 12.)
+        ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding, S(14));
         var shown = ImGui.Begin("##gs-companion", CompanionFlags);
+        ImGui.PopStyleVar();
         Theme.Pop();
         try
         {
@@ -286,20 +294,23 @@ public sealed partial class MainWindow
             Theme.PushInside();
             try
             {
-                using (fonts.Push(Face.Sans, 14))
+                using (fonts.Push(Face.Sans, 13))
                 {
                     try
                     {
                         var win = ImGui.GetWindowPos();
-                        DrawCompanionHeader(pane, key, win, width, headerH, right);
+                        DrawCompanionHeader(pane, key, win, width, right);
                         var bodyTop = win.Y + headerH;
-                        Kit.Dl.AddLine(new Vector2(win.X + 1, bodyTop - 0.5f), new Vector2(win.X + width - 1, bodyTop - 0.5f), Palette.U32(Palette.Divider), 1f);
-                        Kit.BeginPane("##gs-companion-body", new Vector2(win.X, bodyTop), new Vector2(width, height - headerH), 14, 12, 14);
+                        Kit.Dl.AddLine(new Vector2(win.X + 1, bodyTop - 0.5f), new Vector2(win.X + width - 1, bodyTop - 0.5f), Palette.U32(Palette.Line), 1f);
+                        Kit.BeginPane("##gs-companion-body", new Vector2(win.X, bodyTop), new Vector2(width, height - headerH), PanePadXCss, PanePadTopCss, PanePadBottomCss);
                         var top = ImGui.GetCursorPosY();
+                        paneLaid = false;
+                        paneFirstInSec = true;
+                        paneAfterRow = false;
                         DrawPaneBody(pane);
-                        // What's in it, with the pane's padding above (12) and below (14), and a pixel
-                        // spare so a body that fits never shows a scrollbar.
-                        var content = ImGui.GetCursorPosY() - top + S(12) + S(14) + 1;
+                        // What's in it, with the pane's padding above and below, and a pixel spare so a
+                        // body that fits never shows a scrollbar.
+                        var content = ImGui.GetCursorPosY() - top + S(PanePadTopCss) + S(PanePadBottomCss) + 1;
                         Kit.EndPane();
                         if (MathF.Abs(content - companionContentH) > 0.5f) companionContentH = content;
                     }
@@ -323,43 +334,63 @@ public sealed partial class MainWindow
         }
     }
 
-    /// <summary>The panel's header: Glamour Studio over what it's beside, open the plugin, fold it away.</summary>
-    private void DrawCompanionHeader(Pane pane, string key, Vector2 win, float width, float headerH, bool right)
+    /// <summary>
+    /// The panel's header (the mock's <c>.pane .ph</c>): the clothes tag (22), GLAMOUR STUDIO in small
+    /// lilac capitals over what it's beside in Bricolage capitals (15), then Refresh, Open Glamour
+    /// Studio and the fold, quiet and round (28), 9px apart.
+    /// </summary>
+    private void DrawCompanionHeader(Pane pane, string key, Vector2 win, float width, bool right)
     {
-        var dl = Kit.Dl;
-        var pad = S(14);
-
+        // The header's 54 hold its line at the foot: what's in it sits in the 53 above.
+        var inner = S(PaneHeadCss - 1);
         var btn = S(28);
-        var bx = win.X + width - S(12) - btn;
-        var by = win.Y + (headerH - btn) / 2;
-        if (Kit.IconButton("##c-fold", new Vector2(bx, by), right ? Icon.ChevronLeft : Icon.ChevronRight, "Fold it away (a tab stays on the window's edge)", 28, Btn.Glass, false, 13))
+        var gap = S(9);
+        var by = win.Y + (inner - btn) / 2;
+        var bx = win.X + width - S(10) - btn;
+        if (Kit.IconButton("##c-fold", new Vector2(bx, by), right ? Icon.ChevronLeft : Icon.ChevronRight, "Fold it away (a tab stays on the window's edge)", 28, Btn.Quiet, false, 14))
             Later(() =>
             {
                 config.CompanionFolded[key] = true;
                 config.Save();
             });
-        bx -= btn + S(6);
-        if (Kit.IconButton("##c-open", new Vector2(bx, by), Icon.ExternalLink, "Open Glamour Studio", 28, Btn.Glass, false, 13))
+        bx -= btn + gap;
+        if (Kit.IconButton("##c-open", new Vector2(bx, by), Icon.ExternalLink, "Open Glamour Studio", 28, Btn.Quiet, false, 14))
             Later(() => OpenFromPane(pane));
-        bx -= btn + S(6);
-        if (Kit.IconButton("##c-refresh", new Vector2(bx, by), Icon.Refresh, "Read it all again (your looks and list from the site, your wardrobe from the game)", 28, Btn.Glass, sync.LibraryBusy, 13))
+        bx -= btn + gap;
+        // Refresh as the bar's: dimmed while it reads, its arrows turning.
+        var busy = sync.LibraryBusy;
+        var dl = Kit.Dl;
+        var turn = Kit.TurnStart(dl);
+        if (Kit.IconButton("##c-refresh", new Vector2(bx, by), Icon.RefreshCw,
+                busy ? "Reading…" : "Read it all again (your looks and list from the site, your wardrobe from the game)", 28, Btn.Quiet, busy, 14))
             Later(RefreshEverything);
+        if (busy && !ReducedMotion)
+            Kit.TurnSince(dl, turn, new Vector2(bx, by) + new Vector2(btn / 2), (float)(ImGui.GetTime() * 240 % 360));
 
-        var tx = win.X + pad;
-        var tw = bx - S(8) - tx;
-        var ebH = Kit.EyebrowHeight;
-        var tH = Txt.Natural(Face.Heading, 16);
-        var ty = win.Y + (headerH - ebH - tH) / 2;
-        Kit.Eyebrow(new Vector2(tx, ty), "Glamour Studio", Palette.Accent, tw);
-        Txt.Draw(dl, new Vector2(tx, ty + ebH), Txt.Fit(PaneTitle(pane), Face.Heading, 16, tw), Face.Heading, 16, Palette.Ink);
+        var logo = S(22);
+        var lx = win.X + S(12);
+        Kit.Logo(new Vector2(lx, win.Y + (inner - logo) / 2), 22);
+        var tx = lx + logo + gap;
+        var tw = MathF.Max(0, bx - gap - tx);
+        // The eyebrow (9.5px, 0.1em apart, line 1.3) over the title (Bricolage 15, line 1.05), 2px between.
+        var ebLine = S(10 * 1.3f);
+        var tLine = S(15 * 1.05f);
+        var ty = win.Y + (inner - ebLine - S(2) - tLine) / 2;
+        var eb = Txt.SpacedFit("Glamour Studio", Face.SansSemibold, 10, 0.1f, tw);
+        Txt.Spaced(dl, new Vector2(tx, ty + (ebLine - Txt.Natural(Face.SansSemibold, 10)) / 2), eb, Face.SansSemibold, 10, Palette.Accent, 0.1f);
+        var titleTop = ty + ebLine + S(2);
+        Kit.Display(new Vector2(tx, titleTop + (tLine - Kit.DisplayHeight(15)) / 2), PaneTitle(pane), 15, Palette.Ink, tw);
     }
 
-    /// <summary>The slim tab a folded panel leaves on its window's edge: an arrow, its one number.</summary>
+    /// <summary>
+    /// The slim tab a folded panel leaves on its window's edge (the mock's <c>.paneTab</c>): the arrow
+    /// back out, its one number in lilac mono, the clothes tag under them.
+    /// </summary>
     private void DrawCompanionTab(Pane pane, string key, WindowRect rect, bool right)
     {
         var w = S(34);
         var count = PaneCount(pane);
-        var h = S(12) + S(16) + (count != null ? S(8) + Txt.Natural(Face.Mono, 11) : 0) + S(12);
+        var h = S(10 + 16) + (count != null ? S(8 + 11) : 0) + S(8 + 2 + 18 + 12);
         var vp = ImGui.GetMainViewport();
         var x = right ? rect.Max.X : rect.Pos.X - w;
         // On the screen, whichever side was asked (it's the only way back to the panel).
@@ -381,18 +412,21 @@ public sealed partial class MainWindow
                 var (clicked, hovered, _) = Kit.Hit("##c-unfold", win, new Vector2(w, h));
                 if (hovered)
                 {
-                    dl.AddRectFilled(win, win + new Vector2(w, h), Palette.U32(Palette.RowHover), S(14));
+                    dl.AddRectFilled(win, win + new Vector2(w, h), Palette.U32(Palette.RowHover), S(12));
                     Kit.Tooltip($"Glamour Studio: {PaneTitle(pane)}");
                 }
                 var cx = win.X + w / 2;
-                var iy = win.Y + S(12);
-                Icons.Draw(dl, right ? Icon.ChevronRight : Icon.ChevronLeft, new Vector2(cx - S(8), iy), S(16), Palette.Soft);
+                var y = win.Y + S(10);
+                Icons.Draw(dl, right ? Icon.ChevronRight : Icon.ChevronLeft, new Vector2(cx - S(8), y), S(16), Palette.Body);
+                y += S(16 + 8);
                 if (count != null)
                 {
-                    var t = Txt.Fit(count, Face.Mono, 11, w - S(4));
-                    var tw = Txt.Measure(t, Face.Mono, 11).X;
-                    Txt.Draw(dl, new Vector2(cx - tw / 2, iy + S(16) + S(8)), t, Face.Mono, 11, Palette.AccentText);
+                    var t = Txt.Fit(count, Face.MonoMedium, 11, w - S(4));
+                    var tw = Txt.Measure(t, Face.MonoMedium, 11).X;
+                    Txt.Line(dl, new Vector2(cx - tw / 2, y), t, Face.MonoMedium, 11, Palette.Accent, 11);
+                    y += S(11 + 8);
                 }
+                Kit.Logo(new Vector2(cx - S(9), y + S(2)), 18);
                 if (clicked)
                     Later(() =>
                     {
@@ -515,27 +549,351 @@ public sealed partial class MainWindow
     }
 
     // ---------------------------------------------------------------------------------------------
-    // What the panels share: a piece's row, a look's row, a heading, a note, your wishlist.
+    // What the panels share (the mock's pane parts): sections and their gaps, a section's heading,
+    // small words, a piece's row, a look's row, buttons, the cards for not linked and to see to.
 
     /// <summary>"Show more" pressed in this panel (a list cut short shows the rest).</summary>
     private bool companionMore;
 
-    private static void PaneHeading(string text, string? sub = null)
+    /// <summary>
+    /// The body's flow, as the mock's grid lays it: sections 14 apart (<see cref="PaneSec"/>), what's in
+    /// a section 6 apart (<see cref="PaneNext"/>), a hairline between piece rows one after another.
+    /// </summary>
+    private bool paneLaid, paneFirstInSec, paneAfterRow;
+
+    private const float SecGapCss = 14, ItemGapCss = 6;
+
+    /// <summary>Starts a section (or a card on its own): 14 under what's above.</summary>
+    private void PaneSec()
     {
-        Kit.Heading(text, sub, 13);
-        Kit.Gap(8);
+        if (paneLaid) Kit.Gap(SecGapCss);
+        paneLaid = true;
+        paneFirstInSec = true;
+        paneAfterRow = false;
     }
 
-    private static void PaneNote(string text, Vector4? color = null)
+    /// <summary>Before each thing in a section: 6 under the one before. True when a piece row follows another (its hairline).</summary>
+    private bool PaneNext(bool row = false)
     {
-        Txt.Para(new[] { new Run(text, Face.Sans, 12, color ?? Palette.Muted) }, 18);
+        if (!paneFirstInSec) Kit.Gap(ItemGapCss);
+        paneFirstInSec = false;
+        paneLaid = true;
+        var line = row && paneAfterRow;
+        paneAfterRow = row;
+        return line;
+    }
+
+    /// <summary>The pane's line height for its small words (13px/1.45 as the pane's own).</summary>
+    private static float LineCss(int px) => px * 1.45f;
+
+    private static readonly Run[] OneRun = new Run[1];
+
+    /// <summary>The pane's small words (the mock's t11/t12), wrapped across the section, faint unless coloured.</summary>
+    private void PaneText(string text, int px = 11, Vector4? color = null, bool center = false)
+    {
+        PaneNext();
+        TextHere(text, px, color, center);
+    }
+
+    private static void TextHere(string text, int px = 11, Vector4? color = null, bool center = false)
+    {
+        OneRun[0] = new Run(text, Face.Sans, px, color ?? Palette.Faint);
+        Txt.Para(OneRun, LineCss(px), center);
+    }
+
+    /// <summary>A line of the pane's (12px, muted): kept for what's laid by the views' own pane parts.</summary>
+    private void PaneNote(string text, Vector4? color = null) => PaneText(text, 12, color ?? Palette.Muted);
+
+    /// <summary>
+    /// A section's heading (the mock's <c>.pane .sec-h</c>): Bricolage capitals at 13 (line 1.02), a
+    /// faint mono count 8px after it on its baseline.
+    /// </summary>
+    private void SecHead(string title, string? count = null)
+    {
+        PaneNext();
+        var at = Kit.At;
+        var w = Kit.Width;
+        var line = S(13 * 1.02f);
+        var countW = count != null ? S(8) + Txt.Measure(count, Face.Mono, 11).X : 0;
+        var top = at.Y + (line - Kit.DisplayHeight(13)) / 2;
+        var tw = Kit.Display(new Vector2(at.X, top), title, 13, Palette.Ink, MathF.Max(S(40), w - countW));
+        if (count != null)
+            Txt.Draw(Kit.Dl, new Vector2(at.X + tw + S(8), top + Txt.Ascent(Face.Display, 13) - Txt.Ascent(Face.Mono, 11)), count, Face.Mono, 11, Palette.Faint);
+        Kit.Reserve(at, w, line);
+    }
+
+    /// <summary>A line with an icon before it (the mock's <c>.row.g6.t12</c>: a droplet, a tick): 14px icon, 6px, 12px words wrapped.</summary>
+    private void IconLine(Icon icon, Vector4 iconColor, string text, Vector4? textColor = null)
+    {
+        PaneNext();
+        var at = Kit.At;
+        var w = Kit.Width;
+        var line = S(LineCss(12));
+        Icons.Draw(Kit.Dl, icon, new Vector2(at.X, at.Y + (line - S(14)) / 2), S(14), iconColor);
+        OneRun[0] = new Run(text, Face.Sans, 12, textColor ?? Palette.Body);
+        var h = Txt.Flow(new Vector2(at.X + S(20), at.Y), w - S(20), OneRun, LineCss(12), out _);
+        Kit.Reserve(at, w, MathF.Max(line, h));
+    }
+
+    // Buttons, at the mock's sizes: xs 28 (pad 10, 12px, a 12px icon 5 before), sm 34 (13, 13px, 14 icon 7 before).
+
+    private static float BtnPadCss(BtnSize size) => size == BtnSize.Tiny ? 10 : 13;
+
+    private static int BtnPx(BtnSize size) => size == BtnSize.Tiny ? 12 : 13;
+
+    private static float BtnIconCss(BtnSize size) => size == BtnSize.Tiny ? 12 : 14;
+
+    private static float BtnGapCss(BtnSize size) => size == BtnSize.Tiny ? 5 : 7;
+
+    private static float BtnW(string label, BtnSize size, Icon? icon = null) =>
+        S(BtnPadCss(size)) * 2 + Txt.Measure(label, Face.SansSemibold, BtnPx(size)).X + (icon != null ? S(BtnIconCss(size) + BtnGapCss(size)) : 0);
+
+    private static bool BtnAt(string id, Vector2 pos, string label, BtnSize size = BtnSize.Tiny, Btn style = Btn.Glass, Icon? icon = null, bool disabled = false,
+        string? tip = null, float width = 0) =>
+        Kit.Button(id, pos, label, style, size, icon, width > 0 ? width : BtnW(label, size, icon), disabled, tip, 0, BtnIconCss(size));
+
+    /// <summary>A button on its own at the section's left (the mock's <c>justify-self: start</c>), xs unless asked.</summary>
+    private bool PaneButton(string id, string label, Icon? icon = null, BtnSize size = BtnSize.Tiny, Btn style = Btn.Glass, bool disabled = false, string? tip = null)
+    {
+        PaneNext();
+        return ButtonHere(id, label, icon, size, style, disabled, tip);
+    }
+
+    private static bool ButtonHere(string id, string label, Icon? icon = null, BtnSize size = BtnSize.Tiny, Btn style = Btn.Glass, bool disabled = false, string? tip = null)
+    {
+        var at = Kit.At;
+        var w = MathF.Min(BtnW(label, size, icon), Kit.Width);
+        var pressed = BtnAt(id, at, label, size, style, icon, disabled, tip, w);
+        Kit.Reserve(at, Kit.Width, Kit.ButtonHeight(size));
+        return pressed;
     }
 
     /// <summary>
-    /// A piece's row: its icon, a slot's mono label (if any), its name and a line under it, a chip on
-    /// the right, or a small button there instead. True when the button's pressed.
+    /// A button that asks to be pressed again (Make room in the dresser's panel): outlined as the rest
+    /// until it's pressed once, then amber (its edge, words and wash) with what a second press does.
+    /// The kit has no amber pill: it's drawn here.
     /// </summary>
-    /// <summary>A slot's key ("ringR") as the few words a piece's row starts with ("Ring R").</summary>
+    private static bool ArmedButton(string id, Vector2 pos, string label, Icon icon, bool armed, bool disabled, string? tip)
+    {
+        if (!armed) return BtnAt(id, pos, label, BtnSize.Sm, Btn.Glass, icon, disabled, tip);
+        var w = BtnW(label, BtnSize.Sm, icon);
+        var h = Kit.ButtonHeight(BtnSize.Sm);
+        var (clicked, hovered, held) = Kit.Hit(id, pos, new Vector2(w, h), disabled);
+        if (tip != null && !Kit.Blocked && ImGui.IsWindowHovered() && ImGui.IsMouseHoveringRect(pos, pos + new Vector2(w, h))) Kit.Tooltip(tip);
+        var dl = Kit.Dl;
+        var old = Palette.Opacity;
+        if (disabled) Palette.Opacity = old * 0.5f;
+        var wash = held ? Palette.WithAlpha(Palette.Amber, 0.22f) : hovered ? Palette.WithAlpha(Palette.Amber, 0.18f) : Palette.AmberWash;
+        dl.AddRectFilled(pos, pos + new Vector2(w, h), Palette.U32(wash), h / 2);
+        dl.AddRect(pos + new Vector2(0.5f), pos + new Vector2(w, h) - new Vector2(0.5f), Palette.U32(Palette.Amber), h / 2, ImDrawFlags.None, 1f);
+        var x = pos.X + S(13);
+        Icons.Draw(dl, icon, new Vector2(x, pos.Y + (h - S(14)) / 2), S(14), Palette.Amber);
+        Txt.Line(dl, new Vector2(x + S(14 + 7), pos.Y), label, Face.SansSemibold, 13, Palette.Amber, 34);
+        Palette.Opacity = old;
+        Kit.FocusRing(pos, pos + new Vector2(w, h), h / 2);
+        return clicked;
+    }
+
+    /// <summary>
+    /// A lilac link in the pane's words (600, 12px; ink when pointed at), a 12px chevron after it if
+    /// asked. Returns whether it's pressed; <paramref name="width"/> what it took.
+    /// </summary>
+    private static bool PaneLink(string id, Vector2 pos, string text, out float width, Icon? after = null, bool disabled = false, string? tip = null)
+    {
+        var tw = Txt.Measure(text, Face.SansSemibold, 12).X;
+        var lh = Txt.Natural(Face.SansSemibold, 12);
+        width = tw + (after != null ? S(4 + 12) : 0);
+        var (clicked, hovered, _) = Kit.Hit(id, pos, new Vector2(width, lh), disabled);
+        if (tip != null && !Kit.Blocked && ImGui.IsWindowHovered() && ImGui.IsMouseHoveringRect(pos, pos + new Vector2(width, lh))) Kit.Tooltip(tip);
+        var col = disabled ? Palette.Faint : hovered ? Palette.Ink : Palette.Accent;
+        Txt.Draw(Kit.Dl, pos, text, Face.SansSemibold, 12, col);
+        if (after is { } icon) Icons.Draw(Kit.Dl, icon, new Vector2(pos.X + tw + S(4), pos.Y + (lh - S(12)) / 2), S(12), col);
+        return clicked;
+    }
+
+    /// <summary>A link on its own row ("and 2 more", "Which ones?").</summary>
+    private bool PaneLinkRow(string id, string text, Icon? after = null)
+    {
+        PaneNext();
+        var at = Kit.At;
+        var pressed = PaneLink(id, at, Txt.Fit(text, Face.SansSemibold, 12, Kit.Width), out _, after);
+        Kit.Reserve(at, Kit.Width, Txt.Natural(Face.SansSemibold, 12));
+        return pressed;
+    }
+
+    /// <summary>A tag cut to <paramref name="maxWidth"/> (its words with "…"), drawn at the right of a row. Returns its width.</summary>
+    private static float TagAtRight(float right, float rowTop, float rowH, string text, TagKind kind, Icon? icon, TagSize size, float maxWidth)
+    {
+        var w = Kit.TagWidth(text, icon, size);
+        if (w > maxWidth)
+        {
+            var px = size == TagSize.Sm ? 10 : size == TagSize.Lg ? 12 : 11;
+            text = Txt.Fit(text, Face.SansSemibold, px, MathF.Max(S(10), maxWidth - (w - Txt.Measure(text, Face.SansSemibold, px).X)));
+            w = Kit.TagWidth(text, icon, size);
+        }
+        var th = Kit.TagHeight(size);
+        Kit.Tag(new Vector2(right - w, rowTop + (rowH - th) / 2), text, kind, icon, size);
+        return w;
+    }
+
+    /// <summary>A tag's words, kind and icon (where a piece is, what a slot does).</summary>
+    private readonly record struct TagSpec(string Text, TagKind Kind, Icon? Icon = null);
+
+    /// <summary>
+    /// A piece's row (the mock's <c>.pane .prow</c>): its tile (32, or 28) with the corner dot, its name
+    /// (600, 12.5) and a muted line under it, and at the right a tag or an xs button. 46 tall at
+    /// least, a hairline over it when it follows another. True when the button's pressed.
+    /// </summary>
+    private bool PieceRow(string id, uint item, string? name = null, string? line = null, TagSpec? tag = null, string? button = null,
+        bool buttonDisabled = false, string? tip = null, float tileCss = 32, Own own = Own.None, bool ghost = false, bool picked = false,
+        Btn buttonStyle = Btn.Glass, Icon? buttonIcon = null)
+    {
+        var divider = PaneNext(row: true);
+        var at = Kit.At;
+        var w = Kit.Width;
+        var tile = S(tileCss);
+        var nameLine = S(13 * 1.25f);
+        var subLine = S(12 * 1.35f);
+        var textH = nameLine + (line != null ? subLine : 0);
+        var h = MathF.Max(S(46), MathF.Max(tile, textH) + S(8));
+        var dl = Kit.Dl;
+        if (picked) dl.AddRectFilled(new Vector2(at.X - S(6), at.Y), new Vector2(at.X + w + S(6), at.Y + h), Palette.U32(Palette.AccentWash), S(10));
+        if (divider) Kit.Divider(at.X, at.X + w, at.Y);
+        Kit.Item(new Vector2(at.X, at.Y + (h - tile) / 2), tileCss, item != 0 ? data.Item(item)?.Icon ?? 0 : 0, own, ghost, Palette.Ground);
+        var x = at.X + tile + S(9);
+        var right = at.X + w;
+        var clicked = false;
+        if (button != null)
+        {
+            var bw = BtnW(button, BtnSize.Tiny, buttonIcon);
+            var bh = Kit.ButtonHeight(BtnSize.Tiny);
+            clicked = BtnAt(id, new Vector2(right - bw, at.Y + (h - bh) / 2), button, BtnSize.Tiny, buttonStyle, buttonIcon, buttonDisabled, tip, bw);
+            right -= bw + S(9);
+        }
+        else if (tag is { } t)
+            right -= TagAtRight(right, at.Y, h, t.Text, t.Kind, t.Icon, TagSize.Md, (w - tile) * 0.5f) + S(9);
+        var tw = MathF.Max(S(10), right - x);
+        var nameText = name ?? (item != 0 ? data.ItemName(item) : "Nothing");
+        var ty = at.Y + (h - textH) / 2;
+        Txt.Line(dl, new Vector2(x, ty), Txt.Fit(nameText, Face.SansSemibold, 13, tw), Face.SansSemibold, 13, Palette.Ink, 13 * 1.25f);
+        if (line != null) Txt.Line(dl, new Vector2(x, ty + nameLine), Txt.Fit(line, Face.Sans, 12, tw), Face.Sans, 12, Palette.Muted, 12 * 1.35f);
+        if (button == null && tip != null && !Kit.Blocked && ImGui.IsWindowHovered() && ImGui.IsMouseHoveringRect(at, at + new Vector2(w, h)))
+            Kit.Tooltip(tip);
+        Kit.Reserve(at, w, h);
+        return clicked;
+    }
+
+    /// <summary>The first pieces of a look as tiles side by side, in the slots' order. Returns the width taken.</summary>
+    private float LookIcons(Vector2 pos, IReadOnlyDictionary<Slot, Piece> pieces, int most, float sizeCss, float gapCss = 4)
+    {
+        var x = pos.X;
+        var n = 0;
+        foreach (var slot in Slots.All)
+        {
+            if (n >= most) break;
+            if (!pieces.TryGetValue(slot, out var p)) continue;
+            Kit.Item(new Vector2(x, pos.Y), sizeCss, data.Item(p.Item)?.Icon ?? 0);
+            x += S(sizeCss + gapCss);
+            n++;
+        }
+        return n == 0 ? 0 : x - pos.X - S(gapCss);
+    }
+
+    /// <summary>
+    /// A look's row (the mock's <c>.pane .lrow</c>): 54 tall, its fill reaching 6px past the section
+    /// (lilac when it's the one picked, faint when pointed at), two of its pieces (26), its name in
+    /// Bricolage capitals (12.5), a muted line (with the dyes' swatches before it, if given), and an
+    /// xs button at the right. True when the button's pressed.
+    /// </summary>
+    private bool LookRow(string id, Look look, string? line, string? button = null, bool disabled = false, string? tip = null, bool on = false,
+        IReadOnlyList<uint?>? swatches = null)
+    {
+        PaneNext();
+        var at = Kit.At;
+        var w = Kit.Width;
+        var h = S(54);
+        var dl = Kit.Dl;
+        var min = new Vector2(at.X - S(6), at.Y);
+        var max = new Vector2(at.X + w + S(6), at.Y + h);
+        var hovered = !Kit.Blocked && ImGui.IsWindowHovered() && ImGui.IsMouseHoveringRect(min, max);
+        if (on)
+        {
+            dl.AddRectFilled(min, max, Palette.U32(Palette.AccentWash), S(14));
+            dl.AddRect(min + new Vector2(0.5f), max - new Vector2(0.5f), Palette.U32(Palette.AccentLine), S(14), ImDrawFlags.None, 1f);
+        }
+        else if (hovered) dl.AddRectFilled(min, max, Palette.U32(Palette.RowHover), S(14));
+        LookIcons(new Vector2(at.X, at.Y + (h - S(26)) / 2), look.Pieces, 2, 26);
+        var x = at.X + S(26 * 2 + 4 + 9);
+        var right = at.X + w;
+        var clicked = false;
+        if (button != null)
+        {
+            var bw = BtnW(button, BtnSize.Tiny);
+            var bh = Kit.ButtonHeight(BtnSize.Tiny);
+            clicked = BtnAt(id, new Vector2(right - bw, at.Y + (h - bh) / 2), button, BtnSize.Tiny, Btn.Glass, null, disabled, tip, bw);
+            right -= bw + S(9);
+        }
+        var tw = MathF.Max(S(10), right - x);
+        var nameLine = S(13 * 1.1f);
+        var subLine = line != null ? S(12 * 1.35f) : 0;
+        var ty = at.Y + (h - nameLine - subLine) / 2;
+        Kit.Display(new Vector2(x, ty + (nameLine - Kit.DisplayHeight(13)) / 2), look.Name, 13, Palette.Ink, tw);
+        if (line != null)
+        {
+            var lx = x;
+            var ly = ty + nameLine;
+            if (swatches != null)
+                foreach (var rgb in swatches)
+                {
+                    Kit.Swatch(dl, new Vector2(lx + S(6), ly + subLine / 2), rgb, 12);
+                    lx += S(12 + 4);
+                }
+            Txt.Line(dl, new Vector2(lx, ly), Txt.Fit(line, Face.Sans, 12, MathF.Max(S(10), right - lx)), Face.Sans, 12, Palette.Muted, 12 * 1.35f);
+        }
+        Kit.Reserve(at, w, h);
+        return clicked;
+    }
+
+    /// <summary>
+    /// What a panel shows in place of what needs your looks when you aren't linked (the mock's
+    /// <c>.card.dash</c>): a dashed card with what linking brings, and Link your account (Settings → Account).
+    /// </summary>
+    private void NotLinked(string text)
+    {
+        PaneSec();
+        PaneNext();
+        var at = Kit.At;
+        var w = Kit.Width;
+        Kit.BeginPanel("##c-not-linked", 14, 16, 14, Vector4.Zero, Vector4.Zero, 18);
+        TextHere(text, 12, Palette.Muted);
+        Kit.Gap(6);
+        if (ButtonHere("##c-link-account", "Link your account"))
+            Later(() =>
+            {
+                OpenSettings(SettingsTab.Account);
+                IsOpen = true;
+            });
+        Kit.EndPanel();
+        Kit.Dashed(at, new Vector2(at.X + w, ImGui.GetCursorScreenPos().Y), S(18), Palette.LineStrong, 1f);
+    }
+
+    /// <summary>Something to see to first (the mock's <c>.card.warn</c>): the amber edge, ⚠ and the words.</summary>
+    private void WarnCard(string text)
+    {
+        PaneSec();
+        PaneNext();
+        Kit.BeginPanel("##c-warn", 14, 16, 14, Palette.Card, Palette.WithAlpha(Palette.Amber, 0.4f), 18);
+        var at = Kit.At;
+        var w = Kit.Width;
+        var line = S(LineCss(12));
+        Icons.Draw(Kit.Dl, Icon.AlertTriangle, new Vector2(at.X, at.Y + (line - S(16)) / 2), S(16), Palette.Amber);
+        OneRun[0] = new Run(text, Face.Sans, 12, Palette.Body);
+        var h = Txt.Flow(new Vector2(at.X + S(24), at.Y), w - S(24), OneRun, LineCss(12), out _);
+        Kit.Reserve(at, w, MathF.Max(S(16), h));
+        Kit.EndPanel();
+    }
+
+    /// <summary>A slot's key ("ringR") as the few words a slot's row starts with ("Ring R").</summary>
     private static string SlotShort(string key) => key switch
     {
         "ringR" => "Ring R",
@@ -544,119 +902,47 @@ public sealed partial class MainWindow
         _ => key,
     };
 
-    private bool PieceRow(string id, uint item, string? slotKey, string? name, string? line, string? chip, ChipKind kind, string? button = null,
-        bool buttonDisabled = false, string? tip = null, bool picked = false)
+    /// <summary>
+    /// Where a piece is, as its tag and corner dot in the honest colours: where a plate takes it from
+    /// in ice, elsewhere of yours in amber (with an icon in the dresser's list), on your wishlist in
+    /// lavender, not yours in pink.
+    /// </summary>
+    private (TagSpec Tag, Own Own) WhereOf(uint item, bool icons = false)
     {
-        var at = Kit.At;
-        var w = Kit.Width;
-        var h = line != null ? S(40) : S(32);
-        var dl = Kit.Dl;
-        if (picked) dl.AddRectFilled(at, at + new Vector2(w, h), Palette.U32(Palette.AccentRow), S(8));
-        var x = at.X + S(4);
-        if (slotKey != null)
+        return Where(item) switch
         {
-            var sh = Txt.Natural(Face.SansSemibold, 11);
-            Txt.Draw(dl, new Vector2(x, at.Y + (h - sh) / 2), Txt.Fit(SlotShort(slotKey), Face.SansSemibold, 11, S(38)), Face.SansSemibold, 11, Palette.Dim);
-            x += S(40);
-        }
-        var icon = S(24);
-        if (item != 0) Kit.GameIcon(new Vector2(x, at.Y + (h - icon) / 2), icon, data.Item(item)?.Icon ?? 0, 6);
-        else Kit.EmptyTile(new Vector2(x, at.Y + (h - icon) / 2), icon, 6, 0.6f);
-        x += icon + S(8);
-        var rightW = 0f;
-        var clicked = false;
-        if (button != null)
-        {
-            var bw = Kit.ButtonWidth(button, BtnSize.Tiny);
-            var bh = Kit.ButtonHeight(BtnSize.Tiny);
-            clicked = Kit.Button(id, new Vector2(at.X + w - bw, at.Y + (h - bh) / 2), button, Btn.Glass, BtnSize.Tiny, null, 0, buttonDisabled, tip);
-            rightW = bw + S(8);
-        }
-        else if (chip != null)
-        {
-            var cw = MathF.Min(Kit.ChipW(chip, false, 18), w * 0.45f);
-            Kit.Chip(new Vector2(at.X + w - cw, at.Y + (h - S(18)) / 2), Txt.Fit(chip, Face.Sans, 10, cw - S(12)), kind, false, 18, cw);
-            rightW = cw + S(8);
-        }
-        var tw = at.X + w - rightW - x;
-        var nameText = name ?? (item != 0 ? data.ItemName(item) : "Nothing");
-        var nh = Txt.Natural(Face.Sans, 12);
-        if (line != null)
-        {
-            var lh = Txt.Natural(Face.Sans, 11);
-            var ty = at.Y + (h - nh - lh) / 2;
-            Txt.Draw(dl, new Vector2(x, ty), Txt.Fit(nameText, Face.Sans, 12, tw), Face.Sans, 12, item != 0 ? Palette.Ink : Palette.Dim);
-            Txt.Draw(dl, new Vector2(x, ty + nh), Txt.Fit(line, Face.Sans, 11, tw), Face.Sans, 11, Palette.Muted);
-        }
-        else Txt.Draw(dl, new Vector2(x, at.Y + (h - nh) / 2), Txt.Fit(nameText, Face.Sans, 12, tw), Face.Sans, 12, item != 0 ? Palette.Ink : Palette.Dim);
-        if (button == null && tip != null && !Kit.Blocked && ImGui.IsWindowHovered() && ImGui.IsMouseHoveringRect(at, at + new Vector2(w, h)))
-            Kit.Tooltip(tip);
-        Kit.Reserve(at, w, h);
-        return clicked;
-    }
-
-    /// <summary>A look's row: its mosaic, its name, a line or a chip under it, a small button on the right. True when the button's pressed.</summary>
-    private bool LookPaneRow(string id, Look look, string? line, string? chip, ChipKind kind, string? button, bool disabled = false, string? tip = null, bool picked = false)
-    {
-        var at = Kit.At;
-        var w = Kit.Width;
-        var h = S(48);
-        var dl = Kit.Dl;
-        if (picked) dl.AddRectFilled(at, at + new Vector2(w, h), Palette.U32(Palette.AccentRow), S(8));
-        var m = S(36);
-        Mosaic(new Vector2(at.X + S(4), at.Y + (h - m) / 2), m, look.Pieces, 8, 4);
-        var x = at.X + S(4) + m + S(10);
-        var clicked = false;
-        var rightW = 0f;
-        if (button != null)
-        {
-            var bw = Kit.ButtonWidth(button, BtnSize.Tiny);
-            var bh = Kit.ButtonHeight(BtnSize.Tiny);
-            clicked = Kit.Button(id, new Vector2(at.X + w - bw, at.Y + (h - bh) / 2), button, Btn.Glass, BtnSize.Tiny, null, 0, disabled, tip);
-            rightW = bw + S(8);
-        }
-        var tw = at.X + w - rightW - x;
-        var nh = Txt.Natural(Face.SansMedium, 13);
-        var subH = chip != null ? S(18) : line != null ? Txt.Natural(Face.Sans, 11) : 0;
-        var ty = at.Y + (h - nh - (subH > 0 ? S(3) + subH : 0)) / 2;
-        Txt.Draw(dl, new Vector2(x, ty), Txt.Fit(look.Name, Face.SansMedium, 13, tw), Face.SansMedium, 13, Palette.Ink);
-        if (chip != null) Kit.Chip(new Vector2(x, ty + nh + S(3)), Txt.Fit(chip, Face.Sans, 10, tw - S(12)), kind, false, 18, MathF.Min(Kit.ChipW(chip, false, 18), tw));
-        else if (line != null) Txt.Draw(dl, new Vector2(x, ty + nh + S(3)), Txt.Fit(line, Face.Sans, 11, tw), Face.Sans, 11, Palette.Muted);
-        Kit.Reserve(at, w, h);
-        return clicked;
-    }
-
-    /// <summary>A piece's whereabouts as a chip: where a plate takes it from in mint, elsewhere outlined, not yours in orchid.</summary>
-    private (string Text, ChipKind Kind) WhereChipOf(uint item)
-    {
-        var w = Where(item);
-        return w switch
-        {
-            Place.Dresser => ("Dresser", ChipKind.Ok),
-            Place.Armoire => ("Armoire", ChipKind.Ok),
-            Place.Inventory => ("Bags", ChipKind.Plain),
-            Place.Armoury => ("Armoury", ChipKind.Plain),
-            Place.Saddlebag => ("Saddlebag", ChipKind.Plain),
-            Place.Retainer => ("Retainer", ChipKind.Plain),
-            _ => sync.Library.Wishes.Contains(LookJson.BaseId(item)) ? ("On your wishlist", ChipKind.Love) : ("Don't have", ChipKind.Love),
+            Place.Dresser => (new TagSpec("Dresser", TagKind.Ok), Own.Ice),
+            Place.Armoire => (new TagSpec("Armoire", TagKind.Ok), Own.Ice),
+            Place.Inventory => (new TagSpec("Bags", TagKind.Amber, icons ? Icon.Bag : null), Own.Amber),
+            Place.Armoury => (new TagSpec("Armoury", TagKind.Amber, icons ? Icon.Shirt : null), Own.Amber),
+            Place.Saddlebag => (new TagSpec("Saddlebag", TagKind.Amber, icons ? Icon.Bag : null), Own.Amber),
+            Place.Retainer => (new TagSpec("Retainer", TagKind.Amber, icons ? Icon.Users : null), Own.Amber),
+            _ => sync.Library.Wishes.Contains(LookJson.BaseId(item))
+                ? (new TagSpec("Wishlist", TagKind.Star, Icon.Star), Own.Star)
+                : (new TagSpec("Don't have", TagKind.Miss), Own.Pink),
         };
     }
 
     /// <summary>Wishes being sent (so a second press waits for the first).</summary>
     private bool wishing;
 
-    /// <summary>A lilac link that puts pieces on your wishlist (shown when linked and there's any to put).</summary>
-    private void WishLink(string id, IReadOnlyList<Piece> pieces, string text)
+    /// <summary>An xs button with a star that puts pieces on your wishlist (shown when linked and there's any to put).</summary>
+    private void WishButton(string id, IReadOnlyList<Piece> pieces, string text)
     {
         if (!Linked || pieces.Count == 0) return;
-        var at = Kit.At;
-        var label = wishing ? "Putting them on the list…" : text;
-        if (Kit.Link(id, at, Txt.Fit(label, Face.Sans, 12, Kit.Width), 12) && !wishing)
+        if (PaneButton(id, wishing ? "Putting them on the list…" : text, Icon.Star, disabled: wishing))
         {
             var list = pieces.ToList();
             Later(() => AddWishes(list));
         }
-        Kit.Reserve(at, Kit.Width, Txt.Natural(Face.Sans, 12));
+    }
+
+    /// <summary>How something went: in chat when asked from the right-click menu, else a toast (a warning when it didn't).</summary>
+    private static void Say(string text, bool ok, Action<string>? say)
+    {
+        if (say != null) say(text);
+        else if (ok) Notify(text);
+        else Frame.Warn(text);
     }
 
     /// <param name="say">Where to say how it went (a toast, else; a line in chat from the right-click menu).</param>
@@ -667,9 +953,9 @@ public sealed partial class MainWindow
         {
             wishing = false;
             recorder.Note($"WISH added {pieces.Count}: {(r.Ok ? $"{r.Value} new" : r.Why)}");
-            (say ?? Notify)(!r.Ok ? r.Why ?? "The site said no"
+            Say(!r.Ok ? r.Why ?? "The site said no"
                 : pieces.Count == 1 ? $"{data.ItemName(pieces[0].Item)}: on your wishlist"
-                : $"{Words.Count(pieces.Count, "piece")} on your wishlist");
+                : $"{Words.Count(pieces.Count, "piece")} on your wishlist", r.Ok, say);
         });
     }
 
@@ -679,7 +965,7 @@ public sealed partial class MainWindow
         sync.RemoveWishes(new[] { item }, r =>
         {
             recorder.Note($"WISH removed {item}: {(r.Ok ? $"{r.Value} off" : r.Why)}");
-            (say ?? Notify)(r.Ok ? $"{data.ItemName(item)}: off your wishlist" : r.Why ?? "The site said no");
+            Say(r.Ok ? $"{data.ItemName(item)}: off your wishlist" : r.Why ?? "The site said no", r.Ok, say);
         });
     }
 
