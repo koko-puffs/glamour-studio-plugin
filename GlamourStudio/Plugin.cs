@@ -49,7 +49,7 @@ public sealed class Plugin : IDalamudPlugin
             {
                 Header = RecordingHeader,
                 PluginState = () =>
-                    $"linked {sync.Linked} (refused {sync.TokenRefused}), syncing {sync.Syncing}, last sync {(sync.LastSyncAt is { } at ? at.ToString("HH:mm:ss") : "never")}{(sync.SyncProblem != null ? $" problem \"{sync.SyncProblem}\"" : string.Empty)}, "
+                    $"linked {sync.Linked} (refused {sync.TokenRefused}), syncing {sync.Syncing}, last sync {(sync.LastSyncAt is { } at ? at.ToLocalTime().ToString("HH:mm:ss") : "never")}{(sync.SyncProblem != null ? $" problem \"{sync.SyncProblem}\"" : string.Empty)}, "
                     + $"wardrobe v{wardrobe.Version} dresser live {wardrobe.DresserLive} armoire live {wardrobe.ArmoireLive}, shot {(shots.Capturing ? "capturing" : shots.Taken is { } t ? (t.Sending ? "sending" : t.Sent ? "sent" : "taken") : "none")}, {window?.CompanionState() ?? "no panel"}",
             };
             window = new MainWindow(config, data, wardrobe, sync, fonts, shots, recorder);
@@ -227,14 +227,14 @@ public sealed class Plugin : IDalamudPlugin
         Safely(() => fonts?.Dispose());
     }
 
-    /// <summary>A recording's first lines: the plugin, the character, the settings, what's been read.</summary>
+    /// <summary>A recording's first lines: the plugin, the character, the settings, what's been read (its times local, as the recording's start is: they're kept in UTC).</summary>
     private IEnumerable<string> RecordingHeader()
     {
         var me = wardrobe.Current;
         yield return $"Character {(me != null ? $"{me.Name}@{me.World} key {me.Key} sending {sync.StepFor(me)}" : "none")}, linked {sync.Linked}, Dalamud {typeof(IDalamudPlugin).Assembly.GetName().Version}, game {GameVersion()}";
         yield return $"Settings: empty bare slots {config.ClearBare}, dye from bags {config.DyeFromBags}, open with editor {config.OpenWithEditor}, auto send {config.AutoSync}, send plates {config.SendPlates}, chat notes {config.ChatNotes}";
-        yield return me == null ? "Read: nothing" : "Read: " + string.Join(", ", Places.ByPriority.Select(p => $"{Places.Key(p)} {(me.Get(p) is { } r ? $"{r.Items.Count} at {r.ReadAt:HH:mm}" : "never")}"))
-                                                     + $", plates {(me.PlatesReadAt is { } pr ? pr.ToString("HH:mm") : "never")}, retainers {me.Retainers.Count}";
+        yield return me == null ? "Read: nothing" : "Read: " + string.Join(", ", Places.ByPriority.Select(p => $"{Places.Key(p)} {(me.Get(p) is { } r ? $"{r.Items.Count} at {r.ReadAt.ToLocalTime():HH:mm}" : "never")}"))
+                                                     + $", plates {(me.PlatesReadAt is { } pr ? pr.ToLocalTime().ToString("HH:mm") : "never")}, retainers {me.Retainers.Count}";
     }
 
     /// <summary>The game's version (its ffxiv repository's), or "?".</summary>

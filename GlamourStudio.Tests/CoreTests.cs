@@ -543,6 +543,67 @@ public class CleanupEdgeTests
     }
 
     [Fact]
+    public void ALooseCopyIsStillADuplicateOnlyWhileAnotherHasItsDyes()
+    {
+        var dresser = new List<DresserPiece>
+        {
+            new(0, 10, 5, 0), new(1, 1_000_010, 5, 0), // 10 dyed 5 twice (either quality): a duplicate
+            new(2, 20, 5, 0), new(3, 20, 0, 0), // 20 dyed otherwise: not
+            new(4, 31, 0, 0, 30), // a stored set holding 31
+            new(5, 31, 0, 0), new(6, 32, 0, 0), // undyed 31 the set holds; 32 it doesn't (the set's stored without it)
+            new(7, 31, 3, 0), // a dyed 31: the set's copy isn't its dyes
+        };
+        Assert.True(DresserCleanup.StillDuplicate(dresser, 10, 5, 0));
+        Assert.True(DresserCleanup.StillDuplicate(dresser, 1_000_010, 5, 0));
+        Assert.False(DresserCleanup.StillDuplicate(dresser, 20, 5, 0));
+        Assert.True(DresserCleanup.StillDuplicate(dresser, 31, 0, 0));
+        Assert.False(DresserCleanup.StillDuplicate(dresser, 32, 0, 0));
+        Assert.False(DresserCleanup.StillDuplicate(dresser, 31, 3, 0));
+        // The other copy taken out by hand meanwhile: the one left is the last.
+        Assert.False(DresserCleanup.StillDuplicate(dresser.Where(d => d.Index != 0).ToList(), 1_000_010, 5, 0));
+    }
+
+    [Fact]
+    public void TakesOutOnlyASetCopyWhosePiecesStay()
+    {
+        // Set 30: the whole copy {31,32,33} that stays, and {32} read at 6 as the duplicate.
+        var asRead = new List<DresserPiece>
+        {
+            new(5, 31, 0, 0, 30), new(5, 32, 0, 0, 30), new(5, 33, 0, 0, 30),
+            new(6, 32, 0, 0, 30),
+        };
+        Assert.Equal(6, DresserCleanup.SpareSetCopy(asRead, 30, 6));
+        // An earlier place emptied and the places closed up: the whole copy is at 4 and the
+        // duplicate at 5. Place 5 isn't the one read any more; the whole copy never goes.
+        var moved = new List<DresserPiece>
+        {
+            new(4, 31, 0, 0, 30), new(4, 32, 0, 0, 30), new(4, 33, 0, 0, 30),
+            new(5, 32, 0, 0, 30),
+        };
+        Assert.Equal(5, DresserCleanup.SpareSetCopy(moved, 30, 6));
+        // Now the duplicate read at 5 has gone down to 4, the whole copy to 5 (the place read):
+        // the duplicate below is the one taken out.
+        var swapped = new List<DresserPiece>
+        {
+            new(4, 32, 0, 0, 30),
+            new(5, 31, 0, 0, 30), new(5, 32, 0, 0, 30), new(5, 33, 0, 0, 30),
+        };
+        Assert.Equal(4, DresserCleanup.SpareSetCopy(swapped, 30, 5));
+        // Copies whose pieces the others hold only between them: {31,33} with {31,32} and {33,34}.
+        var spread = new List<DresserPiece>
+        {
+            new(0, 31, 0, 0, 30), new(0, 32, 0, 0, 30),
+            new(1, 33, 0, 0, 1_000_030), new(1, 34, 0, 0, 1_000_030),
+            new(2, 31, 0, 0, 30), new(2, 33, 0, 0, 30),
+        };
+        Assert.Equal(2, DresserCleanup.SpareSetCopy(spread, 30, 2));
+        // The last copy, or one holding a piece no other copy has: none.
+        Assert.Equal(-1, DresserCleanup.SpareSetCopy(asRead.Where(d => d.Index == 6).ToList(), 30, 6));
+        Assert.Equal(-1, DresserCleanup.SpareSetCopy(spread, 1_000_030, 1));
+        Assert.Equal(-1, DresserCleanup.SpareSetCopy(new List<DresserPiece>(), 30, 6));
+    }
+
+    [Fact]
     public void AStoredSetTakesAnyOfItsPieces()
     {
         var dresser = new List<DresserPiece> { new(0, 31, 0, 0, 30), new(1, 32, 0, 0), new(2, 1_000_033, 0, 0) };
@@ -658,6 +719,14 @@ public class ConsentTests
         Assert.Equal("Send Koko Nyan's wardrobe to Glamour Studio?", Consent.Question("Koko Nyan"));
         Assert.Equal("Send this character's wardrobe to Glamour Studio?", Consent.Question(""));
         Assert.Equal("A new character on Lich", Consent.Eyebrow("Lich"));
+    }
+
+    [Fact]
+    public void TheQuestionSaysWhatGoesAndThatItStaysPrivate()
+    {
+        // The mock's two paragraphs (docs/redesign/pages/characters.html).
+        Assert.StartsWith("Its glamour dresser, armoire, bags, armoury chest, saddlebags, retainers, plates and outfit go to your closet", Consent.QuestionWhat);
+        Assert.Contains("Nothing is sent until you say yes.", Consent.QuestionPrivate);
     }
 }
 

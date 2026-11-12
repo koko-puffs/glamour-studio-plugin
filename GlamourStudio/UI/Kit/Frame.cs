@@ -36,45 +36,85 @@ public static class Frame
     }
 
     // ---------------------------------------------------------------------------------------------
-    // Toasts: one line in the float material, near the window's foot, for a few seconds.
+    // Toasts: one at a time, a pill of raised ink rising at the window's foot, for four seconds.
 
     private static string? toast;
+    private static ToastKind toastKind;
+    private static DateTime toastFrom;
     private static DateTime toastUntil;
 
-    public static void Toast(string text)
+    /// <summary>Good news (with the holo sparkle at its start).</summary>
+    public static void Toast(string text) => Toast(text, ToastKind.Good);
+
+    /// <summary>
+    /// A toast of a kind: good news starts with the holo sparkle; a warning or a failure is amber
+    /// with a warning sign, never the sparkle (a failure mustn't twinkle).
+    /// </summary>
+    public static void Toast(string text, ToastKind kind)
     {
         toast = text;
-        toastUntil = DateTime.UtcNow + TimeSpan.FromSeconds(2.6);
+        toastKind = kind;
+        toastFrom = DateTime.UtcNow;
+        toastUntil = toastFrom + TimeSpan.FromSeconds(4);
     }
 
+    /// <summary>A warning or failure toast (amber, the warning sign).</summary>
+    public static void Warn(string text) => Toast(text, ToastKind.Warn);
+
+    /// <summary>The toast (the mock's <c>.toast</c>), over the window's foot, 28px up from it.</summary>
     public static void DrawToast()
     {
         if (toast == null) return;
-        var left = (toastUntil - DateTime.UtcNow).TotalSeconds;
+        var now = DateTime.UtcNow;
+        var left = (toastUntil - now).TotalSeconds;
         if (left <= 0)
         {
             toast = null;
             return;
         }
-        var fade = (float)Math.Clamp(left / 0.3, 0, 1);
+        var shown = (now - toastFrom).TotalSeconds;
+        var fade = (float)Math.Clamp(Math.Min(left / 0.3, shown / 0.18), 0, 1);
         var old = Palette.Opacity;
         Palette.Opacity = ReducedMotion ? 1 : fade;
-        var win = ImGui.GetWindowPos();
-        // Within the window (a long message is cut short), 28px up from its foot.
-        var text = Txt.Fit(toast, Face.Sans, 13, MathF.Max(S(80), ImGui.GetWindowWidth() - S(56) - S(16) * 2));
-        var size = Txt.Measure(text, Face.Sans, 13);
-        var box = new Vector2(size.X + S(16) * 2, S(36));
-        var bottom = win.Y + ImGui.GetWindowHeight();
-        var y = bottom - box.Y - S(28);
-        var pos = new Vector2(win.X + (ImGui.GetWindowWidth() - box.X) / 2, y);
-        var dl = ImGui.GetForegroundDrawList();
-        // shadow-float, softly.
-        for (var i = 3; i >= 1; i--)
-            dl.AddRectFilled(pos + new Vector2(0, S(6 * i)), pos + box + new Vector2(0, S(6 * i)), Palette.U32(Palette.WithAlpha(Palette.Ground, 0.12f)), box.Y / 2 + S(4 * i));
-        dl.AddRectFilled(pos, pos + box, Palette.U32(Palette.Over(Palette.Float, Palette.Ground)), box.Y / 2);
-        dl.AddRect(pos, pos + box, Palette.U32(Palette.Line), box.Y / 2);
-        using (Txt.Fonts.Push(Face.Sans, 13))
-            dl.AddText(pos + new Vector2(S(16), (box.Y - ImGui.GetFontSize()) / 2), Palette.U32(Palette.Ink), text);
-        Palette.Opacity = old;
+        try
+        {
+            var win = ImGui.GetWindowPos();
+            var warn = toastKind == ToastKind.Warn;
+            var lead = S(16) + S(10);
+            // Within the window (a long message is cut short).
+            var text = Txt.Fit(toast, Face.SansMedium, 13, MathF.Max(S(80), ImGui.GetWindowWidth() - S(56) - S(13 + 16) - lead));
+            var size = Txt.Measure(text, Face.SansMedium, 13);
+            var box = new Vector2(S(13) + lead + size.X + S(16), S(40));
+            var bottom = win.Y + ImGui.GetWindowHeight();
+            // Rising into place as it comes.
+            var rise = ReducedMotion ? 0 : S(10) * (1 - (float)Math.Clamp(shown / 0.18, 0, 1));
+            var pos = new Vector2(win.X + (ImGui.GetWindowWidth() - box.X) / 2, bottom - box.Y - S(28) + rise);
+            var dl = ImGui.GetForegroundDrawList();
+            dl.AddRectFilled(pos, pos + box, Palette.U32(Palette.Popup), box.Y / 2);
+            dl.AddRect(pos + new Vector2(0.5f), pos + box - new Vector2(0.5f), Palette.U32(warn ? Palette.AmberLine : Palette.LineStrong), box.Y / 2, ImDrawFlags.None, 1f);
+            var ip = new Vector2(pos.X + S(13), pos.Y + (box.Y - S(16)) / 2);
+            if (warn) Icons.Draw(dl, Icon.AlertTriangle, ip, S(16), Palette.Amber);
+            else
+            {
+                var tex = Textures.Current?.Get(Tex.Spark);
+                if (tex != null) dl.AddImage(tex.Handle, ip, ip + new Vector2(S(16)), Vector2.Zero, Vector2.One, Palette.U32(Vector4.One));
+                else Icons.Draw(dl, Icon.Sparkles, ip, S(16), Palette.Accent);
+            }
+            Txt.Line(dl, new Vector2(pos.X + S(13) + lead, pos.Y), text, Face.SansMedium, 13, Palette.Ink, box.Y / S(1));
+        }
+        finally
+        {
+            Palette.Opacity = old;
+        }
     }
+}
+
+/// <summary>A toast's kind.</summary>
+public enum ToastKind
+{
+    /// <summary>Good news: the holo sparkle.</summary>
+    Good,
+
+    /// <summary>A warning or a failure: amber, the warning sign.</summary>
+    Warn,
 }

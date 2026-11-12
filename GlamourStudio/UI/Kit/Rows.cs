@@ -45,46 +45,9 @@ public sealed class Wrap
     public void End() => Kit.Reserve(start, Kit.Width, y + rowH - start.Y);
 }
 
-/// <summary>
-/// The rows the screens share, as the site lays them out: a section's heading with a quiet note on
-/// its right ("Get started … Three steps to your first plan"), tabs as a pick-one pill, the round
-/// lilac icon wells of the cards, and the row of fact boxes.
-/// </summary>
+/// <summary>Tabs as a pick-one pill (the row of them the screens share).</summary>
 public static partial class Kit
 {
-    /// <summary>
-    /// A section's heading, as the site's (<c>.gs-label</c> over a list): Figtree 600 12px, muted,
-    /// with <paramref name="rest"/> on the right in quiet 12px. (DM Mono in spaced capitals until 0.6.16.)
-    /// </summary>
-    public static void Section(string text, string? rest = null)
-    {
-        var at = At;
-        var w = Width;
-        var h = Txt.Natural(Face.Sans, 12);
-        var restW = rest != null ? Txt.Measure(rest, Face.Sans, 12).X : 0;
-        var dl = Dl;
-        Label(new Vector2(at.X, at.Y + (h - LabelHeight) / 2), Txt.Fit(text, Face.SansSemibold, 12, w - restW - (rest != null ? S(12) : 0)));
-        if (rest != null)
-            Txt.Draw(dl, new Vector2(at.X + w - restW, at.Y), rest, Face.Sans, 12, Palette.Faint);
-        Reserve(at, w, h);
-    }
-
-    /// <summary>A heading on the left and a link on its right (true when the link is pressed).</summary>
-    public static bool SectionLink(string id, string text, string link)
-    {
-        var at = At;
-        var w = Width;
-        var h = Txt.Natural(Face.Sans, 12);
-        var lw = Txt.Measure(link, Face.SansMedium, 12).X;
-        Label(new Vector2(at.X, at.Y + (h - LabelHeight) / 2), Txt.Fit(text, Face.SansSemibold, 12, w - lw - S(12)));
-        var lh = Txt.Natural(Face.Sans, 12);
-        var pos = new Vector2(at.X + w - lw, at.Y + (h - lh) / 2);
-        var (clicked, hovered, _) = Hit(id, pos - new Vector2(S(4)), new Vector2(lw, lh) + new Vector2(S(8)));
-        Txt.Draw(Dl, pos, link, Face.SansMedium, 12, hovered ? Palette.AccentHover : Palette.Accent);
-        Reserve(at, w, h);
-        return clicked;
-    }
-
     // ---------------------------------------------------------------------------------------------
     // Tabs.
 
@@ -146,64 +109,5 @@ public static partial class Kit
         }
         Reserve(at, total, h);
         return result;
-    }
-
-    // ---------------------------------------------------------------------------------------------
-    // Wells and facts.
-
-    /// <summary>
-    /// The round icon well of the cards: the deep blush with the icon in lilac, or grey for
-    /// something quiet.
-    /// </summary>
-    public static void IconWell(Vector2 pos, float size, Icon icon, bool quiet = false)
-    {
-        var dl = Dl;
-        var c = pos + new Vector2(size / 2);
-        dl.AddCircleFilled(c, size / 2, Palette.U32(quiet ? Palette.Tile : Palette.BlushTile), 40);
-        dl.AddCircle(c, size / 2 - 0.5f, Palette.U32(quiet ? Palette.Line : Palette.AccentEdge), 40, 1f);
-        var px = MathF.Round(size * 0.45f);
-        Icons.Draw(dl, icon, c - new Vector2(px / 2), px, quiet ? Palette.Muted : Palette.Accent);
-    }
-
-    /// <summary>One fact in a row of boxes: its label over its value, with a quieter note after the value ("19 to 4:40").</summary>
-    public readonly record struct Fact(string Label, string Value, string? Note = null, Vector4? Color = null);
-
-    /// <summary>
-    /// A row of fact boxes (Dresser · Armoire · Plates): one rounded box split by
-    /// hairlines, each a 12px label over a 15px value. Two to a row when narrow.
-    /// </summary>
-    public static void Facts(string id, IReadOnlyList<Fact> facts)
-    {
-        if (facts.Count == 0) return;
-        var at = At;
-        var w = Width;
-        // Two to a row when narrow, but never more cells than facts (one fact filled half the box).
-        var perRow = w < S(360) ? Math.Min(facts.Count, 2) : facts.Count;
-        var rows = (facts.Count + perRow - 1) / perRow;
-        var cellW = w / perRow;
-        var cellH = S(68);
-        var h = cellH * rows;
-        var dl = Dl;
-        var r = S(Palette.RadiusMd);
-        dl.AddRect(at + new Vector2(0.5f), at + new Vector2(w, h) - new Vector2(0.5f), Palette.U32(Palette.Line), r, ImDrawFlags.None, 1f);
-        for (var i = 0; i < facts.Count; i++)
-        {
-            var col = i % perRow;
-            var row = i / perRow;
-            var p = at + new Vector2(cellW * col, cellH * row);
-            if (col > 0) dl.AddLine(new Vector2(p.X + 0.5f, p.Y + 1), new Vector2(p.X + 0.5f, p.Y + cellH - 1), Palette.U32(Palette.Line), 1f);
-            if (row > 0 && col == 0) dl.AddLine(new Vector2(at.X + 1, p.Y + 0.5f), new Vector2(at.X + w - 1, p.Y + 0.5f), Palette.U32(Palette.Line), 1f);
-            var f = facts[i];
-            var inner = cellW - S(28);
-            Label(p + new Vector2(S(14), S(12)), Txt.Fit(f.Label, Face.SansSemibold, 12, inner));
-            var vy = p.Y + S(12) + LabelHeight + S(5);
-            var vw = Txt.Draw(dl, new Vector2(p.X + S(14), vy), Txt.Fit(f.Value, Face.Display, 20, inner), Face.Display, 20, f.Color ?? Palette.Ink);
-            if (f.Note != null && vw + S(6) < inner)
-            {
-                var ny = vy + Txt.Ascent(Face.Display, 20) - Txt.Ascent(Face.Sans, 12);
-                Txt.Draw(dl, new Vector2(p.X + S(14) + vw + S(6), ny), Txt.Fit(f.Note, Face.Sans, 12, inner - vw - S(6)), Face.Sans, 12, Palette.Muted);
-            }
-        }
-        Reserve(at, w, h);
     }
 }

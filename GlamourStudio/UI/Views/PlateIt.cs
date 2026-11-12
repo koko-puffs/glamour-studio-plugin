@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using Dalamud.Bindings.ImGui;
 using GlamourStudio.Core;
 using GlamourStudio.Game;
+using GlamourStudio.UI.Model;
 using static GlamourStudio.UI.Theme;
 
 namespace GlamourStudio.UI;
@@ -44,17 +46,17 @@ public sealed partial class MainWindow
     {
         if (AutoBusy)
         {
-            Notify("Wait for Make room for me to finish first");
+            Frame.Warn("Wait for Make room for me to finish first");
             return;
         }
         if (PlateEditor.IsOpen && PlateEditor.SelectedPlate != plate && PlateEditor.HasChanges)
         {
-            Notify($"Plate {PlateEditor.SelectedPlate} has changes not saved: save them, or put it back, first");
+            Frame.Warn($"Plate {PlateEditor.SelectedPlate} has changes not saved: save them, or put it back, first");
             return;
         }
         if (!PlateItHere)
         {
-            Notify("Open your glamour dresser first");
+            Frame.Warn("Open your glamour dresser first");
             return;
         }
         plateIt = new PlateItJob { Look = look, Plate = plate, Step = PlateItStep.Opening, Until = DateTime.UtcNow + TimeSpan.FromSeconds(6) };
@@ -69,7 +71,7 @@ public sealed partial class MainWindow
         void Fail(string why)
         {
             recorder.Note($"PLATE IT plate {job.Plate}: {why}");
-            Notify(why);
+            Frame.Warn(why);
             plateIt = null;
         }
         switch (job.Step)
@@ -145,62 +147,75 @@ public sealed partial class MainWindow
         }
     }
 
-    private (int Sync, int Wardrobe, string LookId, bool Extra, string[] Lines)? plateLines;
+    /// <summary>The menu's rows for a look, worked out again only when your looks, the wardrobe or the look change.</summary>
+    private (int Sync, int Wardrobe, string LookId, bool Extra, IReadOnlyList<(string Heading, int[] Plates)> Groups, string?[] Subs)? plateMenu;
 
-    /// <summary>What each plate has on, for the menu: worked out again only when your looks, the wardrobe or the look change.</summary>
-    private string PlateLineCached(int plate, Look look)
+    private (IReadOnlyList<(string Heading, int[] Plates)> Groups, string?[] Subs) PlateMenuFor(Look look)
     {
         var extra = !config.ClearBare;
-        if (plateLines is not { } c || c.Sync != sync.Version || c.Wardrobe != wardrobe.Version || c.LookId != look.Id || c.Extra != extra)
-            plateLines = c = (sync.Version, wardrobe.Version, look.Id, extra, Enumerable.Range(1, Plates.Count).Select(n => PlateLine(n, look)).ToArray());
-        return plate >= 1 && plate <= c.Lines.Length ? c.Lines[plate - 1] : PlateLine(plate, look);
-    }
-
-    /// <summary>What a plate has on, in a few words, for the menu.</summary>
-    private string PlateLine(int plate, Look look)
-    {
+        if (plateMenu is { } c && c.Sync == sync.Version && c.Wardrobe == wardrobe.Version && c.LookId == look.Id && c.Extra == extra)
+            return (c.Groups, c.Subs);
         var me = wardrobe.Current;
         var read = me?.PlatesReadAt != null;
-        var pieces = me?.Plates.FirstOrDefault(p => p.Plate == plate)?.Pieces;
-        string what;
-        if (!read) what = string.Empty;
-        else if (pieces == null || pieces.Count == 0) what = " · empty";
-        else if (OnPlate(look.Pieces, pieces, !config.ClearBare)) what = " · this look";
-        else
+        var subs = new string?[Plates.Count + 1];
+        var empty = new bool[Plates.Count + 1];
+        for (var n = 1; n <= Plates.Count; n++)
         {
-            var on = PaneLooks().Concat(sync.Inbox.Select(s => s.Look)).FirstOrDefault(l => OnPlate(l.Pieces, pieces));
-            what = on != null ? $" · {on.Name}" : $" · {Words.Count(pieces.Count, "piece")}";
+            var pieces = me?.Plates.FirstOrDefault(p => p.Plate == n)?.Pieces;
+            empty[n] = read && (pieces == null || pieces.Count == 0);
+            subs[n] = LookSheet.PlateSub(PlateOn(n, look, pieces, read), sync.PlanFor(n)?.Name);
         }
-        var planned = sync.PlanFor(plate);
-        var plan = planned != null && planned.Id != look.Id ? $" (planned: {planned.Name})" : planned != null ? " (planned for it)" : string.Empty;
-        return $"Plate {plate}{what}{plan}";
+        var groups = LookSheet.PlateGroups(Plates.Count, n => sync.PlanFor(n)?.Id == look.Id, n => empty[n]);
+        plateMenu = (sync.Version, wardrobe.Version, look.Id, extra, groups, subs);
+        return (groups, subs);
     }
 
+    /// <summary>What a plate has on, in a few words ("Empty", this look, another of your looks, "8 pieces"), or null when the plates aren't read.</summary>
+    private string? PlateOn(int plate, Look look, IReadOnlyDictionary<Slot, Piece>? pieces, bool read)
+    {
+        if (!read) return null;
+        if (pieces == null || pieces.Count == 0) return "Empty";
+        if (OnPlate(look.Pieces, pieces, !config.ClearBare)) return "This look";
+        var on = PaneLooks().Concat(sync.Inbox.Select(s => s.Look)).FirstOrDefault(l => OnPlate(l.Pieces, pieces));
+        return on != null ? on.Name : Words.Count(pieces.Count, "piece");
+    }
+
+    /// <summary>The plate menu's width (the mock's <c>.platepick</c>: 330 with its 6px inside).</summary>
+    private const float PlateMenuCss = 330;
+
     /// <summary>
-    /// The menu of plates for a look (opened by <see cref="OpenPlateItMenu"/>): the one planned for
-    /// it first, then the empty ones, then the rest.
+    /// The menu of plates for a look (opened by <see cref="OpenPlateItMenu"/>; the mock's
+    /// <c>.platepick</c>): the plates planned for it first, then the empty ones, then the rest, each
+    /// with its number in mono, its name and what it has on under it. Opened from the plate slip it
+    /// hangs under its button, its right edge at <paramref name="rightTop"/>; elsewhere at the mouse.
     /// </summary>
-    private void DrawPlateItMenu(string id)
+    private void DrawPlateItMenu(string id, Vector2? rightTop = null)
     {
         if (plateItMenu is not { } look) return;
-        if (!Kit.BeginMenu(id))
+        if (rightTop is { } rt && ImGui.IsPopupOpen(id))
+            ImGui.SetNextWindowPos(new Vector2(rt.X - S(PlateMenuCss), rt.Y), ImGuiCond.Always);
+        if (!Kit.BeginMenu(id)) return;
+        var (groups, subs) = PlateMenuFor(look);
+        // Over changes not saved in the plate open, no other plate can be picked (the game would ask about them).
+        var held = PlateEditor.IsOpen && PlateEditor.HasChanges ? PlateEditor.SelectedPlate : 0;
+        var w = S(PlateMenuCss - 12);
+        for (var g = 0; g < groups.Count; g++)
         {
-            return;
-        }
-        var me = wardrobe.Current;
-        var empty = new HashSet<int>(Enumerable.Range(1, Plates.Count).Where(n => me?.PlatesReadAt != null && (me.Plates.FirstOrDefault(p => p.Plate == n)?.Pieces.Count ?? 0) == 0));
-        var order = Enumerable.Range(1, Plates.Count)
-            .OrderBy(n => sync.PlanFor(n)?.Id == look.Id ? 0 : empty.Contains(n) ? 1 : 2)
-            .ThenBy(n => n);
-        Txt.Note($"Put “{Txt.Fit(look.Name, Face.Sans, 12, S(220))}” on", Palette.Muted);
-        foreach (var n in order)
-        {
-            var plate = n;
-            if (Kit.MenuItem($"{id}-{plate}", PlateLineCached(plate, look), empty.Contains(plate) ? Icon.Layers : null, S(300)))
+            var (heading, plates) = groups[g];
+            if (g > 0) MenuLine(w);
+            Kit.MenuHeading(heading);
+            var planned = g == 0 && plates.Length > 0 && sync.PlanFor(plates[0])?.Id == look.Id;
+            foreach (var plate in plates)
             {
-                ImGui.CloseCurrentPopup();
-                var l = look;
-                Later(() => StartPlateIt(l, plate));
+                var blocked = held > 0 && plate != held;
+                var sub = blocked ? $"plate {held}'s changes aren't saved: save them first" : subs[plate];
+                if (PlateRow($"{id}-{plate}", plate, sub, w, planned, blocked))
+                {
+                    ImGui.CloseCurrentPopup();
+                    var l = look;
+                    var p = plate;
+                    Later(() => StartPlateIt(l, p));
+                }
             }
         }
         Kit.EndMenu();
@@ -211,5 +226,85 @@ public sealed partial class MainWindow
     {
         plateItMenu = look;
         ImGui.OpenPopup(id);
+    }
+
+    /// <summary>
+    /// A plate in the menu (the mock's <c>.platepick .mi</c>, 40 tall at least): its number in Geist
+    /// Mono, "Plate 5" and under it what it has on in faint; the one planned for the look lilac-washed
+    /// with an arrow. The Kit's <see cref="Kit.MenuItem(string, string, Icon?, float, string?, string?, bool, bool)"/>
+    /// has its second line beside the words, so this is the menu's own.
+    /// </summary>
+    private static bool PlateRow(string id, int plate, string? sub, float width, bool on, bool disabled)
+    {
+        var pos = ImGui.GetCursorScreenPos();
+        var nh = Txt.Natural(Face.SansMedium, 13);
+        var sh = sub != null ? Txt.Natural(Face.Sans, 11) : 0;
+        var h = MathF.Max(S(40), S(5) * 2 + nh + sh);
+        var (clicked, hovered, _) = Kit.Hit(id, pos, new Vector2(width, h), disabled);
+        var dl = Kit.Dl;
+        var old = Palette.Opacity;
+        if (disabled) Palette.Opacity = old * 0.45f;
+        if (hovered || on) dl.AddRectFilled(pos, pos + new Vector2(width, h), Palette.U32(Palette.AccentWash), S(10));
+        var x = pos.X + S(10);
+        var num = LookSheet.PlateNumber(plate);
+        Txt.Draw(dl, new Vector2(x, pos.Y + (h - Txt.Natural(Face.MonoMedium, 12)) / 2), num, Face.MonoMedium, 12, Palette.Muted);
+        x += S(26 + 9);
+        var right = pos.X + width - S(10) - (on ? S(14 + 9) : 0);
+        var y = pos.Y + (h - nh - sh) / 2;
+        Txt.Draw(dl, new Vector2(x, y), $"Plate {plate}", Face.SansMedium, 13, hovered || on ? Palette.Ink : Palette.Body);
+        if (sub != null) Txt.Draw(dl, new Vector2(x, y + nh), Txt.Fit(sub, Face.Sans, 11, right - x), Face.Sans, 11, Palette.Faint);
+        if (on) Icons.Draw(dl, Icon.ArrowRight, new Vector2(pos.X + width - S(10 + 14), pos.Y + (h - S(14)) / 2), S(14), Palette.Accent);
+        Palette.Opacity = old;
+        Kit.FocusRing(pos, pos + new Vector2(width, h), S(10));
+        ImGui.SetCursorScreenPos(pos);
+        ImGui.Dummy(new Vector2(width, h));
+        return clicked;
+    }
+
+    /// <summary>The line between the menu's groups (the mock's <c>.sep</c>: 4px above and under, 6 in from its sides), across the menu.</summary>
+    private static void MenuLine(float width)
+    {
+        var pos = ImGui.GetCursorScreenPos();
+        Kit.Dl.AddLine(pos + new Vector2(S(6), S(4) + 0.5f), pos + new Vector2(width - S(6), S(4) + 0.5f), Palette.U32(Palette.Line), 1f);
+        ImGui.Dummy(new Vector2(width, S(9)));
+    }
+
+    /// <summary>
+    /// The sticker that opens a menu (the mock's "Put on a plate… ⌄"): the Kit's sticker, large, with
+    /// a chevron after its words. The Kit's has its icon before its words only, so this one is drawn
+    /// here with the same measures (46 tall, 22 either side, Figtree 800 15, 14px corners, the 3px
+    /// block), on the ink (the slip it sits in isn't on the field). Its block reaches 3px past it.
+    /// </summary>
+    private static bool MenuSticker(string id, Vector2 pos, string label, Icon icon, bool disabled, string? tip, out Vector2 size)
+    {
+        const int px = 15;
+        var h = S(46);
+        var chev = S(14);
+        var iconPx = S(16);
+        var textW = Txt.Measure(label, Face.SansExtraBold, px).X;
+        var w = S(2 + 22) * 2 + iconPx + S(8) + textW + S(8) + chev;
+        size = new Vector2(w, h);
+        var (clicked, hovered, held) = Kit.Hit(id, pos, size, disabled);
+        if (tip != null && !Kit.Blocked && ImGui.IsMouseHoveringRect(pos, pos + size) && ImGui.IsWindowHovered()) Kit.Tooltip(tip);
+        var old = Palette.Opacity;
+        if (disabled) Palette.Opacity = old * 0.5f;
+        var dl = Kit.Dl;
+        var r = S(14);
+        var off = S(3);
+        var pressed = held && !disabled;
+        var p = pressed ? pos + new Vector2(off) : pos;
+        if (!pressed) dl.AddRectFilled(pos + new Vector2(off), pos + size + new Vector2(off), Palette.U32(Palette.StickerShadow), r);
+        dl.AddRectFilled(p, p + size, Palette.U32(hovered || held ? Palette.FieldHi : Palette.Field), r);
+        var e = S(2);
+        dl.AddRect(p + new Vector2(e / 2), p + size - new Vector2(e / 2), Palette.U32(Palette.StickerEdge), MathF.Max(0, r - e / 2), ImDrawFlags.None, e);
+        var x = p.X + S(2 + 22);
+        Icons.Draw(dl, icon, new Vector2(x, p.Y + (h - iconPx) / 2), iconPx, Palette.OnField, 2f);
+        x += iconPx + S(8);
+        Txt.Line(dl, new Vector2(x, p.Y), label, Face.SansExtraBold, px, Palette.OnField, 46);
+        x += textW + S(8);
+        Icons.Draw(dl, Icon.ChevronDown, new Vector2(x, p.Y + (h - chev) / 2), chev, Palette.OnField, 2f);
+        Palette.Opacity = old;
+        Kit.FocusRing(p, p + size, r);
+        return clicked;
     }
 }

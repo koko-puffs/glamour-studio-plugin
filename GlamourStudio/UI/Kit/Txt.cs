@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Numerics;
 using Dalamud.Bindings.ImGui;
 using Dalamud.Interface.Utility;
+using GlamourStudio.UI.Model;
 using static GlamourStudio.UI.Theme;
 
 namespace GlamourStudio.UI;
@@ -39,6 +40,7 @@ public static class Txt
     private static readonly Dictionary<(string Text, Face Face, int Px, float Em, float Width), string> SpacedFits = new();
     private static readonly Dictionary<string, string> Uppers = new();
     private static readonly Dictionary<(string Text, Face Face, int Px), RunWords> Words = new();
+    private static readonly Dictionary<(string Text, Face Face, int Px), Mixed?> Plans = new();
 
     private static float stampScale = -1;
     private static int stampGeneration = -1;
@@ -47,6 +49,7 @@ public static class Txt
     /// <summary>Empties every cache when what they were measured with has changed.</summary>
     private static void Check()
     {
+        Fonts.Tick();
         var scale = ImGuiHelpers.GlobalScale;
         var generation = Fonts.Generation;
         if (scale == stampScale && generation == stampGeneration && ReferenceEquals(Fonts, stampFonts)) return;
@@ -58,6 +61,7 @@ public static class Txt
         SpacedLayouts.Clear();
         SpacedFits.Clear();
         Words.Clear();
+        Plans.Clear();
     }
 
     private static void Keep<TKey, TValue>(Dictionary<TKey, TValue> cache, TKey key, TValue value) where TKey : notnull
@@ -70,9 +74,122 @@ public static class Txt
     {
         Check();
         if (Sizes.TryGetValue((text, face, px), out var size)) return size;
-        using (Fonts.Push(face, px)) size = ImGui.CalcTextSize(text);
+        using (Fonts.Push(face, px))
+        {
+            size = ImGui.CalcTextSize(text);
+            if (PlanOf(text, face, px) != null) size.X = WidthPushed(text, face, px);
+        }
         Keep(Sizes, (text, face, px), size);
         return size;
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Characters a face hasn't got (a Japanese look's name, a maker's hangul): drawn in the
+    // fallback (Noto Sans CJK), scaled to the size asked for and on the face's baseline; one
+    // neither has yet is left out and asked for (Fonts.Want), so ImGui's "?" never shows.
+
+    /// <summary>A string in runs: each run's words and whether it's in the fallback.</summary>
+    private sealed record Mixed(string[] Parts, bool[] Fallback);
+
+    private static readonly HashSet<char> Asked = new();
+
+    /// <summary>The text's runs in this face and size, worked out once (null: the face has it all, the usual case).</summary>
+    private static Mixed? PlanOf(string text, Face face, int px)
+    {
+        if (Glyphs.IsPlainAscii(text) || face is Face.Echo or Face.Fallback) return null;
+        Check();
+        if (Plans.TryGetValue((text, face, px), out var plan)) return plan;
+        Asked.Clear();
+        List<(string Text, bool Fallback)>? runs;
+        // Each font looked at only while it's pushed: Dalamud promises a pushed font only until it's
+        // popped (and the atlas may be swapped for a rebuilt one in between).
+        using (Fonts.Push(face, px))
+        {
+            var font = ImGui.GetFont();
+            using (Fonts.Fallback(px).Handle.Push())
+            {
+                var fallback = ImGui.GetFont();
+                runs = Glyphs.Split(text, c => Has(font, c), c => Has(fallback, c), Asked);
+            }
+        }
+        if (Asked.Count > 0) Fonts.Want(Asked);
+        plan = runs == null ? null : new Mixed(runs.ConvertAll(r => r.Text).ToArray(), runs.ConvertAll(r => r.Fallback).ToArray());
+        Keep(Plans, (text, face, px), plan);
+        return plan;
+    }
+
+    private static unsafe bool Has(ImFontPtr font, char c) => font.FindGlyphNoFallback(c) != null;
+
+    /// <summary>True when some of the text isn't in the face (it's drawn, in part, in the fallback).</summary>
+    public static bool NeedsFallback(string text, Face face, int px) => PlanOf(text, face, px) != null;
+
+    /// <summary>
+    /// For text ImGui draws itself (a tooltip, a text field): the face pushed, or the fallback at
+    /// that size when the text has characters the face hasn't got (up to 15px it has Latin-1 too:
+    /// <see cref="Fonts"/>' FallbackLatinUpTo, which covers every size this is asked for). Pair with
+    /// <see cref="Drawable"/> for the words.
+    /// </summary>
+    public static IDisposable PushFor(string text, Face face, int px) =>
+        NeedsFallback(text, face, px) ? Fonts.Fallback(px).Handle.Push() : Fonts.Push(face, px);
+
+    /// <summary>The text without the characters neither the face nor the fallback has yet (for ImGui to draw: no "?").</summary>
+    public static string Drawable(string text, Face face, int px) =>
+        PlanOf(text, face, px) is { } plan ? string.Concat(plan.Parts) : text;
+
+    /// <summary>The text's width, its face already pushed.</summary>
+    private static float WidthPushed(string text, Face face, int px)
+    {
+        var plan = PlanOf(text, face, px);
+        if (plan == null) return ImGui.CalcTextSize(text).X;
+        var w = 0f;
+        for (var i = 0; i < plan.Parts.Length; i++)
+        {
+            if (!plan.Fallback[i])
+            {
+                w += ImGui.CalcTextSize(plan.Parts[i]).X;
+                continue;
+            }
+            var (handle, at) = Fonts.Fallback(px);
+            using (handle.Push()) w += ImGui.CalcTextSize(plan.Parts[i]).X * px / at;
+        }
+        return w;
+    }
+
+    /// <summary>Draws the text with its glyph box's top at <paramref name="pos"/>, its face already pushed; returns its width.</summary>
+    private static float Put(ImDrawListPtr dl, Vector2 pos, string text, Face face, int px, uint col)
+    {
+        var plan = PlanOf(text, face, px);
+        if (plan == null)
+        {
+            dl.AddText(Snap(pos), col, text);
+            return ImGui.CalcTextSize(text).X;
+        }
+        var font = ImGui.GetFont();
+        var size = ImGui.GetFontSize();
+        var baseline = pos.Y + font.Ascent * (size / MathF.Max(1, font.FontSize));
+        var x = pos.X;
+        for (var i = 0; i < plan.Parts.Length; i++)
+        {
+            var part = plan.Parts[i];
+            if (!plan.Fallback[i])
+            {
+                dl.AddText(Snap(new Vector2(x, pos.Y)), col, part);
+                x += ImGui.CalcTextSize(part).X;
+                continue;
+            }
+            var (handle, at) = Fonts.Fallback(px);
+            using (handle.Push())
+            {
+                var f = ImGui.GetFont();
+                var k = (float)px / at;
+                var fs = ImGui.GetFontSize() * k;
+                // On the face's baseline.
+                var top = baseline - f.Ascent * (fs / MathF.Max(1, f.FontSize));
+                dl.AddText(f, fs, Snap(new Vector2(x, top)), col, part);
+                x += ImGui.CalcTextSize(part).X * k;
+            }
+        }
+        return x - pos.X;
     }
 
     /// <summary>The text in capitals (as the spaced labels are), made once rather than every frame.</summary>
@@ -111,11 +228,7 @@ public static class Txt
     /// <summary>Draws text with its glyph box's top at <paramref name="pos"/>; returns its width.</summary>
     public static float Draw(ImDrawListPtr dl, Vector2 pos, string text, Face face, int px, Vector4 color)
     {
-        using (Fonts.Push(face, px))
-        {
-            dl.AddText(Snap(pos), Palette.U32(color), text);
-            return ImGui.CalcTextSize(text).X;
-        }
+        using (Fonts.Push(face, px)) return Put(dl, pos, text, face, px, Palette.U32(color));
     }
 
     /// <summary>Draws one line centred in a CSS line box <paramref name="lineCss"/> tall (0: the font's own line).</summary>
@@ -125,13 +238,9 @@ public static class Txt
         {
             var size = ImGui.GetFontSize();
             var box = lineCss > 0 ? S(lineCss) : size;
-            dl.AddText(Snap(lineTop + new Vector2(0, (box - size) / 2)), Palette.U32(color), text);
-            return ImGui.CalcTextSize(text).X;
+            return Put(dl, lineTop + new Vector2(0, (box - size) / 2), text, face, px, Palette.U32(color));
         }
     }
-
-    /// <summary>The height of a CSS line box in screen pixels.</summary>
-    public static float LineBox(Face face, int px, float lineCss) => lineCss > 0 ? S(lineCss) : Natural(face, px);
 
     /// <summary>Each of the first 256 characters as a string, made once (spaced capitals are drawn a letter at a time, every frame).</summary>
     private static readonly string[] OneChar = Enumerable.Range(0, 256).Select(c => ((char)c).ToString()).ToArray();
@@ -155,7 +264,7 @@ public static class Txt
                 var s = ch < OneChar.Length ? OneChar[ch] : ch.ToString();
                 glyphs[i] = s;
                 xs[i] = x;
-                x += ImGui.CalcTextSize(s).X + spacing;
+                x += WidthPushed(s, face, px) + spacing;
             }
         }
         layout = new SpacedLayout(glyphs, xs, x);
@@ -175,7 +284,7 @@ public static class Txt
         {
             var col = Palette.U32(color);
             for (var i = 0; i < layout.Glyphs.Length; i++)
-                dl.AddText(Snap(new Vector2(pos.X + layout.Xs[i], pos.Y)), col, layout.Glyphs[i]);
+                Put(dl, new Vector2(pos.X + layout.Xs[i], pos.Y), layout.Glyphs[i], face, px, col);
         }
         return layout.Width;
     }
@@ -212,7 +321,7 @@ public static class Txt
             while (lo < hi)
             {
                 var mid = (lo + hi + 1) / 2;
-                if (ImGui.CalcTextSize(text[..mid].TrimEnd() + dots).X <= width) lo = mid;
+                if (WidthPushed(text[..mid].TrimEnd() + dots, face, px) <= width) lo = mid;
                 else hi = mid - 1;
             }
             cut = lo == 0 ? dots : text[..lo].TrimEnd() + dots;
@@ -249,7 +358,7 @@ public static class Txt
                     j++;
                 }
                 texts.Add(word);
-                widths.Add(word.Length == 0 ? 0 : ImGui.CalcTextSize(word).X);
+                widths.Add(word.Length == 0 ? 0 : WidthPushed(word, face, px));
                 trailing.Add(spaces * space);
                 i = j;
             }
@@ -398,7 +507,7 @@ public static class Txt
                             color = Palette.Ink;
                         }
                     }
-                    if (tok.Text.Length > 0) dl.AddText(Snap(top), Palette.U32(color), tok.Text);
+                    if (tok.Text.Length > 0) Put(dl, top, tok.Text, run.Face, run.Px, Palette.U32(color));
                     lx += tok.Width + tok.Trailing;
                 }
                 y += box;

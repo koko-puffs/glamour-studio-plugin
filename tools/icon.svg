@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 30 30">
-  <!-- a hanger in an arched mirror on its tile (src/features/marks.ts: npm run marks writes this) -->
-  <defs><linearGradient id="tile-glamour-studio" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7b55f0"/><stop offset="1" stop-color="#c03a9c"/></linearGradient><radialGradient id="shine" cx="50%" cy="58%" r="62%"><stop offset="0" stop-color="#ffffff" stop-opacity=".26"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></radialGradient></defs>
-  <path d="M2.5 14.5a12.5 12.5 0 0 1 25 0v12a2 2 0 0 1-2 2h-21a2 2 0 0 1-2-2z" fill="url(#tile-glamour-studio)"/>
-  <path d="M2.5 14.5a12.5 12.5 0 0 1 25 0v12a2 2 0 0 1-2 2h-21a2 2 0 0 1-2-2z" fill="url(#shine)"/>
-  <g transform="translate(15 16.8) scale(.94) translate(-15 -14.7)"><g fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 9.5a2.2 2.2 0 1 1 2.2 2.2c-1.2 0-2.2.6-2.2 1.8v.6l-8 5.4a1 1 0 0 0 .6 1.8h14.8a1 1 0 0 0 .6-1.8l-8-5.4"/></g></g>
+  <!-- a hanger on a clothes tag on its tile, with the soft light the plugins' icons have: the site's mark, as its scripts/marks.ts draws the plugins' icons (src/features/marks.ts, markSvg of glamour-studio at 512 with the shine) -->
+  <defs><linearGradient id="tile-glamour-studio" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a897ff"/><stop offset="0.5" stop-color="#8f7cf6"/><stop offset="1" stop-color="#6a55e6"/></linearGradient><radialGradient id="shine" cx="50%" cy="58%" r="62%"><stop offset="0" stop-color="#ffffff" stop-opacity=".26"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></radialGradient></defs>
+  <path d="M2.99 17.66Q1.2 15 2.99 12.34L7.21 6.06Q9 3.4 12.2 3.4L25.4 3.4Q28.6 3.4 28.6 6.6L28.6 23.4Q28.6 26.6 25.4 26.6L12.2 26.6Q9 26.6 7.21 23.94ZM6.4 13.4a1.6 1.6 0 1 0 0 3.2a1.6 1.6 0 1 0 0-3.2Z" fill="url(#tile-glamour-studio)"/>
+  <path d="M2.99 17.66Q1.2 15 2.99 12.34L7.21 6.06Q9 3.4 12.2 3.4L25.4 3.4Q28.6 3.4 28.6 6.6L28.6 23.4Q28.6 26.6 25.4 26.6L12.2 26.6Q9 26.6 7.21 23.94ZM6.4 13.4a1.6 1.6 0 1 0 0 3.2a1.6 1.6 0 1 0 0-3.2Z" fill="url(#shine)"/>
+  <g transform="translate(17.6 15) scale(.92) translate(-15 -14)"><g fill="none" stroke="#ffffff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 9.5a2.2 2.2 0 1 1 2.2 2.2c-1.2 0-2.2.6-2.2 1.8v.6l-8 5.4a1 1 0 0 0 .6 1.8h14.8a1 1 0 0 0 .6-1.8l-8-5.4"/></g></g>
 </svg>

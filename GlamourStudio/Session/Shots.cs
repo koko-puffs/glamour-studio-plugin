@@ -319,6 +319,11 @@ public sealed class Shots : IDisposable
         {
             return new MadeShot(null, 0, 0, null, "Stopped.");
         }
+        catch (Exception) when (stopping.IsCancellationRequested)
+        {
+            // The plugin unloading: the textures it was making from are let go of under it.
+            return new MadeShot(null, 0, 0, null, "Stopped.");
+        }
         catch (Exception ex)
         {
             Services.Log.Error(ex, "Glamour Studio couldn't make the picture");

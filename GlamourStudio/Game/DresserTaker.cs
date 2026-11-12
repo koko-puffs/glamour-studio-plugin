@@ -74,6 +74,14 @@ public static unsafe class DresserTaker
     public static void Tick()
     {
         if (phase == Phase.Idle) return;
+        // Nothing left to take (the last one came, maybe as the dresser closed): said as done, not as
+        // the dresser closing. (Not while the last one's being asked again after a refusal.)
+        if (phase == Phase.Taking && queue.Count == 0 && tries == 0 && DateTime.UtcNow >= deadline)
+        {
+            if (stopAsked) Finish("Stopped", false);
+            else Finish($"{Words.Count(Done, "duplicate")} taken out to your bags", true);
+            return;
+        }
         if (phase == Phase.Taking && !GameWindows.IsShown("MiragePrismPrismBox"))
         {
             Finish("The glamour dresser closed", false);
@@ -103,12 +111,6 @@ public static unsafe class DresserTaker
                     Finish("Stopped", false);
                     break;
                 }
-                // (Not while the last one's being asked again after a refusal: it's still to come.)
-                if (queue.Count == 0 && tries == 0)
-                {
-                    Finish($"{Words.Count(Done, "duplicate")} taken out to your bags", true);
-                    break;
-                }
                 if (inv->GetEmptySlotsInBag() == 0)
                 {
                     Finish("Your bags are full", false);
@@ -120,16 +122,19 @@ public static unsafe class DresserTaker
                 if (isSet)
                 {
                     // A copy of a stored set: restoring it puts its pieces in your bags, so room for
-                    // them all; and another copy of the set must still be there.
-                    var setAt = DresserPlaces.FindSet(mgr, current.Item, current.Index);
-                    var holds = setAt < 0 ? 0 : data.SetPieces(id).Count(c => mgr->IsSetSlotUnlocked((uint)setAt, c.Column));
-                    if (setAt < 0 || DresserPlaces.Count(mgr, id) < 2)
+                    // them all; and the set's other copies must still hold every piece of it. Found
+                    // by its pieces, not only its place: should places have moved, the place read can
+                    // hold the copy that was to stay (0.6.16 took whichever copy was there).
+                    var live = DresserPlaces.Live(mgr, data);
+                    var setAt = DresserCleanup.SpareSetCopy(live, current.Item, current.Index);
+                    if (setAt < 0)
                     {
                         skipped.Add(data.ItemName(id));
-                        Recorder.Log($"  set {current.Item} at {current.Index}: left ({(setAt < 0 ? "gone" : "the last copy")})");
+                        Recorder.Log($"  set {current.Item} at {current.Index}: left (gone, or no other copy holds its pieces)");
                         tries = 0;
                         break;
                     }
+                    var holds = live.Count(d => d.Index == setAt);
                     if (inv->GetEmptySlotsInBag() < holds)
                     {
                         Finish($"Your bags need {holds} free places for {data.ItemName(id)}", false);
@@ -159,9 +164,11 @@ public static unsafe class DresserTaker
                     break;
                 }
                 var at = DresserPlaces.Find(mgr, current.Item, current.Dye1, current.Dye2, current.Index);
-                if (at < 0 || DresserPlaces.Count(mgr, id) < 2 && !current.InSet && !InASet(mgr, id))
+                if (at < 0 || !DresserCleanup.StillDuplicate(DresserPlaces.Live(mgr, data!), current.Item, current.Dye1, current.Dye2))
                 {
-                    // Gone, or the last copy now (taking it would leave none): left.
+                    // Gone, or no longer a duplicate (the copy with its dyes it doubled, or the set
+                    // holding it, gone meanwhile; 0.6.16 counted any copy, whatever its dyes, and
+                    // any set stored, whether it held the piece or not): left.
                     skipped.Add(data!.ItemName(current.Item));
                     Recorder.Log($"  {current.Item} at {current.Index}: left ({(at < 0 ? "gone" : "the last copy")})");
                     tries = 0;
@@ -217,13 +224,6 @@ public static unsafe class DresserTaker
                 break;
             }
         }
-    }
-
-    /// <summary>Whether a stored set in the dresser holds the item (then a loose copy isn't the last).</summary>
-    private static bool InASet(MirageManager* mgr, uint id)
-    {
-        var sets = data!.SetOf(id);
-        return sets != 0 && DresserPlaces.Count(mgr, sets) > 0;
     }
 
     private static void Finish(string words, bool allWent)

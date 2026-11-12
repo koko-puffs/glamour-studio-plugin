@@ -39,6 +39,21 @@ public static class Dashes
         return pts;
     }
 
+    /// <summary>A circle's outline, clockwise from the top, closed (the halo ring's dashes are walked round it).</summary>
+    public static List<Vector2> Circle(Vector2 center, float radius, int segments = 64)
+    {
+        segments = Math.Clamp(segments, 8, 256);
+        radius = MathF.Max(0, radius);
+        var pts = new List<Vector2>(segments + 1);
+        for (var i = 0; i < segments; i++)
+        {
+            var a = -MathF.PI / 2 + MathF.PI * 2 * i / segments;
+            pts.Add(center + new Vector2(MathF.Cos(a), MathF.Sin(a)) * radius);
+        }
+        pts.Add(pts[0]);
+        return pts;
+    }
+
     /// <summary>
     /// The dashes along an outline: about one every <paramref name="period"/> pixels (adjusted so a
     /// whole number fits), each <paramref name="onFraction"/> of it long. Each dash is a polyline.

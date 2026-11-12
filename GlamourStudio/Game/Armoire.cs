@@ -37,7 +37,10 @@ public static unsafe class Armoire
     {
         try
         {
-            var c = InventoryManager.Instance()->GetInventoryContainer(InventoryType.EquippedItems);
+            // (A null pointer read is no exception the catch below could take: it ends the game.)
+            var mgr = InventoryManager.Instance();
+            if (mgr == null) return false;
+            var c = mgr->GetInventoryContainer(InventoryType.EquippedItems);
             if (c == null || !c->IsLoaded) return false;
             var want = LookJson.BaseId(item);
             for (var i = 0; i < c->Size; i++)

@@ -10,8 +10,8 @@ you are.
 
 Linked to your account on the site, it keeps your **closet** there up to date by itself: what's in
 your glamour dresser, armoire, bags, armoury chest, saddlebags and retainers, your glamour plates and
-what you're wearing. Looks you **Send to game** from the site wait in the plugin, and a plate (or your
-outfit, or someone you examine) can be kept as a new look on the site.
+what you're wearing. Looks you **Send to game** from the site wait in the plugin, and a plate,
+your outfit or someone you examine can be kept as a new look on the site.
 On each character it hasn't seen before it **asks you first** whether to send that character at
 all, and sends nothing of it until you say yes; what's sent stays private on the site unless you
 choose to show it there.
@@ -22,8 +22,11 @@ next to it with what you need there (Fill plate, Plate it, Store, Wear, your wis
 Gear's tooltips and right-click menu get a few Glamour Studio lines too.
 
 It also fills plates with the looks you **planned** for them on the site, lists the public looks you
-could **wear now**, ticks off your **wishlist**, helps you **make room** in your dresser, links
+could **wear today**, ticks off your **wishlist**, helps you **make room** in your dresser, links
 plates to **gearsets**, and takes **shots** of a look for its page on the site.
+
+The window has Home, Looks, Plates, Closet and Make room across its top, in the site's Character
+Sheet look (the mock-up it was built from is in [docs/redesign](docs/redesign/README.md)).
 
 ## Installing
 
@@ -40,7 +43,7 @@ plates to **gearsets**, and takes **shots** of a look for its page on the site.
 2. Open your glamour dresser and armoire once (at an inn): the game only shows them then, and the
    plugin remembers them.
 3. At a glamour dresser, open **Glamour Plates** and pick a plate. The panel beside it shows the
-   look planned for it (or pick another) and **Fill plate**. Check it in the game's window, then
+   look planned for it (or pick another) and **Fill plate 3**. Check it in the game's window, then
    press **Save** there.
 
 Closet says what the plugin has read and when, and what to open so it can read the rest.
@@ -73,5 +76,6 @@ how the code is laid out, and the release notes.
 ## Credits and licence
 
 Built on what the Glamaholic plugin and FFXIVClientStructs found about the game's glamour
-plates, and on Housing Studio's and Raid Planner's plugins. Fonts: Outfit, Figtree and Geist Mono
-(SIL Open Font License). Icons drawn from Lucide (ISC). Licensed under the GNU AGPL-3.0 (see `LICENSE`).
+plates, and on Housing Studio's and Raid Planner's plugins. Fonts: Bricolage Grotesque, Shantell
+Sans, Figtree and Geist Mono, and Dalamud's Noto Sans CJK for names in other scripts (SIL Open Font
+License). Icons drawn from Lucide (ISC). Licensed under the GNU AGPL-3.0 (see `LICENSE`).

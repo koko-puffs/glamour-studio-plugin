@@ -127,6 +127,11 @@ public static class SiteLink
         {
             return new SiteReply<JsonNode?>(null, "Stopped.", "stopped");
         }
+        catch (ObjectDisposedException) when (cancel.IsCancellationRequested)
+        {
+            // The plugin unloading: its connection's let go of as a call starts.
+            return new SiteReply<JsonNode?>(null, "Stopped.", "stopped");
+        }
         catch (Exception ex) when (ex is HttpRequestException or IOException)
         {
             Trace?.Invoke($"SITE {function}: couldn't reach the site ({ex.GetType().Name}) after {clock.ElapsedMilliseconds} ms");
@@ -378,6 +383,11 @@ public static class SiteLink
         }
         catch (OperationCanceledException)
         {
+            return new SiteReply<ShotSent>(null, "Stopped.", "stopped");
+        }
+        catch (ObjectDisposedException) when (cancel.IsCancellationRequested)
+        {
+            // The plugin unloading (as in CallAsync).
             return new SiteReply<ShotSent>(null, "Stopped.", "stopped");
         }
         catch (Exception ex) when (ex is HttpRequestException or IOException)
