@@ -180,19 +180,20 @@ public sealed partial class MainWindow
 
         var (plan, dupes) = AutoRoomNow(me);
         var have = OutfitStorer.Supplies(data);
+        var words = PanelWords(me, plan, dupes, have);
         if (plan.Jobs.Count > 0)
         {
             var blocked = AutoRoomBlocked(plan, have);
             var line = blocked ?? $"{Words.Count(plan.Jobs.Count, "set")} could gather {Words.Count(plan.Pieces, "loose piece")}: frees {Words.Count(plan.Frees, "place")}, for {Words.Count(plan.Prisms, "glamour prism")} (you have {have.Prisms}). Needs {Words.Count(plan.MostAtOnce, "free bag place")} at a time (you have {have.FreeBag}).{HeldBackWords(plan)}";
             PaneArmed("##c-auto-room", config.OutfitStoreWorked ? $"Store {Words.Count(plan.Jobs.Count, "set")} for me" : "Try it on one set",
-                config.OutfitStoreWorked ? "Press again to store them" : "Press again to try it", Icon.Package, blocked, AutoRoomWords(plan, have),
-                line, ArmedSetsWords(plan, have), ref autoRoomArmedUntil, StartAutoRoom);
+                config.OutfitStoreWorked ? "Press again to store them" : "Press again to try it", Icon.Package, blocked, words.Room,
+                line, words.Armed, ref autoRoomArmedUntil, StartAutoRoom);
         }
         if (dupes.Count > 0)
         {
             var blocked = DupesBlocked(dupes, have);
             var line = blocked ?? $"{Words.Count(dupes.Count, "duplicate")} could come out to your bags: frees {Words.Count(dupes.Count, "place")}.";
-            PaneArmed("##c-dupes", $"Take out {Words.Count(dupes.Count, "duplicate")}", "Press again to take them out", Icon.Trash, blocked, DupesWords(dupes, have),
+            PaneArmed("##c-dupes", $"Take out {Words.Count(dupes.Count, "duplicate")}", "Press again to take them out", Icon.Trash, blocked, words.Dupes,
                 line, $"Takes {Words.Count(dupes.Count, "duplicate")} out to your bags: frees {Words.Count(dupes.Count, "place")} (you have {have.FreeBag} free bag places).",
                 ref dupesArmedUntil, StartDupes);
         }
@@ -1085,7 +1086,12 @@ public sealed partial class MainWindow
     // ---------------------------------------------------------------------------------------------
     // The fitting room: step through your looks, where each piece is, wear it or keep it.
 
-    private int tryIndex;
+    /// <summary>
+    /// The look stepped to last in <see cref="TryList"/> (or the one the fitting room shows); -1 before
+    /// the first, so the first press of the right arrow puts on the first look, not the second.
+    /// </summary>
+    private int tryIndex = -1;
+
     private bool tryReady;
     private string? triedId;
 
@@ -1162,7 +1168,7 @@ public sealed partial class MainWindow
                 Later(() =>
                 {
                     tryReady = seg == 0;
-                    tryIndex = 0;
+                    tryIndex = -1;
                 });
             var b = S(28);
             var by = at.Y + (h - b) / 2;
@@ -1170,7 +1176,7 @@ public sealed partial class MainWindow
             var nx = at.X + w - b;
             if (Kit.IconButton("##c-try-next", new Vector2(nx, by), Icon.ChevronRight, "The look after", 28, Btn.Glass, busy, 14))
             {
-                var l = list[(tryIndex + 1) % Math.Max(1, list.Count)];
+                var l = list[(Math.Max(-1, tryIndex) + 1) % list.Count];
                 Later(() => TryOnLook(l));
             }
             var count = list.Count == 0 ? "0 of 0" : inList ? $"{(tryIndex + 1).ToString(En)} of {list.Count.ToString(En)}" : $"– of {list.Count.ToString(En)}";
@@ -1179,7 +1185,7 @@ public sealed partial class MainWindow
             Txt.Line(Kit.Dl, new Vector2(cx, at.Y), count, Face.Mono, 12, Palette.Ink, 34);
             if (Kit.IconButton("##c-try-prev", new Vector2(cx - S(8) - b, by), Icon.ChevronLeft, "The look before", 28, Btn.Glass, busy, 14))
             {
-                var l = list[((tryIndex - 1) % list.Count + list.Count) % list.Count];
+                var l = list[tryIndex <= 0 ? list.Count - 1 : (tryIndex - 1) % list.Count];
                 Later(() => TryOnLook(l));
             }
             Kit.Reserve(at, w, h);
@@ -1432,7 +1438,8 @@ public sealed partial class MainWindow
 
     private void PaneDye()
     {
-        var item = GameWindows.DyedItem(data);
+        // (Read once this frame with the panel's title: it walks the window's values.)
+        var item = paneDyed;
         if (item == 0)
         {
             PaneSec();
@@ -1518,10 +1525,12 @@ public sealed partial class MainWindow
         if (retainerCache is { } c && c.Wardrobe == wardrobe.Version && c.Sync == sync.Version && c.Retainer == r.Id && c.Live == live) return c;
         var lookItems = LookItems();
         var forLooks = new List<(uint, string)>();
+        // Each piece once: a normal and a high-quality copy are two ids in the bags, one piece here.
+        var seen = new HashSet<uint>();
         foreach (var raw in read.Items)
         {
             var id = LookJson.BaseId(raw);
-            if (lookItems.TryGetValue(id, out var look) && Where(id) is not (Place.Dresser or Place.Armoire)) forLooks.Add((id, look));
+            if (seen.Add(id) && lookItems.TryGetValue(id, out var look) && Where(id) is not (Place.Dresser or Place.Armoire)) forLooks.Add((id, look));
         }
         var armoire = read.Items.Select(LookJson.BaseId).Distinct()
             .Where(i => !lookItems.ContainsKey(i) && data.CabinetOf(i) != null && !wardrobe.ArmoireNow.ContainsKey(i) && me.Get(Place.Armoire)?.Items.Contains(i) != true)
@@ -1602,7 +1611,8 @@ public sealed partial class MainWindow
         }
         else PaneText("None of it is something the armoire takes.", 12, Palette.Muted);
 
-        var others = GameWindows.Retainers().Where(x => x.Id != r.Id).ToList();
+        // (The game's list of them, read again every two seconds rather than every frame.)
+        var others = RetainersNow().Where(x => x.Id != r.Id).ToList();
         if (others.Count == 0) return;
         PaneSec();
         SecHead("Your other retainers");
@@ -1660,14 +1670,17 @@ public sealed partial class MainWindow
         PaneSec();
         SecHead("On the market board", $"{sold.Count.ToString(En)} of {wishes.Count.ToString(En)}");
         if (wishes.Count == 0) PaneText("Your wishlist is empty. Put pieces on it from a look, Examine or the fitting room.", 12, Palette.Muted);
+        // The game's windows read once, not for every row: only the item whose results are open has a price.
         var open = GameWindows.MarketResultItem();
+        var openPrice = open != 0 ? GameWindows.CheapestListed(open) : null;
+        var searchShut = !GameWindows.IsShown("ItemSearch") && open == 0;
         foreach (var item in sold.Take(companionMore ? 40 : 8))
         {
             var line = forLook.TryGetValue(item, out var look) ? $"for {look}" : null;
-            if (GameWindows.CheapestListed(item) is { } price) line = $"{(line != null ? line + " · " : string.Empty)}from {price.ToString("N0", En)} gil";
+            if (item == open && openPrice is { } price) line = $"{(line != null ? line + " · " : string.Empty)}from {price.ToString("N0", En)} gil";
             if (Where(item) != null) line = $"Yours now ({WhereOf(item).Tag.Text})";
             var name = data.ItemName(item);
-            if (PieceRow($"##c-mb-{item}", item, null, line, button: "Search", buttonDisabled: !GameWindows.IsShown("ItemSearch") && open == 0,
+            if (PieceRow($"##c-mb-{item}", item, null, line, button: "Search", buttonDisabled: searchShut,
                     tip: "Types it into the market board's search", own: Own.Star, picked: open == item, buttonIcon: Icon.Search))
                 Later(() =>
                 {
@@ -1692,7 +1705,8 @@ public sealed partial class MainWindow
         }
     }
 
-    private (string Name, int Version, HashSet<uint> Found, DateTime At)? shopCache;
+    /// <summary>What the shop open sells of your wishlist, by name (read again each second: its window's values change as you page through it).</summary>
+    private (string Name, int Version, List<uint> Found, DateTime At)? shopCache;
 
     private void PaneShop()
     {
@@ -1704,7 +1718,7 @@ public sealed partial class MainWindow
         var wishes = sync.Library.Wishes;
         var name = shopName ?? string.Empty;
         if (shopCache is not { } c || c.Name != name || c.Version != sync.Version || DateTime.UtcNow - c.At > TimeSpan.FromSeconds(1))
-            shopCache = c = (name, sync.Version, GameWindows.InShop(name, wishes), DateTime.UtcNow);
+            shopCache = c = (name, sync.Version, GameWindows.InShop(name, wishes).OrderBy(data.ItemName).ToList(), DateTime.UtcNow);
         var found = c.Found;
         var forLook = WishLooks();
         PaneSec();
@@ -1712,7 +1726,7 @@ public sealed partial class MainWindow
         if (found.Count == 0) PaneText(wishes.Count == 0 ? "Your wishlist is empty." : "Nothing on your wishlist is sold here, as far as this shop's window tells.", 12, Palette.Muted);
         else
         {
-            foreach (var item in found.OrderBy(data.ItemName))
+            foreach (var item in found)
                 PieceRow($"##c-shop-{item}", item, null,
                     forLook.TryGetValue(item, out var look) ? $"for {look} · buy one and it comes off the list" : "buy one and it comes off the list", own: Own.Star);
             PaneText("As far as this shop's window tells.");

@@ -62,7 +62,6 @@ public static unsafe class Gearsets
         }
     }
 
-    /// <summary>Changes to a gearset (its linked plate goes on where the game allows it).</summary>
     /// <summary>
     /// Why changing gearset (or wearing a plate, <paramref name="plate"/>) won't work now, in words;
     /// null when it will. From the recordings: the game refuses in combat ("Unable to execute command

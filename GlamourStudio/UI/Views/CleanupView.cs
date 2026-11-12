@@ -231,31 +231,31 @@ public sealed partial class MainWindow
             {
                 eyebrow = run.Ok ? "Took out the duplicates" : "Taking out stopped";
                 eyebrowIcon = run.Ok ? Icon.Check : Icon.AlertTriangle;
-                big = used.ToString("N0");
+                big = used.ToString("N0", En);
                 small = $" / {DresserCleanup.Capacity}";
                 fraction = (float)used / DresserCleanup.Capacity;
-                line = $"{free:N0} free · they're in your bags: sell or discard them yourself";
+                line = $"{free.ToString("N0", En)} free · they're in your bags: sell or discard them yourself";
             }
             else if (done)
             {
                 eyebrow = run!.Stored > 0 ? $"Made room · {Words.Count(run.PlacesFreed, "place")} freed" : "Made no room";
                 eyebrowIcon = run.Ok ? Icon.Check : Icon.AlertTriangle;
-                big = used.ToString("N0");
+                big = used.ToString("N0", En);
                 small = $" / {DresserCleanup.Capacity}";
                 fraction = (float)used / DresserCleanup.Capacity;
-                line = $"{free:N0} free · {run.Stored} of {Words.Count(run.Total, "set")} stored";
+                line = $"{free.ToString("N0", En)} free · {run.Stored} of {Words.Count(run.Total, "set")} stored";
             }
             else
             {
                 var read = me.Get(Place.Dresser);
                 eyebrow = $"Glamour dresser · read {(read != null ? Words.Ago(new DateTimeOffset(read.ReadAt, TimeSpan.Zero), DateTimeOffset.UtcNow) : "never")}";
                 eyebrowIcon = Icon.Hanger;
-                big = used.ToString("N0");
+                big = used.ToString("N0", En);
                 small = $" / {DresserCleanup.Capacity}";
                 fraction = (float)used / DresserCleanup.Capacity;
                 line = plan.Jobs.Count > 0
-                    ? $"{free:N0} free · gathering {Words.Count(plan.Jobs.Count, "outfit set")} frees up to {Words.Count(plan.Frees, "place")}"
-                    : $"{free:N0} free · no outfit set to gather";
+                    ? $"{free.ToString("N0", En)} free · gathering {Words.Count(plan.Jobs.Count, "outfit set")} frees up to {Words.Count(plan.Frees, "place")}"
+                    : $"{free.ToString("N0", En)} free · no outfit set to gather";
             }
             Kit.Eyebrow(new Vector2(x, y), eyebrow, null, leftW, eyebrowIcon);
             y += Kit.EyebrowHeight + S(8);

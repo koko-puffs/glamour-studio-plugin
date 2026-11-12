@@ -178,14 +178,16 @@ public sealed partial class MainWindow
             };
             looksTabs = c = (sync.Version, Linked, read, tabs);
         }
-        var picked = Kit.UnderlineTabs("##looks-tab", c.Tabs, looksTab);
-        if (picked != looksTab)
-        {
-            looksTab = picked;
-            pickedLook = null;
-            // A job or mood of one tab's looks may be none of the next's.
-            jobFilter = moodFilter = null;
-        }
+        ShowLooksTab(Kit.UnderlineTabs("##looks-tab", c.Tabs, looksTab));
+    }
+
+    /// <summary>Another tab (pressed, or from Home's links): its first look picked, and no job or mood (a job or mood of one tab's looks may be none of the next's).</summary>
+    private void ShowLooksTab(int tab)
+    {
+        if (tab == looksTab) return;
+        looksTab = tab;
+        pickedLook = null;
+        jobFilter = moodFilter = null;
     }
 
     /// <summary>Search, Ready first (not on Wear today: they're all yours), a job and a mood, on one 34 row (12 above, 8 below).</summary>
@@ -657,8 +659,8 @@ public sealed partial class MainWindow
         }
         Kit.Reserve(at, w, h);
 
-        var plate = editorPlate;
-        var sticker = plate == 0 && !PlateItHere;
+        // Try it on is the sticker only when the plate slip hasn't one (just filled, its Wear plate N is it).
+        var sticker = !SlipHasSticker(look);
         Kit.Gap(sticker && !narrow ? 16 : 12);
         DrawPickButtons(look, narrow, sticker);
 

@@ -108,10 +108,10 @@ public sealed partial class MainWindow
         // 612 · of 800 places used · 188 free … gathering outfit sets frees up to 23, on one baseline.
         var used = DresserUsed(me);
         var free = Math.Max(0, DresserCleanup.Capacity - used);
-        var bigText = used.ToString("N0");
+        var bigText = used.ToString("N0", En);
         var baseline = y + Txt.Ascent(Face.Display, 40) - S(40) * 0.07f;
         var bw = Kit.Display(new Vector2(x, y - S(40) * 0.07f - (Kit.DisplayHeight(40) - bigH) / 2), bigText, 40, Palette.Ink, 0, false, 0.01f);
-        var ofText = $"of {DresserCleanup.Capacity} places used · {free:N0} free";
+        var ofText = $"of {DresserCleanup.Capacity} places used · {free.ToString("N0", En)} free";
         var ofW = Txt.Draw(dl, new Vector2(x + bw + S(10), baseline - Txt.Ascent(Face.Sans, 13) - (Kit.DisplayHeight(40) - bigH) / 2), ofText, Face.Sans, 13, Palette.Muted);
         var now = CleanupNow(me);
         if (now.Frees > 0)
@@ -178,7 +178,7 @@ public sealed partial class MainWindow
             if (Txt.Measure(note, Face.Sans, 12).X > tw && !Kit.Blocked && ImGui.IsWindowHovered()
                 && ImGui.IsMouseHoveringRect(new Vector2(tx, y), new Vector2(tx + tw, y + rowH)))
                 Kit.Tooltip(note);
-            var count = read == null ? "—" : read.Items.Count.ToString("N0");
+            var count = read == null ? "—" : read.Items.Count.ToString("N0", En);
             var cw = Txt.Measure(count, Face.MonoMedium, 13).X;
             Txt.Draw(dl, new Vector2(x + inner - cw, y + (rowH - Txt.Natural(Face.MonoMedium, 13)) / 2), count, Face.MonoMedium, 13, read == null ? Palette.Faint : Palette.Ink);
         }
@@ -296,7 +296,7 @@ public sealed partial class MainWindow
             eyebrow = "Your closet on Glamour Studio";
             eyebrowColor = off ? Palette.Faint : Palette.Accent;
             head = sync.LastSync is { } r
-                ? $"{Words.Count(r.Total, "piece")}, sent {Words.Ago(sync.LastSyncAt ?? now, now)}" + (r.Added > 0 ? $" ({r.Added:N0} new)" : string.Empty)
+                ? $"{Words.Count(r.Total, "piece")}, sent {Words.Ago(sync.LastSyncAt ?? now, now)}" + (r.Added > 0 ? $" ({r.Added.ToString("N0", En)} new)" : string.Empty)
                 : "Not sent yet since the plugin loaded";
             line = off ? "Sending by itself is off (Settings): it's sent only when you press Send now." : "It's sent by itself as it changes, every few minutes at most.";
         }

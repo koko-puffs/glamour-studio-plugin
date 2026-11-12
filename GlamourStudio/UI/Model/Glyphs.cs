@@ -21,11 +21,14 @@ public static class Glyphs
         ('™', '™'), ('←', '↓'), ('★', '☆'), ('♥', '♥'), ('✓', '✓'), ('✕', '✕'),
     };
 
-    /// <summary>True when every character is printable ASCII (in every face): the usual case, decided without a lookup.</summary>
+    /// <summary>
+    /// True when every character is printable ASCII (in every face) or a line break: the usual case,
+    /// decided without a lookup.
+    /// </summary>
     public static bool IsPlainAscii(string text)
     {
         foreach (var c in text)
-            if (c < 0x20 || c > 0x7E) return false;
+            if ((c < 0x20 && c != '\n') || c > 0x7E) return false;
         return true;
     }
 
@@ -49,7 +52,9 @@ public static class Glyphs
     /// The text in runs: each (its characters, whether they're drawn in the fallback). A character
     /// <paramref name="inFace"/> has goes in the face's run; one only <paramref name="inFallback"/> has,
     /// in a fallback run; one neither has is left out, and added to <paramref name="wanted"/> if it's
-    /// <see cref="Wantable"/>. Null when the face has every character (draw the text as it is).
+    /// <see cref="Wantable"/>. Null when the face has every character (draw the text as it is). A
+    /// line break is the face's: no font has a glyph for it, ImGui breaks the line there itself (a
+    /// tooltip's second line ran into its first once the text had a "·" in it).
     /// </summary>
     public static List<(string Text, bool Fallback)>? Split(string text, Func<char, bool> inFace, Func<char, bool> inFallback, ISet<char>? wanted)
     {
@@ -60,7 +65,7 @@ public static class Glyphs
         {
             var c = text[i];
             bool fb;
-            if (inFace(c)) fb = false;
+            if (c == '\n' || inFace(c)) fb = false;
             else if (inFallback(c)) fb = true;
             else
             {

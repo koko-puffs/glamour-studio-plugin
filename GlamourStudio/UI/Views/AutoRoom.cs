@@ -162,7 +162,7 @@ public sealed partial class MainWindow
         + (plan.HeldBack > 0 ? $" {Words.Count(plan.HeldBack, "set")} left: their pieces are of both qualities, and a set takes one." : string.Empty);
 
     /// <summary>A small number in words ("three"), figures past twelve.</summary>
-    private static string Few(int n) => n is >= 0 and <= 12 ? Words.InWords(n).ToLowerInvariant() : n.ToString("N0");
+    private static string Few(int n) => n is >= 0 and <= 12 ? Words.InWords(n).ToLowerInvariant() : n.ToString("N0", En);
 
     /// <summary>
     /// The question the first time (the mock's frame 2): the one set it tries and what it moves and
@@ -219,7 +219,7 @@ public sealed partial class MainWindow
     }
 
     /// <summary>A small number in words with a capital ("Three"), figures past twelve.</summary>
-    private static string InWordsCap(int n) => n is >= 0 and <= 12 ? Words.InWords(n) : n.ToString("N0");
+    private static string InWordsCap(int n) => n is >= 0 and <= 12 ? Words.InWords(n) : n.ToString("N0", En);
 
     /// <summary>The duplicates in a line: "4 second copies with the same dyes, and 1 set stored twice".</summary>
     private string DupesSummary(List<DresserPiece> dupes)
@@ -395,7 +395,22 @@ public sealed partial class MainWindow
     private (string Words, bool Ok)? autoRoomLast =>
         wardrobe.Current is { } me && RunHere(me) is { Words: { } words } r ? (words, r.Ok) : null;
 
-    /// <summary>The duplicates question's words for the character you're on.</summary>
-    private string DupesWords(List<DresserPiece> dupes, (int Prisms, int FreeBag) have) =>
-        wardrobe.Current is { } me ? DupesWords(me, dupes, have) : DupesSummary(dupes);
+    private (int Wardrobe, string Key, (int, int) Have, bool Worked, string Room, string Armed, string Dupes)? panelWords;
+
+    /// <summary>
+    /// The panel's words for its two buttons (what storing sets does, what its second press does, what
+    /// taking out the duplicates does): made again only when the dresser, your bags or the first-time
+    /// trial change, not every frame (the duplicates' count each set copy's pieces in the dresser).
+    /// </summary>
+    private (string Room, string Armed, string Dupes) PanelWords(CharacterWardrobe me, AutoRoomPlan plan, List<DresserPiece> dupes, (int Prisms, int FreeBag) have)
+    {
+        var worked = config.OutfitStoreWorked;
+        if (panelWords is { } c && c.Wardrobe == wardrobe.Version && c.Key == me.Key && c.Have == have && c.Worked == worked)
+            return (c.Room, c.Armed, c.Dupes);
+        var room = plan.Jobs.Count > 0 ? AutoRoomWords(plan, have) : string.Empty;
+        var armed = ArmedSetsWords(plan, have);
+        var dupesWords = dupes.Count > 0 ? DupesWords(me, dupes, have) : string.Empty;
+        panelWords = (wardrobe.Version, me.Key, have, worked, room, armed, dupesWords);
+        return (room, armed, dupesWords);
+    }
 }

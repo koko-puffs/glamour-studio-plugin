@@ -160,6 +160,13 @@ public static unsafe class OutfitStorer
     public static void Tick()
     {
         if (phase == Phase.Idle) return;
+        // No set left (the last one stored, maybe as the dresser closed): ended as done, not as the
+        // dresser closing; nothing more is asked of the game.
+        if (phase == Phase.Between && jobs.Count == 0 && !stopAsked && DateTime.UtcNow >= deadline)
+        {
+            Next();
+            return;
+        }
         var waiting = phase is Phase.WaitRestored or Phase.WaitStored;
         if (!GameWindows.IsShown("MiragePrismPrismBox") && !waiting)
         {
@@ -598,6 +605,34 @@ public static unsafe class DresserPlaces
             if (Fits(mgr, i, item, dye1, dye2))
                 return i;
         return -1;
+    }
+
+    /// <summary>
+    /// The dresser as it is now, read as <see cref="WardrobeReader"/> reads it: each loose piece with
+    /// its dyes, and each stored set's pieces at the set's place (its id a million more when high quality).
+    /// </summary>
+    public static List<DresserPiece> Live(MirageManager* mgr, GameData data)
+    {
+        var pieces = new List<DresserPiece>();
+        var ids = mgr->PrismBoxItemIds;
+        var s0 = mgr->PrismBoxStain0Ids;
+        var s1 = mgr->PrismBoxStain1Ids;
+        for (var i = 0; i < ids.Length; i++)
+        {
+            var raw = ids[i];
+            if (raw == 0) continue;
+            var id = LookJson.BaseId(raw);
+            var set = data.SetPieces(id);
+            if (set.Count > 0)
+            {
+                foreach (var (column, piece) in set)
+                    if (mgr->IsSetSlotUnlocked((uint)i, column))
+                        pieces.Add(new DresserPiece(i, piece, s0[i], s1[i], raw >= LookJson.HqOffset ? id + LookJson.HqOffset : id));
+                continue;
+            }
+            if (data.Item(id)?.IsGear == true) pieces.Add(new DresserPiece(i, raw, s0[i], s1[i]));
+        }
+        return pieces;
     }
 
     private static bool Fits(MirageManager* mgr, int i, uint item, byte dye1, byte dye2)

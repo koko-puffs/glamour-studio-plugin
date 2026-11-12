@@ -95,7 +95,11 @@ public sealed partial class MainWindow
             var vp = ImGui.GetMainViewport();
             var y = rect.Max.Y + gap;
             if (y + height > vp.Pos.Y + vp.Size.Y) y = rect.Pos.Y - gap - height;
-            ImGui.SetNextWindowPos(new Vector2(rect.Pos.X, y), ImGuiCond.Always);
+            // On the screen whatever the game's tooltip does: a tall one at the top with no room above
+            // (the box would start off the top), a narrow one at the right edge (it's 220 wide at least).
+            y = Math.Clamp(y, vp.Pos.Y, MathF.Max(vp.Pos.Y, vp.Pos.Y + vp.Size.Y - height));
+            var x = Math.Clamp(rect.Pos.X, vp.Pos.X, MathF.Max(vp.Pos.X, vp.Pos.X + vp.Size.X - width));
+            ImGui.SetNextWindowPos(new Vector2(x, y), ImGuiCond.Always);
             ImGui.SetNextWindowSize(new Vector2(width, height), ImGuiCond.Always);
             Theme.PushFrame();
             ImGui.PushStyleColor(ImGuiCol.WindowBg, Palette.Card);

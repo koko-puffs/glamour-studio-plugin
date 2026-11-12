@@ -936,6 +936,9 @@ public sealed unsafe class Recorder : IDisposable
         lock (lines)
         {
             if (started == default) started = DateTime.UtcNow;
+            // Lines after a save or a copy aren't in it: a new recording mustn't wipe them unasked
+            // (saved mid-recording, then stopped, /gstudio mark started over them).
+            HandedOver = false;
             if (cut && line.Length > LineAtMost) line = $"{line[..LineAtMost]}… (+{line.Length - LineAtMost:N0} characters)";
             if (line == lastBody && lines.Count > headerCount)
             {

@@ -180,6 +180,18 @@ public class KitModelTests
         Assert.Empty(Glyphs.Split("🌙", InFace, InFallback, wanted)!);
     }
 
+    [Fact]
+    public void LineBreaksStayWhereTheyAre()
+    {
+        var wanted = new HashSet<char>();
+        // A tooltip's two lines: plain, then with a sign past ASCII, then beside the fallback.
+        Assert.True(Glyphs.IsPlainAscii("Legs\nIn your armoire"));
+        Assert.Null(Glyphs.Split("Legs · Snow White\nIn your armoire", c => c != '\n' && InFace(c), InFallback, wanted));
+        var runs = Glyphs.Split("月の服\nIn your armoire", c => c != '\n' && InFace(c), InFallback, wanted);
+        Assert.Equal(new[] { ("月の服", true), ("\nIn your armoire", false) }, runs!);
+        Assert.Empty(wanted);
+    }
+
     [Theory]
     [InlineData('é', true)]
     [InlineData('月', true)]

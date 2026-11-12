@@ -45,10 +45,18 @@ public sealed partial class MainWindow
 
     private bool Linked => sync.Linked && !sync.TokenRefused;
 
+    /// <summary>Each pair of dyes' words, made once (the panels ask for a row's every frame).</summary>
+    private readonly Dictionary<(byte, byte), string> dyeLines = new();
+
     /// <summary>The words for a piece's dyes ("Snow White, Jet Black"), or null when it has none.</summary>
     private string? DyeLine(Piece p)
     {
-        var names = new[] { p.Dye1, p.Dye2 }.Where(d => d != 0).Select(d => data.DyeName(d)).ToList();
-        return names.Count == 0 ? null : string.Join(", ", names);
+        if (!p.Dyed) return null;
+        if (dyeLines.TryGetValue((p.Dye1, p.Dye2), out var line)) return line;
+        line = p.Dye1 == 0 ? data.DyeName(p.Dye2)
+            : p.Dye2 == 0 ? data.DyeName(p.Dye1)
+            : $"{data.DyeName(p.Dye1)}, {data.DyeName(p.Dye2)}";
+        dyeLines[(p.Dye1, p.Dye2)] = line;
+        return line;
     }
 }

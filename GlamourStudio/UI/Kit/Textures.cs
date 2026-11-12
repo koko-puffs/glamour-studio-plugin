@@ -65,7 +65,12 @@ public sealed class Textures : IDisposable
                 using var s = asm.GetManifestResourceStream(name)!;
                 using var ms = new MemoryStream();
                 s.CopyTo(ms);
-                loads[i] = Services.Textures.CreateFromImageAsync(ms.ToArray(), $"GlamourStudio {file}", cancel.Token);
+                var load = Services.Textures.CreateFromImageAsync(ms.ToArray(), $"GlamourStudio {file}", cancel.Token);
+                // One that fails is said in the log (it was an unobserved task's exception: nowhere),
+                // and the part draws without it.
+                load.ContinueWith(t => Services.Log.Warning(t.Exception!.GetBaseException(), "Glamour Studio couldn't make its texture {File}", file),
+                    CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
+                loads[i] = load;
             }
             catch (Exception ex)
             {

@@ -143,6 +143,50 @@ public static class DresserCleanup
         return extra.OrderBy(d => d.Index).ToList();
     }
 
+    /// <summary>
+    /// Whether a loose copy (its item and dyes) is still a duplicate in the dresser as it is now, by
+    /// <see cref="Duplicates"/>' rule: another loose copy with the same dyes, or, undyed, a stored set
+    /// holding the piece. Asked again just before it's taken out, so the last copy never is (one
+    /// taken out by hand meanwhile, a set emptied).
+    /// </summary>
+    public static bool StillDuplicate(IReadOnlyList<DresserPiece> dresser, uint item, byte dye1, byte dye2)
+    {
+        var id = LookJson.BaseId(item);
+        if (dye1 == 0 && dye2 == 0 && dresser.Any(d => d.InSet && LookJson.BaseId(d.Item) == id)) return true;
+        return dresser.Where(d => !d.InSet && LookJson.BaseId(d.Item) == id && d.Dye1 == dye1 && d.Dye2 == dye2)
+            .Select(d => d.Index).Distinct().Count() >= 2;
+    }
+
+    /// <summary>
+    /// Which copy of a stored set to take out (<see cref="Duplicates"/> named it by its place, as read):
+    /// the one at <paramref name="readAt"/> while it's still there, else the nearest below it (places
+    /// close up downwards as earlier ones leave), then above; and only a copy whose pieces the set's
+    /// other copies (either quality) hold between them. A place can come to hold the copy that was to
+    /// stay (two copies side by side, an earlier place emptied), whose pieces would then leave the
+    /// dresser for good. <paramref name="setItem"/> as the dresser has it (a high-quality set's a million
+    /// more). -1 when no copy is spare.
+    /// </summary>
+    public static int SpareSetCopy(IReadOnlyList<DresserPiece> dresser, uint setItem, int readAt)
+    {
+        var baseSet = LookJson.BaseId(setItem);
+        var copies = dresser.Where(d => d.InSet && LookJson.BaseId(d.SetItem) == baseSet).GroupBy(d => d.Index)
+            .ToDictionary(g => g.Key, g => (Set: g.First().SetItem, Pieces: g.Select(d => LookJson.BaseId(d.Item)).ToHashSet()));
+        bool Spare(int at)
+        {
+            if (!copies.TryGetValue(at, out var copy) || copy.Set != setItem) return false;
+            var others = copies.Where(o => o.Key != at).SelectMany(o => o.Value.Pieces).ToHashSet();
+            return copy.Pieces.IsSubsetOf(others);
+        }
+        if (Spare(readAt)) return readAt;
+        foreach (var at in copies.Keys.Where(i => i < readAt).OrderByDescending(i => i))
+            if (Spare(at))
+                return at;
+        foreach (var at in copies.Keys.Where(i => i > readAt).OrderBy(i => i))
+            if (Spare(at))
+                return at;
+        return -1;
+    }
+
     /// <summary>The dresser's loose pieces that none of <paramref name="outfits"/> (your looks and plates) has, in the dresser's order.</summary>
     public static List<DresserPiece> Unused(IReadOnlyList<DresserPiece> dresser, IEnumerable<IReadOnlyDictionary<Slot, Piece>> outfits)
     {

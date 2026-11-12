@@ -360,7 +360,7 @@ public sealed partial class MainWindow
         var by = cy - bh / 2;
         var copyX = right - copyW;
         var tryX = copyX - S(14) - tryW;
-        if (Kit.Button("##worn-try", new Vector2(tryX, by), "Try it on", Btn.Glass, BtnSize.Sm, Icon.Shirt, 0, false, "Shows it on you (Glamourer), as it is: nothing's changed in the game", 0, 14))
+        if (Kit.Button("##worn-try", new Vector2(tryX, by), "Try it on", Btn.Glass, BtnSize.Sm, Icon.Shirt, 0, false, "Puts it on in the fitting room, as it is: nothing's changed in the game", 0, 14))
             Later(() => TryOn(me.Outfit));
         if (kept != null)
         {
@@ -497,7 +497,7 @@ public sealed partial class MainWindow
         var tryW = Kit.ButtonWidth(tryLabel, BtnSize.Sm);
         var tryAt = wrap.Next(tryW, Kit.StickerHeight());
         if (Kit.Button("##try-plate", tryAt + new Vector2(0, (Kit.StickerHeight() - Kit.ButtonHeight(BtnSize.Sm)) / 2), tryLabel, Btn.Glass, BtnSize.Sm, null, 0, pieces.Count == 0,
-                pieces.Count == 0 ? "Nothing's on this plate" : "Shows it on you (Glamourer): nothing's changed in the game"))
+                pieces.Count == 0 ? "Nothing's on this plate" : "Puts it on in the fitting room: nothing's changed in the game"))
             Later(() => TryOn(pieces));
         if (pieces.Count > 0)
         {

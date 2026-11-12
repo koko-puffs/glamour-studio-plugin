@@ -440,8 +440,8 @@ public sealed partial class MainWindow
         sb.AppendLine($"Character: {(me != null ? $"{me.Name}@{me.World} (sending: {sync.StepFor(me)})" : "none")} · linked {sync.Linked} (refused {sync.TokenRefused}) · looks {sync.Library.Mine.Count} mine, {sync.Library.Loved.Count} loved, {sync.Wearable.Count} wearable, {sync.Inbox.Count} sent, {sync.Plans.Count} plans");
         sb.AppendLine($"Settings: empty bare slots {config.ClearBare}, dye from bags {config.DyeFromBags}, open with editor {config.OpenWithEditor}, auto send {config.AutoSync}, send plates {config.SendPlates}, chat notes {config.ChatNotes}");
         if (me != null)
-            sb.AppendLine("Read: " + string.Join(", ", Places.ByPriority.Select(p => $"{Places.Key(p)} {(me.Get(p) is { } r ? $"{r.Items.Count} at {r.ReadAt:yyyy-MM-dd HH:mm}" : "never")}"))
-                          + $", plates {(me.PlatesReadAt is { } pr ? pr.ToString("yyyy-MM-dd HH:mm") : "never")}, retainers {me.Retainers.Count}, dresser places used {DresserCleanup.Used(me.Dresser)}");
+            sb.AppendLine("Read: " + string.Join(", ", Places.ByPriority.Select(p => $"{Places.Key(p)} {(me.Get(p) is { } r ? $"{r.Items.Count} at {r.ReadAt.ToLocalTime():yyyy-MM-dd HH:mm}" : "never")}"))
+                          + $", plates {(me.PlatesReadAt is { } pr ? pr.ToLocalTime().ToString("yyyy-MM-dd HH:mm") : "never")}, retainers {me.Retainers.Count}, dresser places used {DresserCleanup.Used(me.Dresser)}");
         sb.AppendLine($"Last send: {(sync.LastSync is { } r2 ? Words.Synced(r2) : "none")} {(sync.SyncProblem != null ? $"· problem: {sync.SyncProblem}" : string.Empty)}");
         sb.AppendLine();
         sb.AppendLine(recorder.AsText());

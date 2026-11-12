@@ -213,7 +213,19 @@ public sealed partial class MainWindow : Window
                     if (failed) DrawFailed(noteAt);
                     Frame.DrawToast();
                     Kit.Blocked = false;
-                    DrawConfirm();
+                    try
+                    {
+                        DrawConfirm();
+                    }
+                    catch (Exception ex)
+                    {
+                        // A question that can't be drawn goes (it would throw out of every frame, and
+                        // block the window under it while it stayed), said once.
+                        Palette.Opacity = 1f;
+                        if (failures.Count < 64 && failures.Add($"question|{ex.GetType().FullName}|{ex.Message}"))
+                            Services.Log.Error(ex, "Glamour Studio's question failed");
+                        confirm = null;
+                    }
                 }
             }
         }
@@ -598,6 +610,9 @@ public sealed partial class MainWindow : Window
     private Question? confirm;
     private float confirmCardH;
 
+    /// <summary>The question <see cref="confirmCardH"/> was measured for.</summary>
+    private Question? confirmMeasured;
+
     /// <summary>The question's paragraph in its words (14px, the body colour).</summary>
     private static Run QuestionRun(string text) => new(text, Face.Sans, 14, Palette.Body);
 
@@ -688,7 +703,17 @@ public sealed partial class MainWindow : Window
             var width = MathF.Min(S(c.Lines is { Count: > 0 } ? 460 : 440), winSize.X - S(48));
             var pad = S(26);
             var inner = width - pad * 2;
-            var cardH = confirmCardH > 0 ? confirmCardH : S(200);
+            // A new question's card is laid unseen once, to measure it (it was drawn at the last
+            // question's height for a frame, its words past its foot or a gap under them).
+            var unmeasured = !ReferenceEquals(confirmMeasured, c) || confirmCardH <= 0;
+            var old = Palette.Opacity;
+            if (unmeasured)
+            {
+                Palette.Opacity = 0;
+                // (Nor can its answers be pressed where they aren't seen.)
+                Kit.Blocked = true;
+            }
+            var cardH = unmeasured ? S(200) : confirmCardH;
             var cardPos = new Vector2(winPos.X + (winSize.X - width) / 2, winPos.Y + MathF.Max(S(40), (winSize.Y - cardH) / 2));
             var r = S(Palette.RadiusXl);
             dl.AddRectFilled(cardPos, cardPos + new Vector2(width, cardH), Palette.U32(Palette.Card), r);
@@ -715,11 +740,14 @@ public sealed partial class MainWindow : Window
                 if (ImGui.IsKeyPressed(ImGuiKey.Escape)) close = true;
                 Kit.Reserve(buttons, inner, Kit.ButtonHeight(BtnSize.Md));
                 confirmCardH = Kit.At.Y - cardPos.Y + S(22);
+                confirmMeasured = c;
                 if (close && ReferenceEquals(confirm, c)) confirm = null;
             }
             finally
             {
                 Kit.PopBox();
+                Palette.Opacity = old;
+                Kit.Blocked = false;
             }
         }
         finally

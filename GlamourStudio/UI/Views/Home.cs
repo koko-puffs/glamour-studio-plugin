@@ -151,7 +151,8 @@ public sealed partial class MainWindow
         var plannedOn = planned != null && (Plates.Same(current, planned.Pieces) || (!config.ClearBare && OnPlate(planned.Pieces, current, true)));
         var plan = planned != null && !plannedOn ? PlanCached(planned) : null;
         var filled = lastFill is { } lf && lf.Result.Plate == plate ? lf : ((string LookId, FillResult Result, PlatePlan Plan)?)null;
-        var words = HeroWordsFor(plate, current, match, planned, plannedOn, plan, filled);
+        // (The pieces kept with the match: the same until the plate's changed, where the editor's are read anew ten times a second.)
+        var words = HeroWordsFor(plate, editorMatch.Pieces ?? current, match, planned, plannedOn, plan, filled);
 
         var at = Kit.At;
         var w = Kit.Width;
@@ -210,7 +211,7 @@ public sealed partial class MainWindow
     private (int Plate, IReadOnlyDictionary<Slot, Piece>? Current, Look? Match, Look? Planned, bool On, PlatePlan? Plan, FillResult? Fill, bool Changes, int Sync)? heroKey;
     private readonly HeroWords heroWords = new();
 
-    private HeroWords HeroWordsFor(int plate, Dictionary<Slot, Piece> current, Look? match, Look? planned, bool plannedOn, PlatePlan? plan,
+    private HeroWords HeroWordsFor(int plate, IReadOnlyDictionary<Slot, Piece> current, Look? match, Look? planned, bool plannedOn, PlatePlan? plan,
         (string LookId, FillResult Result, PlatePlan Plan)? filled)
     {
         var key = (plate, (IReadOnlyDictionary<Slot, Piece>?)current, match, planned, plannedOn, plan, filled?.Result, editorChanges, sync.Version);
@@ -809,7 +810,17 @@ public sealed partial class MainWindow
     // ---------------------------------------------------------------------------------------------
     // Ready for a plate: small character sheets.
 
-    private (int Sync, int Wardrobe, int Plate, Look? Planned, string? Key, List<Look> Looks, int Total)? readyLooks;
+    /// <summary>The last ReadyLooks list asked for, and how many are ready in all.</summary>
+    private (List<Look> Looks, int Total)? readyLooks;
+
+    /// <summary>
+    /// Each ReadyLooks list asked for since the site, the wardrobe or the character last changed, by
+    /// its plate and planned look's id: Home, the dresser's panel and its folded tab and the plates'
+    /// panel ask for different ones in a frame, and one kept list made them all again every frame.
+    /// </summary>
+    private readonly Dictionary<(int Plate, string? Planned), (Look? Planned, List<Look> Looks, int Total)> readyLists = new();
+
+    private (int Sync, int Wardrobe, string? Key) readyListsFor = (-1, -1, null);
 
     /// <summary>Whether more looks are ready than the last ReadyLooks list holds (it holds 20).</summary>
     private bool ReadyMore => readyLooks is { } r && r.Total > r.Looks.Count;
@@ -821,9 +832,17 @@ public sealed partial class MainWindow
     /// </summary>
     private List<Look> ReadyLooks(int plate, Look? planned)
     {
-        var key = wardrobe.Current?.Key;
-        if (readyLooks is { } c && c.Sync == sync.Version && c.Wardrobe == wardrobe.Version && c.Plate == plate && ReferenceEquals(c.Planned, planned) && c.Key == key)
+        var stamp = (sync.Version, wardrobe.Version, wardrobe.Current?.Key);
+        if (stamp != readyListsFor)
+        {
+            readyListsFor = stamp;
+            readyLists.Clear();
+        }
+        if (readyLists.TryGetValue((plate, planned?.Id), out var c) && ReferenceEquals(c.Planned, planned))
+        {
+            readyLooks = (c.Looks, c.Total);
             return c.Looks;
+        }
         var list = new List<Look>();
         var seen = new HashSet<string>();
         var total = 0;
@@ -842,7 +861,8 @@ public sealed partial class MainWindow
             total++;
             if (list.Count < 20) list.Add(l);
         }
-        readyLooks = (sync.Version, wardrobe.Version, plate, planned, key, list, total);
+        readyLists[(plate, planned?.Id)] = (planned, list, total);
+        readyLooks = (list, total);
         return list;
     }
 
@@ -863,11 +883,12 @@ public sealed partial class MainWindow
     private object? sheetCardsFor;
     private (string Count, int Shown, int Total) readyCount = (string.Empty, -1, -1);
 
-    private SheetCardInfo CardInfo(Look look, Look? planned, int plate)
+    /// <param name="from">The ready list the card's from: the cards are made again when it's made again.</param>
+    private SheetCardInfo CardInfo(List<Look> from, Look look, Look? planned, int plate)
     {
-        if (!ReferenceEquals(sheetCardsFor, readyLooks?.Looks))
+        if (!ReferenceEquals(sheetCardsFor, from))
         {
-            sheetCardsFor = readyLooks?.Looks;
+            sheetCardsFor = from;
             sheetCards.Clear();
         }
         if (sheetCards.TryGetValue(look.Id, out var info)) return info;
@@ -957,7 +978,7 @@ public sealed partial class MainWindow
         if (Kit.SectionHead("##all-looks", title, shown > 0 ? readyCount.Count : null, "All your looks"))
             Later(() =>
             {
-                looksTab = 0;
+                ShowLooksTab(0);
                 readyFirst = true;
                 Go(Screen.Looks);
             });
@@ -983,13 +1004,13 @@ public sealed partial class MainWindow
         {
             var rowH = 0f;
             for (var c = 0; c < cols && row * cols + c < shown; c++)
-                rowH = MathF.Max(rowH, SheetCardHeight(CardInfo(looks[row * cols + c], planned, plate), looks[row * cols + c], cw));
+                rowH = MathF.Max(rowH, SheetCardHeight(CardInfo(looks, looks[row * cols + c], planned, plate), looks[row * cols + c], cw));
             for (var c = 0; c < cols && row * cols + c < shown; c++)
             {
                 var i = row * cols + c;
                 var look = looks[i];
                 var p = new Vector2(at.X + (cw + gap) * c, y);
-                if (SheetCard(SheetCardIds[i], p, new Vector2(cw, rowH), look, CardInfo(look, planned, plate)))
+                if (SheetCard(SheetCardIds[i], p, new Vector2(cw, rowH), look, CardInfo(looks, look, planned, plate)))
                     Later(() => OpenLook(look, null, Screen.Home));
             }
             y += rowH + gap;
@@ -1139,14 +1160,16 @@ public sealed partial class MainWindow
         Kit.EndPanel();
     }
 
-    private readonly Dictionary<string, string> loveWords = new();
+    private readonly Dictionary<string, (int Loves, string Words)> loveWords = new();
 
-    /// <summary>A number of loves as the site writes it ("1,284"), made once.</summary>
+    /// <summary>A number of loves as the site writes it ("1,284"), made once a count (read again, a look's loves have moved on).</summary>
     private string LovesOf(Look look)
     {
-        if (loveWords.TryGetValue(look.Id, out var s)) return s;
+        if (loveWords.TryGetValue(look.Id, out var s) && s.Loves == look.Loves) return s.Words;
         if (loveWords.Count > 256) loveWords.Clear();
-        return loveWords[look.Id] = look.Loves.ToString("N0", HomeEn);
+        var words = look.Loves.ToString("N0", HomeEn);
+        loveWords[look.Id] = (look.Loves, words);
+        return words;
     }
 
     private void DrawWearToday(int most)
@@ -1156,7 +1179,7 @@ public sealed partial class MainWindow
         if (Kit.SectionHead("##wear-all", "Wear today", wear.Count.ToString(HomeEn), "All"))
             Later(() =>
             {
-                looksTab = 2;
+                ShowLooksTab(2);
                 pickedLook = null;
                 Go(Screen.Looks);
             });

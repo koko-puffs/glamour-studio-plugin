@@ -99,12 +99,19 @@ public static class Txt
         if (Glyphs.IsPlainAscii(text) || face is Face.Echo or Face.Fallback) return null;
         Check();
         if (Plans.TryGetValue((text, face, px), out var plan)) return plan;
-        ImFontPtr font;
-        using (Fonts.Push(face, px)) font = ImGui.GetFont();
-        ImFontPtr fallback;
-        using (Fonts.Fallback(px).Handle.Push()) fallback = ImGui.GetFont();
         Asked.Clear();
-        var runs = Glyphs.Split(text, c => Has(font, c), c => Has(fallback, c), Asked);
+        List<(string Text, bool Fallback)>? runs;
+        // Each font looked at only while it's pushed: Dalamud promises a pushed font only until it's
+        // popped (and the atlas may be swapped for a rebuilt one in between).
+        using (Fonts.Push(face, px))
+        {
+            var font = ImGui.GetFont();
+            using (Fonts.Fallback(px).Handle.Push())
+            {
+                var fallback = ImGui.GetFont();
+                runs = Glyphs.Split(text, c => Has(font, c), c => Has(fallback, c), Asked);
+            }
+        }
         if (Asked.Count > 0) Fonts.Want(Asked);
         plan = runs == null ? null : new Mixed(runs.ConvertAll(r => r.Text).ToArray(), runs.ConvertAll(r => r.Fallback).ToArray());
         Keep(Plans, (text, face, px), plan);
@@ -118,7 +125,8 @@ public static class Txt
 
     /// <summary>
     /// For text ImGui draws itself (a tooltip, a text field): the face pushed, or the fallback at
-    /// that size when the text has characters the face hasn't got (it has Latin too). Pair with
+    /// that size when the text has characters the face hasn't got (up to 15px it has Latin-1 too:
+    /// <see cref="Fonts"/>' FallbackLatinUpTo, which covers every size this is asked for). Pair with
     /// <see cref="Drawable"/> for the words.
     /// </summary>
     public static IDisposable PushFor(string text, Face face, int px) =>

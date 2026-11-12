@@ -51,8 +51,9 @@ public enum Face
 
     /// <summary>
     /// Noto Sans CJK Medium (Dalamud's own), at 11 13 15 18 24 34, holding only the characters the
-    /// window's faces haven't got and that it has been asked to draw (kana, kanji, hangul, …): Txt
-    /// draws such characters in it by itself. Not for the screens to ask for.
+    /// window's faces haven't got and that it has been asked to draw (kana, kanji, hangul, …), and
+    /// up to 15 Latin-1 as well (for text ImGui draws whole in it): Txt draws such characters in it
+    /// by itself. Not for the screens to ask for.
     /// </summary>
     Fallback,
 }
@@ -103,6 +104,17 @@ public sealed class Fonts : IDisposable
     /// <summary>The fallback's sizes (CSS px, ascending): the window's text sizes, and 34 for titles (bigger ones are drawn from it, scaled).</summary>
     public static readonly int[] FallbackSizes = { 11, 13, 15, 18, 24, 34 };
 
+    /// <summary>
+    /// The fallback's sizes up to this one hold Latin-1 and the common punctuation too: text ImGui
+    /// draws itself (a tooltip, a text field) is drawn whole in the fallback when it has a character
+    /// the face hasn't got (<see cref="Txt.PushFor"/>), and without them "Koko の服" lost its Latin
+    /// letters. The bigger sizes are only ever drawn a run at a time, beside the face.
+    /// </summary>
+    private const int FallbackLatinUpTo = 15;
+
+    /// <summary>The least time between one build for new characters ending and the next starting.</summary>
+    private static readonly TimeSpan BuildGap = TimeSpan.FromSeconds(1);
+
     /// <summary>The most characters ever asked for (a list of ever-new names mustn't grow the atlas for ever).</summary>
     private const int MostWanted = 6000;
 
@@ -132,12 +144,15 @@ public sealed class Fonts : IDisposable
     // swapped whole, never changed in place).
     private static volatile ushort[] faceRanges = Glyphs.Ranges(Array.Empty<char>());
     private static volatile ushort[] fallbackRanges = Glyphs.Ranges(new[] { ' ' }, withBase: false);
+    private static volatile ushort[] fallbackTextRanges = Glyphs.Ranges(Array.Empty<char>());
 
     /// <summary>Every character asked for so far, and whether some came since the last build.</summary>
     private readonly HashSet<char> wanted = new();
 
     private bool pending;
-    private DateTime lastBuild = DateTime.MinValue;
+
+    /// <summary>When the last build for new characters ended (UTC ticks; when it started, until it has). Set from the build's thread too.</summary>
+    private long lastBuild;
     private readonly IFontAtlas atlas;
 
     private readonly Dictionary<(Face, int), IFontHandle> handles = new();
@@ -163,6 +178,9 @@ public sealed class Fonts : IDisposable
     {
         atlas = Services.PluginInterface.UiBuilder.FontAtlas;
         var japanese = Services.ClientState.ClientLanguage == ClientLanguage.Japanese;
+        // One build for all of them: each new handle asks for a build of its own otherwise (sixty
+        // builds of the whole atlas, one after another, as the plugin loads).
+        using var once = atlas.SuppressAutoRebuild();
         foreach (var (face, px) in Wanted)
         {
             var file = face switch
@@ -188,7 +206,7 @@ public sealed class Fonts : IDisposable
             };
             var dalamudFont = japanese && face is Face.Sans or Face.SansMedium or Face.SansSemibold or Face.SansBold or Face.SansExtraBold;
             var handle = face == Face.Fallback
-                ? MakeFallback(atlas, px * line)
+                ? MakeFallback(atlas, px * line, px <= FallbackLatinUpTo)
                 : Make(atlas, file, px * line, dalamudFont, face == Face.Echo, px <= ExtraGlyphsUpTo);
             // Dalamud may say so from another thread.
             handle.ImFontChanged += (_, _) => Interlocked.Increment(ref generation);
@@ -234,10 +252,11 @@ public sealed class Fonts : IDisposable
                 tk.AttachExtraGlyphsForDalamudLanguage(new SafeFontConfig { SizePx = sizePx, MergeFont = font });
         }));
 
-    /// <summary>The fallback at a size: Noto Sans CJK with only the characters asked for (and the space).</summary>
-    private static IFontHandle MakeFallback(IFontAtlas atlas, float sizePx) =>
+    /// <summary>The fallback at a size: Noto Sans CJK with only the characters asked for (and the space; with <paramref name="latin"/>, Latin-1 and the punctuation too).</summary>
+    private static IFontHandle MakeFallback(IFontAtlas atlas, float sizePx, bool latin) =>
         atlas.NewDelegateFontHandle(e => e.OnPreBuild(tk =>
-            tk.AddDalamudAssetFont(Dalamud.DalamudAsset.NotoSansCjkMedium, new SafeFontConfig { SizePx = sizePx, GlyphRanges = fallbackRanges })));
+            tk.AddDalamudAssetFont(Dalamud.DalamudAsset.NotoSansCjkMedium,
+                new SafeFontConfig { SizePx = sizePx, GlyphRanges = latin ? fallbackTextRanges : fallbackRanges })));
 
     /// <summary>The fallback's handle for drawing at <paramref name="px"/>, and the size it was made at (CSS px).</summary>
     public (IFontHandle Handle, int Px) Fallback(int px)
@@ -257,28 +276,39 @@ public sealed class Fonts : IDisposable
     }
 
     /// <summary>
-    /// Once a frame or so (Txt calls it): builds the atlas again with what's been asked for, at most
-    /// once a second and never while it's building. The faces' "Generation" goes up when it's done,
-    /// and the text measured without the new glyphs is measured again.
+    /// Once a frame or so (Txt calls it): builds the atlas again with what's been asked for, never
+    /// while it's building and a second at least after the last build ended (a build can take longer
+    /// than a second on a Japanese client, whose faces carry the language's glyphs: counted from its
+    /// start, a list of ever-new names kept it building without a break). The faces' "Generation"
+    /// goes up when it's done, and the text measured without the new glyphs is measured again.
     /// </summary>
     public void Tick()
     {
         if (!pending) return;
-        var now = DateTime.UtcNow;
-        if (now - lastBuild < TimeSpan.FromSeconds(1)) return;
+        // Building (ours or Dalamud's): the new characters wait for the next.
         if (atlas.BuildTask is { IsCompleted: false }) return;
+        var now = DateTime.UtcNow.Ticks;
+        if (now - Interlocked.Read(ref lastBuild) < BuildGap.Ticks) return;
         pending = false;
-        lastBuild = now;
+        Interlocked.Exchange(ref lastBuild, now);
         var latin = new List<char>();
         foreach (var c in wanted)
             if (Glyphs.IsLatinish(c)) latin.Add(c);
         faceRanges = Glyphs.Ranges(latin);
         var all = new List<char>(wanted) { ' ' };
         fallbackRanges = Glyphs.Ranges(all, withBase: false);
+        fallbackTextRanges = Glyphs.Ranges(all);
         try
         {
             if (atlas.AutoRebuildMode == FontAtlasAutoRebuildMode.OnNewFrame) atlas.BuildFontsOnNextFrame();
-            else _ = atlas.BuildFontsAsync();
+            else
+                atlas.BuildFontsAsync().ContinueWith(t =>
+                {
+                    // The gap is counted from here (a build can take longer than the gap).
+                    Interlocked.Exchange(ref lastBuild, DateTime.UtcNow.Ticks);
+                    if (t.IsFaulted)
+                        Services.Log.Warning(t.Exception!.GetBaseException(), "Glamour Studio couldn't build its fonts again for new characters");
+                }, System.Threading.Tasks.TaskScheduler.Default);
         }
         catch (Exception ex)
         {
