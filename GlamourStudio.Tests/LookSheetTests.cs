@@ -82,7 +82,8 @@ public class LookSheetTests
     {
         var groups = LookSheet.PlateGroups(8, n => n == 5, n => n is 4 or 5 or 6);
         Assert.Equal(3, groups.Count);
-        Assert.Equal(("Planned for this look", new[] { 5 }), (groups[0].Heading, groups[0].Plates));
+        Assert.Equal("Planned for this look", groups[0].Heading);
+        Assert.Equal(new[] { 5 }, groups[0].Plates);
         Assert.Equal(new[] { 4, 6 }, groups[1].Plates);
         Assert.Equal(new[] { 1, 2, 3, 7, 8 }, groups[2].Plates);
         // Nothing planned and the plates not read: one group.

@@ -116,7 +116,7 @@ public sealed partial class MainWindow
         var gap = S(10);
         var cardW = (w - gap * 4) / 5;
         var icon = MathF.Max(S(12), (cardW - S(20) - S(12) - S(8)) / 3);
-        var cardH = S(10 + 18 + 7) + WellHeight(2, icon) + S(7) + S(NameLineCss) * 2 + S(7) + S(LineCss) + S(10);
+        var cardH = S(10 + 18 + 7) + WellHeight(2, icon) + S(7) + S(PlateNameCss) * 2 + S(7) + S(PlateLnCss) + S(10);
         for (var i = 0; i < Plates.Count; i++)
         {
             var n = i + 1;
@@ -139,9 +139,9 @@ public sealed partial class MainWindow
     }
 
     /// <summary>A card's name line (the mock's <c>.nm</c>: 11.5px display capitals, 1.1) and its small line (<c>.ln</c>: 11px, 1.2).</summary>
-    private const float NameLineCss = 12.65f;
+    private const float PlateNameCss = 12.65f;
 
-    private const float LineCss = 13.2f;
+    private const float PlateLnCss = 13.2f;
 
     /// <summary>The raised well of icons: 6 in, rows of three 4 apart.</summary>
     private static float WellHeight(int rows, float icon) => S(12) + icon * rows + S(4) * (rows - 1);
@@ -243,12 +243,12 @@ public sealed partial class MainWindow
                 Kit.GameIcon(new Vector2(x + S(6) + (icon + S(4)) * (k % 3), y + S(6) + (icon + S(4)) * (k / 3)), icon, card.Icons[k], 6);
             y += wellH + S(7);
             var lines = NameLines(card.Name, inner);
-            Kit.Display(new Vector2(x, y + (S(NameLineCss) - Kit.DisplayHeight(12)) / 2), lines.First, 12, Palette.Ink, inner);
-            y += S(NameLineCss);
+            Kit.Display(new Vector2(x, y + (S(PlateNameCss) - Kit.DisplayHeight(12)) / 2), lines.First, 12, Palette.Ink, inner);
+            y += S(PlateNameCss);
             if (lines.Second != null)
             {
-                Kit.Display(new Vector2(x, y + (S(NameLineCss) - Kit.DisplayHeight(12)) / 2), lines.Second, 12, Palette.Ink, inner);
-                y += S(NameLineCss);
+                Kit.Display(new Vector2(x, y + (S(PlateNameCss) - Kit.DisplayHeight(12)) / 2), lines.Second, 12, Palette.Ink, inner);
+                y += S(PlateNameCss);
             }
             y += S(7);
         }
@@ -266,11 +266,11 @@ public sealed partial class MainWindow
         {
             // Two lines when the room's there (a one-line name, or an empty plate), else one cut short.
             var run = PlannedRun(card.Planned.Name);
-            var lines = (int)MathF.Floor((pos.Y + size.Y - S(10) - y + 1) / S(LineCss));
-            if (lines >= 2 && Txt.Flow(Vector2.Zero, inner, run, LineCss, out _, draw: false) <= S(LineCss) * 2 + 0.5f)
-                Txt.Flow(new Vector2(x, y), inner, run, LineCss, out _);
+            var lines = (int)MathF.Floor((pos.Y + size.Y - S(10) - y + 1) / S(PlateLnCss));
+            if (lines >= 2 && Txt.Flow(Vector2.Zero, inner, run, PlateLnCss, out _, draw: false) <= S(PlateLnCss) * 2 + 0.5f)
+                Txt.Flow(new Vector2(x, y), inner, run, PlateLnCss, out _);
             else
-                Txt.Line(dl, new Vector2(x, y), Txt.Fit(run[0].Text, Face.Sans, 11, inner), Face.Sans, 11, Palette.Muted, LineCss);
+                Txt.Line(dl, new Vector2(x, y), Txt.Fit(run[0].Text, Face.Sans, 11, inner), Face.Sans, 11, Palette.Muted, PlateLnCss);
         }
 
         if (hovered)

@@ -110,10 +110,10 @@ public sealed partial class MainWindow
 
     private DateTime paneErrorAt;
 
-    /// <summary>Whether the plates panel is on (then the main window doesn't open with the plate editor).</summary>
     /// <summary>Whether a panel's shown beside a game window (the site's looks are kept fresh meanwhile, as with the window open).</summary>
     internal bool CompanionShown => lastPane != null;
 
+    /// <summary>Whether the plates panel is on (then the main window doesn't open with the plate editor).</summary>
     internal bool PlatesCompanionOn => config.Companions && !config.CompanionsOff.Contains("plates");
 
     /// <summary>Whether the panels should be away: the HUD hidden, a cutscene, group pose, logged out.</summary>
@@ -666,32 +666,6 @@ public sealed partial class MainWindow
         var pressed = BtnAt(id, at, label, size, style, icon, disabled, tip, w);
         Kit.Reserve(at, Kit.Width, Kit.ButtonHeight(size));
         return pressed;
-    }
-
-    /// <summary>
-    /// A button that asks to be pressed again (Make room in the dresser's panel): outlined as the rest
-    /// until it's pressed once, then amber (its edge, words and wash) with what a second press does.
-    /// The kit has no amber pill: it's drawn here.
-    /// </summary>
-    private static bool ArmedButton(string id, Vector2 pos, string label, Icon icon, bool armed, bool disabled, string? tip)
-    {
-        if (!armed) return BtnAt(id, pos, label, BtnSize.Sm, Btn.Glass, icon, disabled, tip);
-        var w = BtnW(label, BtnSize.Sm, icon);
-        var h = Kit.ButtonHeight(BtnSize.Sm);
-        var (clicked, hovered, held) = Kit.Hit(id, pos, new Vector2(w, h), disabled);
-        if (tip != null && !Kit.Blocked && ImGui.IsWindowHovered() && ImGui.IsMouseHoveringRect(pos, pos + new Vector2(w, h))) Kit.Tooltip(tip);
-        var dl = Kit.Dl;
-        var old = Palette.Opacity;
-        if (disabled) Palette.Opacity = old * 0.5f;
-        var wash = held ? Palette.WithAlpha(Palette.Amber, 0.22f) : hovered ? Palette.WithAlpha(Palette.Amber, 0.18f) : Palette.AmberWash;
-        dl.AddRectFilled(pos, pos + new Vector2(w, h), Palette.U32(wash), h / 2);
-        dl.AddRect(pos + new Vector2(0.5f), pos + new Vector2(w, h) - new Vector2(0.5f), Palette.U32(Palette.Amber), h / 2, ImDrawFlags.None, 1f);
-        var x = pos.X + S(13);
-        Icons.Draw(dl, icon, new Vector2(x, pos.Y + (h - S(14)) / 2), S(14), Palette.Amber);
-        Txt.Line(dl, new Vector2(x + S(14 + 7), pos.Y), label, Face.SansSemibold, 13, Palette.Amber, 34);
-        Palette.Opacity = old;
-        Kit.FocusRing(pos, pos + new Vector2(w, h), h / 2);
-        return clicked;
     }
 
     /// <summary>

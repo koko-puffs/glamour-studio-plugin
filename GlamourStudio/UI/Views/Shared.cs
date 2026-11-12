@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -74,23 +73,14 @@ public sealed partial class MainWindow
         return names.Count == 0 ? null : string.Join(", ", names);
     }
 
-    /// <summary>An empty state: an icon well, a heading and a line, in the middle of a dashed card (the site's <c>.gs-empty</c>).</summary>
+    /// <summary>
+    /// An empty state: the Kit's empty page (the mock's <c>.empty-s</c>: the dashed edge, the cloud, the
+    /// heading in display capitals, the line). <paramref name="icon"/> was the well's over the heading
+    /// until the redesign; kept so the screens calling this build as they were.
+    /// </summary>
     private static void Empty(string id, Icon icon, string head, string line)
     {
-        var at = Kit.At;
-        var w = Kit.Width;
-        var pad = S(22);
-        var inner = w - pad * 2;
-        var y = at.Y + pad;
-        Kit.Well(new Vector2(at.X + (w - S(44)) / 2, y), S(44), icon, lit: false, iconPx: 20);
-        y += S(44) + S(12);
-        var hw = Txt.Measure(head, Face.Heading, 16).X;
-        Txt.Draw(Kit.Dl, new Vector2(at.X + (w - MathF.Min(hw, inner)) / 2, y), Txt.Fit(head, Face.Heading, 16, inner), Face.Heading, 16, Palette.Ink);
-        y += Txt.Natural(Face.Heading, 16) + S(4);
-        var lh = Txt.Flow(new Vector2(at.X + pad, y), inner, new[] { new Run(line, Face.Sans, 13, Palette.Muted) }, 19.5f, out _, center: true);
-        y += lh + pad;
-        Kit.Dashed(at, new Vector2(at.X + w, y), S(Palette.RadiusLg), Palette.LineDashed, 1f);
-        Kit.Reserve(at, w, y - at.Y);
-        _ = id;
+        _ = icon;
+        Kit.EmptyState(id, line, title: head);
     }
 }
