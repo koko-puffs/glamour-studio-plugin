@@ -315,10 +315,11 @@ public static partial class Kit
     /// centred: the sign (<paramref name="sign"/>, with <paramref name="hand"/> under it) or a display
     /// title (<paramref name="title"/>, 17px), the <paramref name="line"/> (muted 13.5, 360 wide at
     /// most) and an outlined small button (<paramref name="action"/>). <paramref name="heightCss"/>
-    /// 0 fits what's in it; taller, it's centred. True when the button's pressed.
+    /// 0 fits what's in it; taller, it's centred. <paramref name="titleColor"/>: the title's (ink,
+    /// or muted for a page waiting on something, as Looks not linked). True when the button's pressed.
     /// </summary>
     public static bool EmptyState(string id, string line, string? sign = null, string? hand = null, string? title = null,
-        string? action = null, Icon? actionIcon = null, float heightCss = 0, bool border = true)
+        string? action = null, Icon? actionIcon = null, float heightCss = 0, bool border = true, Vector4? titleColor = null)
     {
         var at = At;
         var w = Width;
@@ -348,7 +349,7 @@ public static partial class Kit
         if (title != null)
         {
             var tw = MathF.Min(DisplayWidth(title, 17), w - S(36));
-            Display(new Vector2(cx - tw / 2, y), title, 17, Tint.Ink, w - S(36));
+            Display(new Vector2(cx - tw / 2, y), title, 17, titleColor ?? Tint.Ink, w - S(36));
             y += titleH + gap;
         }
         Txt.Flow(new Vector2(cx - inner / 2, y), inner, EmptyLine, 20, out _, center: true);
@@ -364,6 +365,26 @@ public static partial class Kit
     }
 
     private static readonly Run[] EmptyLine = new Run[1];
+
+    // ---------------------------------------------------------------------------------------------
+    // The job tag.
+
+    /// <summary>A job tag's width: <paramref name="padCss"/> either side of Geist Mono 500 10px.</summary>
+    public static float JobTagWidth(string text, float padCss = 5) => S(padCss) * 2 + Txt.Measure(text, Face.MonoMedium, 10).X;
+
+    /// <summary>
+    /// A gearset's job (the mock's <c>.tag.job</c>; the other tags are Figtree): 18 tall, 6px corners,
+    /// Geist Mono 500 10px on the tile, or ice on its wash for <paramref name="ok"/> (a plate's On),
+    /// <paramref name="padCss"/> either side (5 on a plate's card, 6 in a panel's row). Returns its width.
+    /// </summary>
+    public static float JobTag(Vector2 pos, string text, bool ok = false, float padCss = 5)
+    {
+        var w = JobTagWidth(text, padCss);
+        var h = S(18);
+        Dl.AddRectFilled(pos, pos + new Vector2(w, h), Palette.U32(ok ? Palette.IceWash : Palette.Tile), S(Palette.RadiusTag));
+        Txt.Line(Dl, new Vector2(pos.X + S(padCss), pos.Y), text, Face.MonoMedium, 10, ok ? Palette.Ice : Palette.Body, 18);
+        return w;
+    }
 
     // ---------------------------------------------------------------------------------------------
     // Rings and the bar.

@@ -205,11 +205,11 @@ public sealed partial class MainWindow
         var right = pos.X + size.X - S(10);
         if (card.Worn)
         {
-            var ow = JobTagWidth("On");
+            var ow = Kit.JobTagWidth("On");
             if (right - ow >= after)
             {
                 right -= ow;
-                JobTag(new Vector2(right, y), "On", true);
+                Kit.JobTag(new Vector2(right, y), "On", true);
                 right -= S(6);
             }
         }
@@ -221,7 +221,7 @@ public sealed partial class MainWindow
             var fit = 0;
             for (var j = 0; j < jobs.Length; j++)
             {
-                var jw = JobTagWidth(jobs[j]) + (j > 0 ? S(6) : 0);
+                var jw = Kit.JobTagWidth(jobs[j]) + (j > 0 ? S(6) : 0);
                 if (right - total - jw < after) break;
                 total += jw;
                 fit++;
@@ -229,7 +229,7 @@ public sealed partial class MainWindow
             var jx = right - total;
             for (var j = 0; j < fit; j++)
             {
-                jx += JobTag(new Vector2(jx, y), jobs[j]) + S(6);
+                jx += Kit.JobTag(new Vector2(jx, y), jobs[j]) + S(6);
             }
         }
         y += rowH + S(7);
@@ -313,22 +313,6 @@ public sealed partial class MainWindow
         if (nameLines.Count >= 256) nameLines.Clear();
         nameLines[key] = lines;
         return lines;
-    }
-
-    // ---------------------------------------------------------------------------------------------
-    // The job tag (the mock's .tag.job; not a Kit part: the Kit's tags are Figtree).
-
-    /// <summary>A job tag's width: 5 in either side of Geist Mono 10px.</summary>
-    private static float JobTagWidth(string text) => S(5) * 2 + Txt.Measure(text, Face.Mono, 10).X;
-
-    /// <summary>A job tag (<c>.tag.job</c>): 18 tall, 6px corners, Geist Mono 10px on the tile, or ice on its wash for On. Returns its width.</summary>
-    private static float JobTag(Vector2 pos, string text, bool ok = false)
-    {
-        var w = JobTagWidth(text);
-        var h = S(18);
-        Kit.Dl.AddRectFilled(pos, pos + new Vector2(w, h), Palette.U32(ok ? Palette.IceWash : Palette.Tile), S(Palette.RadiusTag));
-        Txt.Line(Kit.Dl, new Vector2(pos.X + S(5), pos.Y), text, Face.Mono, 10, ok ? Palette.Ice : Palette.Body, 18);
-        return w;
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -686,7 +670,7 @@ public sealed partial class MainWindow
             Txt.Draw(dl, new Vector2(x, r.Y + (h - Txt.Natural(Face.MonoMedium, 12)) / 2), GearsetNumber(g), Face.MonoMedium, 12, Palette.Muted);
             x += S(22) + S(10);
             var job = GearsetJob(g);
-            x += JobTag(new Vector2(x, r.Y + (h - S(18)) / 2), job) + S(10);
+            x += Kit.JobTag(new Vector2(x, r.Y + (h - S(18)) / 2), job) + S(10);
             const string change = "Change to it";
             var cw = Kit.ButtonWidth(change, BtnSize.Tiny);
             var ux = r.X + w - S(28);
@@ -731,7 +715,7 @@ public sealed partial class MainWindow
         if (hovered) dl.AddRectFilled(pos, pos + new Vector2(w, h), Palette.U32(Palette.AccentWash), S(10));
         var x = pos.X + S(10);
         x += Txt.Line(dl, new Vector2(x, pos.Y), GearsetNumber(g), Face.Mono, 12, Palette.Muted, 34) + S(9);
-        x += JobTag(new Vector2(x, pos.Y + (h - S(18)) / 2), GearsetJob(g)) + S(9);
+        x += Kit.JobTag(new Vector2(x, pos.Y + (h - S(18)) / 2), GearsetJob(g)) + S(9);
         var key = g.Plate > 0 ? $"plate {g.Plate}" : "none";
         var kw = Txt.Measure(key, Face.Mono, 11).X;
         var right = pos.X + w - S(10);

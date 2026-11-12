@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using Dalamud.Bindings.ImGui;
+using Dalamud.Interface.Utility.Raii;
 using GlamourStudio.Core;
 using GlamourStudio.Game;
 using static GlamourStudio.UI.Theme;
@@ -20,14 +21,9 @@ public sealed partial class MainWindow
 {
     private float questionH;
 
-    /// <summary>What goes, and that it stays private (the question's two paragraphs).</summary>
-    private const string QuestionWhat =
-        "Its glamour dresser, armoire, bags, armoury chest, saddlebags, retainers, plates and outfit go to your closet on the site, so it knows what you own.";
-
-    private const string QuestionPrivate = "It stays private unless you show the character there. Nothing is sent until you say yes.";
-
-    private static readonly Run[] QuestionWhatRun = { new(QuestionWhat, Face.Sans, 14, Palette.Body) };
-    private static readonly Run[] QuestionPrivateRun = { new(QuestionPrivate, Face.Sans, 13, Palette.Muted) };
+    /// <summary>What goes, and that it stays private (the question's two paragraphs, its words in Core's <see cref="Consent"/>).</summary>
+    private static readonly Run[] QuestionWhatRun = { new(Consent.QuestionWhat, Face.Sans, 14, Palette.Body) };
+    private static readonly Run[] QuestionPrivateRun = { new(Consent.QuestionPrivate, Face.Sans, 13, Palette.Muted) };
 
     /// <summary>The question about the character you're on (drawn every frame by Dalamud, as the panels are).</summary>
     public void DrawCharacterQuestion()
@@ -58,15 +54,10 @@ public sealed partial class MainWindow
         ImGui.SetNextWindowPos(new Vector2(vp.Pos.X + (vp.Size.X - width) / 2, vp.Pos.Y + S(40)), ImGuiCond.Always);
         ImGui.SetNextWindowSize(new Vector2(width, height), ImGuiCond.Always);
         // The window is the card: ImGui draws its ink, corners and hairline.
-        ImGui.PushStyleColor(ImGuiCol.WindowBg, Palette.Card);
-        ImGui.PushStyleColor(ImGuiCol.Border, Palette.LineStrong);
-        ImGui.PushStyleColor(ImGuiCol.BorderShadow, Vector4.Zero);
-        ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding, S(Palette.RadiusXl));
-        ImGui.PushStyleVar(ImGuiStyleVar.WindowBorderSize, 1f);
-        ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, Vector2.Zero);
-        var shown = ImGui.Begin("##gs-character-question", CompanionFlags);
-        ImGui.PopStyleVar(3);
-        ImGui.PopStyleColor(3);
+        bool shown;
+        using (ImRaii.PushColor(ImGuiCol.WindowBg, Palette.Card).Push(ImGuiCol.Border, Palette.LineStrong).Push(ImGuiCol.BorderShadow, Vector4.Zero))
+        using (ImRaii.PushStyle(ImGuiStyleVar.WindowRounding, S(Palette.RadiusXl)).Push(ImGuiStyleVar.WindowBorderSize, 1f).Push(ImGuiStyleVar.WindowPadding, Vector2.Zero))
+            shown = ImGui.Begin("##gs-character-question", CompanionFlags);
         try
         {
             if (!shown) return;
@@ -83,18 +74,8 @@ public sealed partial class MainWindow
                     ImGui.SetCursorScreenPos(at);
                     Kit.PushBox(at.X, inner);
 
-                    // The logo and why it's asking.
-                    Kit.Logo(at, 22);
-                    Kit.Eyebrow(new Vector2(at.X + S(22 + 10), at.Y + (S(22) - Kit.EyebrowHeight) / 2), Consent.Eyebrow(c.World), Palette.Accent, inner - S(32));
-                    Kit.Reserve(at, inner, S(22));
-                    Kit.Gap(10);
-                    var tAt = Kit.At;
-                    var titleH = Title(tAt, Consent.Question(c.Name), inner, 22, 3);
-                    Kit.Reserve(tAt, inner, titleH);
-                    Kit.Gap(10);
-                    Txt.Para(QuestionWhatRun, 21);
-                    Kit.Gap(8);
-                    Txt.Para(QuestionPrivateRun, 19.5f);
+                    // The logo and why it's asking, the question, what goes and that it stays private.
+                    QuestionWords(inner, Consent.Eyebrow(c.World), true, Consent.Question(c.Name), 22, 3, QuestionWhatRun, null, QuestionPrivateRun);
                     Kit.Gap(18);
 
                     var row = Kit.At;

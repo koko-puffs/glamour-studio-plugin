@@ -234,9 +234,6 @@ public static class Txt
         }
     }
 
-    /// <summary>The height of a CSS line box in screen pixels.</summary>
-    public static float LineBox(Face face, int px, float lineCss) => lineCss > 0 ? S(lineCss) : Natural(face, px);
-
     /// <summary>Each of the first 256 characters as a string, made once (spaced capitals are drawn a letter at a time, every frame).</summary>
     private static readonly string[] OneChar = Enumerable.Range(0, 256).Select(c => ((char)c).ToString()).ToArray();
 

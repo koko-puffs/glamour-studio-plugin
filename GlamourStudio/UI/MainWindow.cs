@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using Dalamud.Bindings.ImGui;
+using Dalamud.Interface.Utility.Raii;
 using Dalamud.Interface.Windowing;
 using GlamourStudio.Core;
 using GlamourStudio.Game;
@@ -78,6 +79,9 @@ public sealed partial class MainWindow : Window
     /// <summary>The plate open in the game's plate editor this frame (0: it isn't open), looked up once a frame.</summary>
     private int editorPlate;
 
+    /// <summary>When the window last closed (UTC; MinValue: not since the plugin loaded).</summary>
+    private DateTime closedAt = DateTime.MinValue;
+
     /// <summary>The character last drawn for.</summary>
     private string? drawnFor;
 
@@ -101,6 +105,8 @@ public sealed partial class MainWindow : Window
     public override void OnClose()
     {
         settingsTab = SettingsTab.General;
+        // A wish come true stays until the window closes (Closet's card).
+        closedAt = DateTime.UtcNow;
         // A question left open goes with the window (its answer was for what was on screen then).
         confirm = null;
     }
@@ -406,14 +412,8 @@ public sealed partial class MainWindow : Window
     /// <summary>Refresh: dimmed while it reads, its arrows turning (still under reduced motion).</summary>
     private void DrawRefresh(Vector2 pos)
     {
-        var busy = sync.LibraryBusy;
-        var dl = Kit.Dl;
-        var start = Kit.TurnStart(dl);
-        if (Kit.IconButton("##refresh", pos, Icon.RefreshCw,
-                busy ? "Reading…" : "Read it all again: your looks, list and plans from the site, your wardrobe from the game", 36, Btn.Quiet, busy))
+        if (Kit.RefreshButton("##refresh", pos, sync.LibraryBusy, "Read it all again: your looks, list and plans from the site, your wardrobe from the game"))
             Later(RefreshEverything);
-        if (busy && !ReducedMotion)
-            Kit.TurnSince(dl, start, pos + new Vector2(S(18)), (float)(ImGui.GetTime() * 240 % 360));
     }
 
     /// <summary>
@@ -578,19 +578,89 @@ public sealed partial class MainWindow : Window
     // ---------------------------------------------------------------------------------------------
     // The question: a card over the window, its answers saying what happens.
 
-    private sealed record Confirmation(string Title, string Body, string Yes, string No, Action OnYes, bool Danger);
+    /// <summary>A line of the question's list: a dot in an honest colour and what it says (the mock's <c>.dot</c> rows).</summary>
+    private readonly record struct QuestionLine(Vector4 Dot, string Text);
 
-    private Confirmation? confirm;
+    /// <summary>
+    /// A question over the window (the mock's <c>.dialog</c>): its eyebrow (optional), title, the
+    /// paragraph, the list of what it'll do in the honest colours (optional), a muted second paragraph
+    /// (optional), and the answers. A danger question's yes is the filled red, else the sticker.
+    /// </summary>
+    private sealed record Question(string Title, IReadOnlyList<Run> Body, string Yes, string No, Action OnYes, bool Danger)
+    {
+        public string? Eyebrow { get; init; }
+
+        public IReadOnlyList<QuestionLine>? Lines { get; init; }
+
+        public IReadOnlyList<Run>? Note { get; init; }
+    }
+
+    private Question? confirm;
     private float confirmCardH;
 
-    private void Ask(string title, string body, string yes, string no, Action onYes, bool danger = false) =>
-        confirm = new Confirmation(title, body, yes, no, onYes, danger);
+    /// <summary>The question's paragraph in its words (14px, the body colour).</summary>
+    private static Run QuestionRun(string text) => new(text, Face.Sans, 14, Palette.Body);
+
+    /// <summary>A name in the question's paragraph, picked out (the mock's <c>b.ink</c>).</summary>
+    private static Run QuestionName(string text) => new(text, Face.SansBold, 14, Palette.Ink);
+
+    private void Ask(string title, string body, string yes, string no, Action onYes, bool danger = false, string? note = null) =>
+        Ask(new Question(title, new[] { QuestionRun(body) }, yes, no, onYes, danger) { Note = NoteRuns(note) });
+
+    private void Ask(Question question) => confirm = question;
+
+    private static Run[]? NoteRuns(string? note) => note == null ? null : new[] { new Run(note, Face.Sans, 13, Palette.Muted) };
+
+    /// <summary>
+    /// The question's words at the cursor, across the box: the eyebrow (after the logo, when
+    /// <paramref name="logo"/>), the title in display capitals, the paragraph, the dotted lines and
+    /// the muted second paragraph (the mock's <c>.dialog</c> and the character question's <c>.ask</c>).
+    /// </summary>
+    private static void QuestionWords(float inner, string? eyebrow, bool logo, string title, int titlePx, int titleLines, IReadOnlyList<Run> body,
+        IReadOnlyList<QuestionLine>? lines, IReadOnlyList<Run>? note)
+    {
+        if (eyebrow != null || logo)
+        {
+            var at = Kit.At;
+            var rowH = logo ? S(22) : Kit.EyebrowHeight;
+            var x = at.X;
+            if (logo)
+            {
+                Kit.Logo(at, 22);
+                x += S(22 + 10);
+            }
+            if (eyebrow != null) Kit.Eyebrow(new Vector2(x, at.Y + (rowH - Kit.EyebrowHeight) / 2), eyebrow, Palette.Accent, inner - (x - at.X));
+            Kit.Reserve(at, inner, rowH);
+            Kit.Gap(logo ? 10 : 6);
+        }
+        var tAt = Kit.At;
+        var titleH = Title(tAt, title, inner, titlePx, titleLines);
+        Kit.Reserve(tAt, inner, titleH);
+        Kit.Gap(10);
+        Txt.Para(body, 21);
+        if (lines is { Count: > 0 })
+        {
+            // Each a 7px dot, 8 before its words (13px), 6 between (the slip's dotted lines).
+            Kit.Gap(12);
+            for (var i = 0; i < lines.Count; i++)
+            {
+                if (i > 0) Kit.Gap(6);
+                DotLine(lines[i].Dot, lines[i].Text, 13);
+            }
+        }
+        if (note is { Count: > 0 })
+        {
+            Kit.Gap(lines is { Count: > 0 } ? 10 : 8);
+            Txt.Para(note, 19.5f);
+        }
+    }
 
     /// <summary>
     /// The question over the plugin's window: a window of its own the size of the plugin's, kept in
     /// front, which darkens only the plugin's window and takes every click on it; the card in its
     /// middle (the mock's <c>.dialog</c>: 440 wide, 28px corners, the strong hairline, no glow; the
-    /// title in display capitals, the yes the sticker, or the danger outline).
+    /// title in display capitals 26, the yes the sticker, or the filled red for a danger question;
+    /// Escape is No).
     /// </summary>
     private void DrawConfirm()
     {
@@ -601,21 +671,21 @@ public sealed partial class MainWindow : Window
         ImGui.SetNextWindowPos(winPos, ImGuiCond.Always);
         ImGui.SetNextWindowSize(winSize, ImGuiCond.Always);
         ImGui.SetNextWindowFocus();
-        ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, Vector2.Zero);
-        ImGui.PushStyleVar(ImGuiStyleVar.WindowBorderSize, 0f);
-        ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding, S(14));
-        ImGui.PushStyleColor(ImGuiCol.WindowBg, Vector4.Zero);
-        var shown = ImGui.Begin("##gs-confirm-over", ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoMove
-            | ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse | ImGuiWindowFlags.NoCollapse
-            | ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoFocusOnAppearing);
-        ImGui.PopStyleColor();
-        ImGui.PopStyleVar(3);
+        bool shown;
+        using (ImRaii.PushStyle(ImGuiStyleVar.WindowPadding, Vector2.Zero).Push(ImGuiStyleVar.WindowBorderSize, 0f).Push(ImGuiStyleVar.WindowRounding, S(14)))
+        using (ImRaii.PushColor(ImGuiCol.WindowBg, Vector4.Zero))
+        {
+            shown = ImGui.Begin("##gs-confirm-over", ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoMove
+                | ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse | ImGuiWindowFlags.NoCollapse
+                | ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoFocusOnAppearing);
+        }
         try
         {
             if (!shown) return;
             var dl = ImGui.GetWindowDrawList();
             dl.AddRectFilled(winPos, winPos + winSize, Palette.U32(Palette.WithAlpha(Palette.Ground, 0.75f)), S(12));
-            var width = MathF.Min(S(440), winSize.X - S(48));
+            // 440 wide; one with a list of what it'll do, 460 (the mock's Make room question).
+            var width = MathF.Min(S(c.Lines is { Count: > 0 } ? 460 : 440), winSize.X - S(48));
             var pad = S(26);
             var inner = width - pad * 2;
             var cardH = confirmCardH > 0 ? confirmCardH : S(200);
@@ -627,27 +697,30 @@ public sealed partial class MainWindow : Window
             var at = cardPos + new Vector2(pad, S(24));
             ImGui.SetCursorScreenPos(at);
             Kit.PushBox(at.X, inner);
-            var titleH = Title(at, c.Title, inner, 22, 2);
-            Kit.Reserve(at, inner, titleH);
-            Kit.Gap(10);
-            Txt.Para(new[] { new Run(c.Body, Face.Sans, 14, Palette.Body) }, 21);
-            Kit.Gap(20);
-            var buttons = Kit.At;
-            var yesStyle = c.Danger ? Btn.Danger : Btn.Primary;
-            var yesW = Kit.ButtonWidth(c.Yes, BtnSize.Md, null, yesStyle);
-            var noW = Kit.ButtonWidth(c.No);
-            var close = false;
-            if (Kit.Button("##no", new Vector2(buttons.X + inner - yesW - S(8) - noW, buttons.Y), c.No)) close = true;
-            if (Kit.Button("##yes", new Vector2(buttons.X + inner - yesW, buttons.Y), c.Yes, yesStyle))
+            try
             {
-                close = true;
-                Later(c.OnYes);
+                QuestionWords(inner, c.Eyebrow, false, c.Title, 26, 2, c.Body, c.Lines, c.Note);
+                Kit.Gap(20);
+                var buttons = Kit.At;
+                var yesStyle = c.Danger ? Btn.DangerFilled : Btn.Primary;
+                var yesW = Kit.ButtonWidth(c.Yes, BtnSize.Md, null, yesStyle);
+                var noW = Kit.ButtonWidth(c.No);
+                var close = false;
+                if (Kit.Button("##no", new Vector2(buttons.X + inner - yesW - S(8) - noW, buttons.Y), c.No)) close = true;
+                if (Kit.Button("##yes", new Vector2(buttons.X + inner - yesW, buttons.Y), c.Yes, yesStyle))
+                {
+                    close = true;
+                    Later(c.OnYes);
+                }
+                if (ImGui.IsKeyPressed(ImGuiKey.Escape)) close = true;
+                Kit.Reserve(buttons, inner, Kit.ButtonHeight(BtnSize.Md));
+                confirmCardH = Kit.At.Y - cardPos.Y + S(22);
+                if (close && ReferenceEquals(confirm, c)) confirm = null;
             }
-            if (ImGui.IsKeyPressed(ImGuiKey.Escape)) close = true;
-            Kit.Reserve(buttons, inner, Kit.ButtonHeight(BtnSize.Md));
-            Kit.PopBox();
-            confirmCardH = Kit.At.Y - cardPos.Y + S(22);
-            if (close && ReferenceEquals(confirm, c)) confirm = null;
+            finally
+            {
+                Kit.PopBox();
+            }
         }
         finally
         {

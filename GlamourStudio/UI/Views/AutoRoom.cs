@@ -164,22 +164,62 @@ public sealed partial class MainWindow
     /// <summary>A small number in words ("three"), figures past twelve.</summary>
     private static string Few(int n) => n is >= 0 and <= 12 ? Words.InWords(n).ToLowerInvariant() : n.ToString("N0");
 
-    /// <summary>The question the first time: the one set it tries, what it moves and spends, what it frees and needs (the mock's frame 2).</summary>
-    private string TrialWords(AutoRoomPlan plan, (int Prisms, int FreeBag) have)
+    /// <summary>
+    /// The question the first time (the mock's frame 2): the one set it tries and what it moves and
+    /// spends; what it frees, the dyes lost, the bag places it needs and the dresser kept open as the
+    /// list; what the next press does after.
+    /// </summary>
+    private Question TrialQuestion(AutoRoomPlan plan, (int Prisms, int FreeBag) have)
     {
         var t = TrialJob(plan);
         var n = t.Pieces.Count;
         var prisms = n + t.FromBags;
         var dyed = t.Pieces.Count(p => p.Dye1 != 0 || p.Dye2 != 0);
         var into = t.StoredAt >= 0 ? "into the set stored there" : "back in as the set";
-        return $"It stores {data.ItemName(t.SetItem)}: its {Few(n)} loose {(n == 1 ? "piece goes" : "pieces go")} to your bags and {into}, "
-               + $"spending {Few(prisms)} glamour {(prisms == 1 ? "prism" : "prisms")} (you have {have.Prisms})."
-               + (t.FromBags > 0 ? " Its pieces already in your bags go in with it." : string.Empty)
-               + (dyed > 0 ? $" {(dyed == 1 ? "One is dyed and loses its dye" : $"{Few(dyed)} are dyed and lose their dye")} (your plates keep their own)." : string.Empty)
-               + $" It frees {Words.Count(JobFrees(t), "place")} in your dresser, and needs {Words.Count(n, "free bag place")} at a time (you have {have.FreeBag})."
-               + " Keep the dresser open while it works."
-               + (plan.Jobs.Count > 1 ? $" Once it's worked, the next press does the other {Few(plan.Jobs.Count - 1)}." : string.Empty);
+        var body = new[]
+        {
+            QuestionRun("It stores "),
+            QuestionName(data.ItemName(t.SetItem)),
+            QuestionRun($": its {Few(n)} loose {(n == 1 ? "piece goes" : "pieces go")} to your bags and {into}, "
+                        + $"spending {Few(prisms)} glamour {(prisms == 1 ? "prism" : "prisms")} (you have {have.Prisms})."
+                        + (t.FromBags > 0 ? " Its pieces already in your bags go in with it." : string.Empty)),
+        };
+        var lines = new List<QuestionLine> { new(Palette.Ice, $"Frees {Words.Count(JobFrees(t), "place")} in your dresser") };
+        if (dyed > 0)
+            lines.Add(new(Palette.Amber, $"{(dyed == 1 ? "One is dyed and loses its dye" : $"{InWordsCap(dyed)} are dyed and lose their dye")} (your plates keep their own)"));
+        lines.Add(new(Palette.Amber, $"Needs {Words.Count(n, "free bag place")} at a time (you have {have.FreeBag})"));
+        lines.Add(new(Palette.Faint, "Keep the dresser open while it works"));
+        return new Question("Try it on one set?", body, "Try it", "Not now", StartAutoRoom, false)
+        {
+            Eyebrow = "Make room · the first time",
+            Lines = lines,
+            Note = plan.Jobs.Count > 1 ? NoteRuns($"Once it's worked, the next press does the other {Few(plan.Jobs.Count - 1)}.") : null,
+        };
     }
+
+    /// <summary>
+    /// The question after the first set: every set, the pieces and prisms; what it frees, the bag
+    /// places, the dyes lost and the sets left out as the list.
+    /// </summary>
+    private Question StoreQuestion(AutoRoomPlan plan, (int Prisms, int FreeBag) have)
+    {
+        var body = $"{Words.Count(plan.Jobs.Count, "set")} from {Words.Count(plan.Pieces, "loose piece")}: each piece goes to your bags and back in as its set, "
+                   + $"spending a glamour prism ({plan.Prisms} of your {have.Prisms})."
+                   + (plan.Prisms > plan.Pieces ? $" {Words.Count(plan.Prisms - plan.Pieces, "piece")} of these sets in your bags go in with them." : string.Empty);
+        var lines = new List<QuestionLine> { new(Palette.Ice, $"Frees {Words.Count(plan.Frees, "place")} in your dresser") };
+        if (plan.Dyed > 0) lines.Add(new(Palette.Amber, $"{Words.Count(plan.Dyed, "dyed piece")} lose their dye (storing takes it off; your plates keep their own)"));
+        lines.Add(new(Palette.Amber, $"Needs {Words.Count(plan.MostAtOnce, "free bag place")} at a time (you have {have.FreeBag})"));
+        if (plan.HeldBack > 0) lines.Add(new(Palette.Faint, $"{Words.Count(plan.HeldBack, "set")} left: their pieces are of both qualities, and a set takes one"));
+        lines.Add(new(Palette.Faint, "Keep the dresser open while it works"));
+        return new Question("Store the sets for you?", new[] { QuestionRun(body) }, "Store them", "Not now", StartAutoRoom, false)
+        {
+            Lines = lines,
+            Note = NoteRuns("A set the game doesn't take is left (its pieces in your bags) and it goes on."),
+        };
+    }
+
+    /// <summary>A small number in words with a capital ("Three"), figures past twelve.</summary>
+    private static string InWordsCap(int n) => n is >= 0 and <= 12 ? Words.InWords(n) : n.ToString("N0");
 
     /// <summary>The duplicates in a line: "4 second copies with the same dyes, and 1 set stored twice".</summary>
     private string DupesSummary(List<DresserPiece> dupes)
@@ -192,8 +232,11 @@ public sealed partial class MainWindow
         return parts.Count == 0 ? "None: no second copy with the same dyes, no set stored twice." : string.Join(", and ", parts);
     }
 
-    /// <summary>The question for the duplicates: what comes out, the bag places, and the two promises (the mock's frame 4).</summary>
-    private string DupesWords(CharacterWardrobe me, List<DresserPiece> dupes, (int Prisms, int FreeBag) have)
+    /// <summary>The duplicates question's two promises (its muted second paragraph).</summary>
+    private const string DupesPromise = "Never the last copy, never a Unique piece you hold. Nothing's thrown away: sell or discard them yourself.";
+
+    /// <summary>What taking out the duplicates does: what comes out, and the bag places it needs (the mock's frame 4).</summary>
+    private string DupesBody(CharacterWardrobe me, List<DresserPiece> dupes, (int Prisms, int FreeBag) have)
     {
         var sets = dupes.Where(d => data.SetPieces(LookJson.BaseId(d.Item)).Count > 0).ToList();
         var pieces = dupes.Count - sets.Count;
@@ -208,21 +251,19 @@ public sealed partial class MainWindow
         if (sets.Count > 0)
             what.Add($"the second copy of {Words.List(sets.Select(s => data.ItemName(s.Item)).Distinct().Take(3))} ({(sets.Count == 1 ? "its pieces all come out" : "their pieces all come out")})");
         return $"They come out to your bags, one at a time: {string.Join(", and ", what)}. It needs {Words.Count(places, "free bag place")} (you have {have.FreeBag}; it stops when they're full). "
-               + "Never the last copy, never a Unique piece you hold. Nothing's thrown away: sell or discard them yourself. Keep the dresser open while it works.";
+               + "Keep the dresser open while it works.";
     }
+
+    /// <summary>The duplicates question in one paragraph (the panel's tooltip).</summary>
+    private string DupesWords(CharacterWardrobe me, List<DresserPiece> dupes, (int Prisms, int FreeBag) have) =>
+        DupesBody(me, dupes, have) + " " + DupesPromise;
 
     /// <summary>Asks before gathering the sets (one set the first time).</summary>
-    private void AskAutoRoom(AutoRoomPlan plan, (int Prisms, int FreeBag) have)
-    {
-        if (config.OutfitStoreWorked)
-            Ask("Store the sets for you?",
-                AutoRoomWords(plan, have) + " Keep the dresser open while it works; a set the game doesn't take is left (its pieces in your bags) and it goes on.",
-                "Store them", "Not now", StartAutoRoom);
-        else Ask("Try it on one set?", TrialWords(plan, have), "Try it", "Not now", StartAutoRoom);
-    }
+    private void AskAutoRoom(AutoRoomPlan plan, (int Prisms, int FreeBag) have) =>
+        Ask(config.OutfitStoreWorked ? StoreQuestion(plan, have) : TrialQuestion(plan, have));
 
     private void AskDupes(CharacterWardrobe me, List<DresserPiece> dupes, (int Prisms, int FreeBag) have) =>
-        Ask("Take out the duplicates?", DupesWords(me, dupes, have), "Take them out", "Not now", StartDupes);
+        Ask("Take out the duplicates?", DupesBody(me, dupes, have), "Take them out", "Not now", StartDupes, note: DupesPromise);
 
     /// <summary>Gathers the sets: worked out again from the dresser as it is now, and checked, then started.</summary>
     private void StartAutoRoom()
@@ -347,112 +388,8 @@ public sealed partial class MainWindow
     // ---------------------------------------------------------------------------------------------
     // In the dresser's panel (Companions/Panes.cs lays it under the dresser's line).
 
-    /// <summary>
-    /// Make room for me in the dresser's panel (the mock's companion frame, pins 6 and 7): while it
-    /// works, what it's at with Stop, the violet bar and what's freed; else each button pressed twice
-    /// (the first press turns it amber with what the second will do: no question card over the game),
-    /// a line under it, and how the last run ended.
-    /// </summary>
-    private void PaneAutoRoom(CharacterWardrobe me)
-    {
-        if (RunHere(me) is { } live) FollowRun(live);
-        if (AutoBusy)
-        {
-            var row = Kit.At;
-            var w = Kit.Width;
-            var stopW = Kit.ButtonWidth("Stop", BtnSize.Tiny, Icon.Square);
-            var rh = Kit.ButtonHeight(BtnSize.Tiny);
-            var storing = OutfitStorer.Busy;
-            var done = storing ? OutfitStorer.SetsDone : DresserTaker.Done;
-            var head = storing ? $"Storing sets for you… {done} done" : $"Taking out duplicates… {done} out";
-            Txt.Draw(Kit.Dl, new Vector2(row.X, row.Y + (rh - Txt.Natural(Face.SansSemibold, 12)) / 2), Txt.Fit(head, Face.SansSemibold, 12, w - stopW - S(8)), Face.SansSemibold, 12, Palette.Ink);
-            if (Kit.Button("##c-auto-stop", new Vector2(row.X + w - stopW, row.Y), "Stop", Btn.Glass, BtnSize.Tiny, Icon.Square, 0, false, "Stops once the step the game is answering is done", 0, 12))
-                Later(() =>
-                {
-                    OutfitStorer.Stop();
-                    DresserTaker.Stop();
-                });
-            Kit.Reserve(row, w, rh);
-            Kit.Gap(8);
-            var left = storing ? OutfitStorer.SetsLeft : DresserTaker.Left;
-            var total = done + left;
-            var mat = Kit.At;
-            Kit.Meter(mat, w, total > 0 ? (float)(total - left) / total : 0, MeterKind.Working);
-            Kit.Reserve(mat, w, S(6));
-            Kit.Gap(8);
-            Txt.Para(new[] { new Run(storing ? $"{Words.Count(OutfitStorer.PlacesFreed, "place")} freed. Keep the dresser open." : $"{left} to go. Keep the dresser open.", Face.Sans, 11, Palette.Muted) }, 15);
-            return;
-        }
-        var (plan, dupes) = AutoRoomNow(me);
-        var have = OutfitStorer.Supplies(data);
-        if (plan.Jobs.Count > 0)
-        {
-            var blocked = AutoRoomBlocked(plan, have);
-            PaneArmedButton("##c-auto-room", config.OutfitStoreWorked ? $"Store {Words.Count(plan.Jobs.Count, "set")} for me" : "Try it on one set",
-                config.OutfitStoreWorked ? "Press again to store them" : "Press again to try it", Icon.Package, blocked, AutoRoomWords(plan, have),
-                ref autoRoomArmedUntil, StartAutoRoom);
-            Kit.Gap(6);
-            var say = blocked ?? (config.OutfitStoreWorked
-                ? $"Stores {Words.Count(plan.Jobs.Count, "set")} for you: frees {Words.Count(plan.Frees, "place")}, spends {Words.Count(plan.Prisms, "glamour prism")} (you have {have.Prisms}).{HeldBackWords(plan)}"
-                : $"The first time, one set ({data.ItemName(TrialJob(plan).SetItem)}), so you can check it worked: frees {Words.Count(JobFrees(TrialJob(plan)), "place")}.");
-            Txt.Para(new[] { new Run(say, Face.Sans, 11, blocked != null ? Palette.Amber : Palette.Muted) }, 15);
-            Kit.Gap(10);
-        }
-        if (dupes.Count > 0)
-        {
-            var blocked = DupesBlocked(dupes, have);
-            PaneArmedButton("##c-dupes", $"Take out {Words.Count(dupes.Count, "duplicate")}", "Press again to take them out", Icon.Trash, blocked, DupesWords(me, dupes, have),
-                ref dupesArmedUntil, StartDupes);
-            Kit.Gap(6);
-            Txt.Para(new[] { new Run(blocked ?? $"{DupesSummary(dupes)}: they come out to your bags, freeing {Words.Count(dupes.Count, "place")}.", Face.Sans, 11, blocked != null ? Palette.Amber : Palette.Muted) }, 15);
-            Kit.Gap(10);
-        }
-        if (RunHere(me) is { Words: { } words } last)
-            Txt.Para(new[] { new Run(words, Face.Sans, 11, last.Ok ? Palette.Ice : Palette.Amber) }, 15);
-    }
-
     /// <summary>The panel's buttons pressed once: pressed again before then, they start.</summary>
     private DateTime autoRoomArmedUntil, dupesArmedUntil;
-
-    /// <summary>
-    /// A panel button pressed twice: outlined; the first press arms it for five seconds, amber with
-    /// "Press again…"; the second starts.
-    /// </summary>
-    private void PaneArmedButton(string id, string label, string armedLabel, Icon icon, string? blocked, string tip, ref DateTime armedUntil, Action start)
-    {
-        var row = Kit.At;
-        var armed = blocked == null && DateTime.UtcNow < armedUntil;
-        var text = armed ? armedLabel : label;
-        var w = MathF.Min(Kit.ButtonWidth(text, BtnSize.Sm, icon), Kit.Width);
-        bool pressed;
-        if (!armed) pressed = Kit.Button(id, row, text, Btn.Glass, BtnSize.Sm, icon, w, blocked != null, blocked ?? tip, 0, 14);
-        else
-        {
-            // Amber: something to see to before the second press (the Kit's pills have no amber of their own).
-            var h = Kit.ButtonHeight(BtnSize.Sm);
-            var (clicked, hovered, _) = Kit.Hit(id, row, new Vector2(w, h));
-            Kit.FocusRing(row, row + new Vector2(w, h), h / 2);
-            var dl = Kit.Dl;
-            dl.AddRectFilled(row, row + new Vector2(w, h), Palette.U32(hovered ? Palette.WithAlpha(Palette.Amber, 0.2f) : Palette.AmberWash), h / 2);
-            dl.AddRect(row + new Vector2(0.5f), row + new Vector2(w, h) - new Vector2(0.5f), Palette.U32(Palette.Amber), h / 2, Dalamud.Bindings.ImGui.ImDrawFlags.None, 1f);
-            var room = w - S(13 * 2 + 14 + 7);
-            var shown = Txt.Fit(text, Face.SansSemibold, 13, room);
-            var tw = Txt.Measure(shown, Face.SansSemibold, 13).X;
-            var x = row.X + (w - S(14 + 7) - tw) / 2;
-            Icons.Draw(dl, icon, new Vector2(x, row.Y + (h - S(14)) / 2), S(14), Palette.Amber);
-            Txt.Line(dl, new Vector2(x + S(14 + 7), row.Y), shown, Face.SansSemibold, 13, Palette.Amber, 34);
-            if (hovered) Kit.Tooltip(tip);
-            pressed = clicked;
-        }
-        Kit.Reserve(row, Kit.Width, Kit.ButtonHeight(BtnSize.Sm));
-        if (!pressed) return;
-        if (armed)
-        {
-            armedUntil = DateTime.MinValue;
-            Later(start);
-        }
-        else armedUntil = DateTime.UtcNow + TimeSpan.FromSeconds(5);
-    }
 
     /// <summary>How the last run on this character ended (null: none yet, or it's at work).</summary>
     private (string Words, bool Ok)? autoRoomLast =>

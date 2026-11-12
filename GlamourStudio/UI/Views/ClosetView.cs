@@ -462,9 +462,10 @@ public sealed partial class MainWindow
         }
         var w = Kit.Width;
         var dl = Kit.Dl;
-        if (sync.LastWishesGot is { } got && DateTime.UtcNow - got.At < TimeSpan.FromMinutes(30) && got.Items.Count > 0)
+        if (sync.LastWishesGot is { } got && got.At > closedAt && got.Items.Count > 0)
         {
-            // A wish come true is a little joy: the sparkle (special), the hand voice, which came off.
+            // A wish come true is a little joy: the sparkle (special), the hand voice, which came off. It
+            // stays until the window closes (one come true while it was shut shows when it opens).
             var a = Kit.At;
             var padX = S(13);
             var padY = S(11);

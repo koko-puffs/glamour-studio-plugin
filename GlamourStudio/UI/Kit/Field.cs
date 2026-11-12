@@ -488,6 +488,19 @@ public static partial class Kit
     // ---------------------------------------------------------------------------------------------
     // Turning what's drawn (the seal −4°, the sign −5°, Refresh's arrow while it reads).
 
+    /// <summary>
+    /// Refresh (the bar's, a panel's): quiet and round, dimmed while it reads (its tip then "Reading…"),
+    /// its arrows turning (still under reduced motion). True when pressed.
+    /// </summary>
+    public static bool RefreshButton(string id, Vector2 pos, bool busy, string tip, float sizeCss = 36, float iconCss = 16)
+    {
+        var dl = Dl;
+        var start = TurnStart(dl);
+        var pressed = IconButton(id, pos, Icon.RefreshCw, busy ? "Reading…" : tip, sizeCss, Btn.Quiet, busy, iconCss);
+        if (busy && !ReducedMotion) TurnSince(dl, start, pos + new Vector2(S(sizeCss) / 2), (float)(ImGui.GetTime() * 240 % 360));
+        return pressed;
+    }
+
     /// <summary>Where the draw list's vertices are now: draw, then <see cref="TurnSince"/> turns what was drawn since.</summary>
     public static int TurnStart(ImDrawListPtr dl) => dl.VtxBuffer.Size;
 

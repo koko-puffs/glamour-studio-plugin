@@ -19,9 +19,9 @@ public enum ChipKind
 }
 
 /// <summary>
-/// The wide layout's parts: panes (a region of the window that scrolls on its own: the rail, a list,
-/// the side pane), the rail's items, the pick-one tabs with counts, chips in their three colours,
-/// the ready ring, small mono labels, links, columns side by side.
+/// The wide layout's parts: panes (a region of the window that scrolls on its own: a list, the side
+/// pane), the pick-one tabs with counts, chips in their colours, the ready ring, small mono labels,
+/// links, columns side by side.
 /// </summary>
 public static partial class Kit
 {
@@ -78,28 +78,6 @@ public static partial class Kit
     }
 
     /// <summary>
-    /// A card at the cursor, <paramref name="height"/> tall, whose inside scrolls on its own (a long list
-    /// in a card of a set height). Padding in CSS pixels. End it with <see cref="EndScrollCard"/>.
-    /// </summary>
-    public static void BeginScrollCard(string id, float height, float pad, Vector4? fill = null, Vector4? edge = null, float radius = Palette.RadiusLg)
-    {
-        var at = At;
-        var w = Width;
-        Card(at, at + new Vector2(w, height), fill, edge, radius);
-        ScrollCards.Push((at, w, height));
-        BeginPane(id, at + new Vector2(1), new Vector2(w - 2, height - 2), pad, pad, pad);
-    }
-
-    public static void EndScrollCard()
-    {
-        EndPane();
-        var (at, w, h) = ScrollCards.Pop();
-        Reserve(at, w, h);
-    }
-
-    internal static readonly Stack<(Vector2 At, float Width, float Height)> ScrollCards = new();
-
-    /// <summary>
     /// Two columns side by side from the cursor: <paramref name="left"/> laid in the first
     /// (<paramref name="split"/> of the room), <paramref name="right"/> in the second, a gap between;
     /// the cursor goes under the taller.
@@ -113,57 +91,27 @@ public static partial class Kit
         var rw = w - gap - lw;
         PushBox(at.X, lw);
         ImGui.SetCursorScreenPos(at);
-        left();
+        try
+        {
+            left();
+        }
+        finally
+        {
+            PopBox();
+        }
         var lb = ImGui.GetCursorScreenPos().Y;
-        PopBox();
         PushBox(at.X + lw + gap, rw);
         ImGui.SetCursorScreenPos(new Vector2(at.X + lw + gap, at.Y));
-        right();
+        try
+        {
+            right();
+        }
+        finally
+        {
+            PopBox();
+        }
         var rb = ImGui.GetCursorScreenPos().Y;
-        PopBox();
         Reserve(at, w, MathF.Max(lb, rb) - at.Y);
-    }
-
-    // ---------------------------------------------------------------------------------------------
-    // The rail.
-
-    /// <summary>
-    /// One of the rail's items (40 tall, radius 12): its icon, its name and a count on the right in
-    /// mono; where you are on the lilac wash with pale lilac words and a lilac icon. Compact, the icon alone (its name the
-    /// tooltip). True when it's pressed.
-    /// </summary>
-    public static bool NavItem(string id, Vector2 pos, float width, Icon icon, string label, string? count, bool on, bool compact = false)
-    {
-        var h = S(40);
-        var (clicked, hovered, _) = Hit(id, pos, new Vector2(width, h));
-        var dl = Dl;
-        var max = pos + new Vector2(width, h);
-        if (on) dl.AddRectFilled(pos, max, Palette.U32(Palette.AccentWash), S(12));
-        else if (hovered) dl.AddRectFilled(pos, max, Palette.U32(Palette.RowHover), S(12));
-        var ink = on ? Palette.Ink : hovered ? Palette.Body : Palette.Muted;
-        if (compact)
-        {
-            Icons.Draw(dl, icon, new Vector2(pos.X + (width - S(16)) / 2, pos.Y + (h - S(16)) / 2), S(16), on ? Palette.Accent : ink);
-            if (hovered) Tooltip(count != null ? $"{label} · {count}" : label);
-        }
-        else
-        {
-            Icons.Draw(dl, icon, new Vector2(pos.X + S(12), pos.Y + (h - S(16)) / 2), S(16), on ? Palette.Accent : ink);
-            var lx = pos.X + S(12 + 16 + 12);
-            var room = width - S(12) - (lx - pos.X);
-            var cw = count != null ? Txt.Measure(count, Face.Mono, 11).X : 0;
-            // The name whole first: a count that leaves it no room goes to the tooltip ("Make ro… 662 / 800").
-            if (count != null && Txt.Measure(label, Face.SansMedium, 14).X > room - cw - S(6))
-            {
-                if (hovered) Tooltip($"{label} · {count}");
-                count = null;
-                cw = 0;
-            }
-            Txt.Line(dl, new Vector2(lx, pos.Y), Txt.Fit(label, Face.SansMedium, 14, room - (cw > 0 ? cw + S(6) : 0)), Face.SansMedium, 14, ink, 40);
-            if (count != null) Txt.Line(dl, new Vector2(pos.X + width - S(12) - cw, pos.Y), count, Face.Mono, 11, on ? Palette.Accent : Palette.Faint, 40);
-        }
-        FocusRing(pos, max, S(12));
-        return clicked;
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -320,21 +268,6 @@ public static partial class Kit
         Reserve(at, w, h + S(3) + sh);
     }
 
-    /// <summary>A heading with a lilac link on its right (true when the link's pressed).</summary>
-    public static bool HeadingLink(string id, string text, string link)
-    {
-        var at = At;
-        var w = Width;
-        var h = DisplayHeight(16);
-        Display(at, text, 16, Tint.Ink, w * 0.6f);
-        var lw = Txt.Measure(link, Face.Sans, 13).X;
-        var lh = Txt.Natural(Face.Sans, 13);
-        var pos = new Vector2(at.X + w - lw, at.Y + (h - lh) / 2);
-        var pressed = Link(id, pos, link);
-        Reserve(at, w, h);
-        return pressed;
-    }
-
     /// <summary>Lilac words that are a link (ink when pointed at); true when pressed.</summary>
     public static bool Link(string id, Vector2 pos, string text, int px = 13, Face face = Face.Sans)
     {
@@ -366,27 +299,6 @@ public static partial class Kit
         // Round ends.
         dl.AddCircleFilled(center + new Vector2(MathF.Cos(start), MathF.Sin(start)) * r, thickness / 2, col, 12);
         dl.AddCircleFilled(center + new Vector2(MathF.Cos(end), MathF.Sin(end)) * r, thickness / 2, col, 12);
-    }
-
-    /// <summary>An empty slot's tile: the raised ground, a hairline (dashed when it's somewhere to add).</summary>
-    public static void EmptyTile(Vector2 pos, float size, float radius = Palette.RadiusSm, float alpha = 1f, bool dashed = false)
-    {
-        var r = S(radius);
-        var old = Palette.Opacity;
-        Palette.Opacity = old * alpha;
-        if (dashed) Dashed(pos, pos + new Vector2(size), r, Tint.Dashed, 1f);
-        else Dl.AddRectFilled(pos, pos + new Vector2(size), Palette.U32(Palette.Tile), r);
-        Palette.Opacity = old;
-    }
-
-    /// <summary>A round well with an icon: lit (the blush, its lilac edge, the lilac icon) or quiet (the soft tile, a hairline, dim).</summary>
-    public static void Well(Vector2 pos, float size, Icon icon, bool lit = true, float iconPx = 16)
-    {
-        var dl = Dl;
-        var c = pos + new Vector2(size / 2);
-        dl.AddCircleFilled(c, size / 2, Palette.U32(lit ? Palette.BlushTile : Palette.Tile), 48);
-        if (lit) dl.AddCircle(c, size / 2 - 0.5f, Palette.U32(Palette.AccentLine), 48, 1f);
-        Icons.Draw(dl, icon, c - new Vector2(S(iconPx) / 2), S(iconPx), lit ? Palette.Accent : Palette.Muted);
     }
 
     /// <summary>A dot of a colour, 7px (or another size).</summary>

@@ -214,24 +214,9 @@ public sealed partial class MainWindow
             _ => narrow ? "Search" : "Name, maker, job or mood",
         };
 
-        // The × that clears the search: its hit first, so it's pointed at rather than the field under it.
-        var clearSize = S(28);
-        var clearPos = new Vector2(at.X + fieldW - S(6) - clearSize, at.Y + (S(34) - clearSize) / 2);
-        var hasText = search.Length > 0;
-        var (cleared, clearHover, _) = hasText ? Kit.Hit("##search-clear", clearPos, new Vector2(clearSize)) : default;
+        // (The × that clears it is the field's: Escape clears it too.)
         var text = search;
-        if (Kit.Field("##search", at, fieldW, ref text, hint, Icon.Search, 60, ImGuiInputTextFlags.None, 34, pill: true)) search = text;
-        if (hasText)
-        {
-            var dl = Kit.Dl;
-            if (clearHover)
-            {
-                dl.AddCircleFilled(clearPos + new Vector2(clearSize / 2), clearSize / 2, Palette.U32(Palette.AccentWash), 24);
-                Kit.Tooltip("Clear the search");
-            }
-            Icons.Draw(dl, Icon.X, clearPos + new Vector2((clearSize - S(14)) / 2), S(14), clearHover ? Palette.Ink : Palette.Body);
-            if (cleared) search = string.Empty;
-        }
+        if (Kit.Field("##search", at, fieldW, ref text, hint, Icon.Search, 60, ImGuiInputTextFlags.None, 34, pill: true, clearTip: "Clear the search")) search = text;
 
         var x = wrap ? at.X : at.X + fieldW + gap;
         var y = wrap ? at.Y + S(34) + S(8) : at.Y;
@@ -335,7 +320,7 @@ public sealed partial class MainWindow
             if (sync.TokenRefused) DrawTokenRefused();
             Kit.Gap(16);
             Kit.EmptyState("##looks-link", "Link your account (Settings → Account) and your looks from Glamour Studio are here, ready to put on a plate.",
-                title: "Your looks show here once you're linked", heightCss: 190);
+                title: "Your looks show here once you're linked", heightCss: 190, titleColor: Tint.Muted);
             return;
         }
         if (sync.LibraryAt == null && sync.LibraryBusy && looksTab != 2)
@@ -778,17 +763,4 @@ public sealed partial class MainWindow
             : ("Missing", TagKind.Miss, null, Own.Pink,
                 "The plugin hasn't seen it in your wardrobe. Open your dresser, armoire, saddlebags and retainers once, and it knows them."),
     };
-
-    /// <summary>Where a piece is, as a chip (for a look's own screen; this screen's are <see cref="WhereTag"/>).</summary>
-    private static (string Text, ChipKind Kind, string Tip) WhereChip(Place? where, bool wished)
-    {
-        var (text, kind, _, _, tip) = WhereTag(where, wished);
-        return (text, kind switch
-        {
-            TagKind.Ok => ChipKind.Ok,
-            TagKind.Miss => ChipKind.Love,
-            TagKind.Amber or TagKind.Star => ChipKind.Accent,
-            _ => ChipKind.Plain,
-        }, tip);
-    }
 }

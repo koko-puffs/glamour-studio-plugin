@@ -128,8 +128,10 @@ public static class Consent
     /// <summary>The question's eyebrow: "A new character on Lich".</summary>
     public static string Eyebrow(string world) => world.Length > 0 ? $"A new character on {world}" : "A new character";
 
-    public const string QuestionBody =
-        "Its glamour dresser, armoire, bags, armoury chest, saddlebags and retainers, its glamour plates and what it wears go to your closet on the site, "
-        + "with its name and world. It stays private: only you see it, unless you choose to show it on the site (Settings → Glamour Studio → Characters). "
-        + "Nothing of it is sent until you say yes; you can change your mind in Settings → Account.";
+    /// <summary>The question's first paragraph: what goes.</summary>
+    public const string QuestionWhat =
+        "Its glamour dresser, armoire, bags, armoury chest, saddlebags, retainers, plates and outfit go to your closet on the site, so it knows what you own.";
+
+    /// <summary>The question's second paragraph: that it stays private, and nothing's sent until yes.</summary>
+    public const string QuestionPrivate = "It stays private unless you show the character there. Nothing is sent until you say yes.";
 }

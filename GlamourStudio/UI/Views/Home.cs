@@ -56,6 +56,12 @@ public sealed partial class MainWindow
                 return ("This character isn't sent yet: say yes or no", Tone.Neutral, false);
             case ConsentStep.Hold or ConsentStep.TellNo:
                 return ("This character isn't sent to the site", Tone.Neutral, false);
+            case ConsentStep.TellYes:
+                // (Your answer stands until the site has it; nothing's sent meanwhile.)
+                return ("Yes · telling the site…", Tone.Live, true);
+            case ConsentStep.Wait when wardrobe.Current != null && sync.CharactersUnreachable:
+                // (Read again a minute later.)
+                return ("Glamour Studio couldn't ask about this character", Tone.Danger, false);
         }
         if (sync.LastSyncAt is { } at) return ($"Closet up to date · sent {Words.Ago(at, DateTimeOffset.UtcNow)}", Tone.Success, false);
         return (config.AutoSync ? "Linked · sends your closet as you play" : "Linked", Tone.Success, false);

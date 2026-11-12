@@ -358,15 +358,11 @@ public sealed partial class MainWindow
             Later(() => OpenFromPane(pane));
         bx -= btn + gap;
         // Refresh as the bar's: dimmed while it reads, its arrows turning.
-        var busy = sync.LibraryBusy;
-        var dl = Kit.Dl;
-        var turn = Kit.TurnStart(dl);
-        if (Kit.IconButton("##c-refresh", new Vector2(bx, by), Icon.RefreshCw,
-                busy ? "Reading…" : "Read it all again (your looks and list from the site, your wardrobe from the game)", 28, Btn.Quiet, busy, 14))
+        if (Kit.RefreshButton("##c-refresh", new Vector2(bx, by), sync.LibraryBusy,
+                "Read it all again (your looks and list from the site, your wardrobe from the game)", 28, 14))
             Later(RefreshEverything);
-        if (busy && !ReducedMotion)
-            Kit.TurnSince(dl, turn, new Vector2(bx, by) + new Vector2(btn / 2), (float)(ImGui.GetTime() * 240 % 360));
 
+        var dl = Kit.Dl;
         var logo = S(22);
         var lx = win.X + S(12);
         Kit.Logo(new Vector2(lx, win.Y + (inner - logo) / 2), 22);

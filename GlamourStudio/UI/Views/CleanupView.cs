@@ -131,36 +131,7 @@ public sealed partial class MainWindow
     }
 
     /// <summary>Two equal columns 18 apart (the mock's .cols2), the cursor under the taller.</summary>
-    private static void TwoColumns(Action left, Action right)
-    {
-        var at = Kit.At;
-        var w = Kit.Width;
-        var gap = S(18);
-        var cw = MathF.Floor((w - gap) / 2);
-        Kit.PushBox(at.X, cw);
-        ImGui.SetCursorScreenPos(at);
-        try
-        {
-            left();
-        }
-        finally
-        {
-            Kit.PopBox();
-        }
-        var lb = ImGui.GetCursorScreenPos().Y;
-        Kit.PushBox(at.X + cw + gap, w - cw - gap);
-        ImGui.SetCursorScreenPos(new Vector2(at.X + cw + gap, at.Y));
-        try
-        {
-            right();
-        }
-        finally
-        {
-            Kit.PopBox();
-        }
-        var rb = ImGui.GetCursorScreenPos().Y;
-        Kit.Reserve(at, w, MathF.Max(lb, rb) - at.Y);
-    }
+    private static void TwoColumns(Action left, Action right) => Kit.Columns(0.5f, 18, left, right);
 
     // ---------------------------------------------------------------------------------------------
     // The field.

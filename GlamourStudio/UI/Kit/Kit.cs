@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using Dalamud.Bindings.ImGui;
+using Dalamud.Interface.Utility.Raii;
 
 using static GlamourStudio.UI.Theme;
 
@@ -20,14 +21,20 @@ public enum Btn
     /// <summary>Words only (Body), the lilac wash when pointed at.</summary>
     Quiet,
 
-    /// <summary>A danger outline: Stop, Forget.</summary>
+    /// <summary>A danger outline: Stop, Unlink in a row.</summary>
     Danger,
+
+    /// <summary>The honest red filled, dark words: a danger question's answer (Forget, Unlink).</summary>
+    DangerFilled,
 
     /// <summary>A toggle that's on: the field's periwinkle with ink words (the segmented pick's).</summary>
     Picked,
 
     /// <summary>The raised pill: the soft tile fill, ink words (the mock's <c>.btn.ink</c>).</summary>
     Ink,
+
+    /// <summary>Amber edge, words and wash: a button pressed once that asks to be pressed again (something to see to first).</summary>
+    Amber,
 }
 
 /// <summary>Control heights, as the mock's: 28 (xs), 34 (sm), 40, 46 for the one big call.</summary>
@@ -90,7 +97,6 @@ public static partial class Kit
         Boxes.Clear();
         Panels.Clear();
         Panes.Clear();
-        ScrollCards.Clear();
         Surfaces.Clear();
         Sheets.Clear();
         // A control that threw while drawn disabled left the whole window faded (1.0.0).
@@ -244,6 +250,16 @@ public static partial class Kit
                 fill = held ? Palette.DangerWash : hovered ? Palette.WithAlpha(Palette.Danger, 0.06f) : Vector4.Zero;
                 edge = hovered ? Palette.Danger : Palette.WithAlpha(Palette.Danger, 0.5f);
                 ink = Palette.Danger;
+                break;
+            case Btn.DangerFilled:
+                fill = held ? Palette.DangerSolid : hovered ? Palette.Mix(Palette.Danger, Palette.Ink, 0.18f) : Palette.Danger;
+                edge = fill;
+                ink = Palette.OnDanger;
+                break;
+            case Btn.Amber:
+                fill = held ? Palette.WithAlpha(Palette.Amber, 0.22f) : hovered ? Palette.WithAlpha(Palette.Amber, 0.18f) : Palette.AmberWash;
+                edge = Palette.Amber;
+                ink = Palette.Amber;
                 break;
             case Btn.Picked:
                 fill = field ? Palette.OnField : held ? Palette.FieldDeep : hovered ? Palette.FieldHi : Palette.Field;
@@ -612,11 +628,15 @@ public static partial class Kit
     /// A text field (the mock's <c>.input</c>; "field" here is ImGui's word, not the periwinkle):
     /// raised ink, the line edge (lilac while you type in it), an icon before the words, the hint in
     /// faint. <paramref name="heightCss"/> 40, or 34 for the small one (12px corners); 36 is what the
-    /// screens had. <paramref name="pill"/> rounds its ends (the search). Returns true when the text changed.
+    /// screens had. <paramref name="pill"/> rounds its ends (the search); <paramref name="mono"/> types
+    /// in Geist Mono (the token). With <paramref name="clearTip"/>, a × at the right end empties it
+    /// while it has words (its own item beside the words, so it takes a click while you type), and
+    /// Escape while typing empties it too. Returns true when the text changed.
     /// </summary>
     /// <param name="flags">ImGui's own, as Password for a secret.</param>
     public static bool Field(string id, Vector2 pos, float width, ref string text, string hint, Icon? icon = null, int maxLength = 128,
-        ImGuiInputTextFlags flags = ImGuiInputTextFlags.None, float heightCss = 36, bool pill = false, bool bad = false)
+        ImGuiInputTextFlags flags = ImGuiInputTextFlags.None, float heightCss = 36, bool pill = false, bool bad = false, bool mono = false,
+        string? clearTip = null)
     {
         var dl = Dl;
         var h = S(heightCss);
@@ -630,54 +650,66 @@ public static partial class Kit
             Icons.Draw(dl, ic, new Vector2(x, pos.Y + (h - ip) / 2), ip, Palette.Faint);
             x += ip + S(8);
         }
+        // The ×: 28 round, 6 in from the right end; the words stop short of it.
+        var clearSize = S(28);
+        var clearPos = new Vector2(max.X - S(6) - clearSize, pos.Y + (h - clearSize) / 2);
+        var canClear = clearTip != null && text.Length > 0;
+        var wordsEnd = canClear ? clearPos.X - S(4) : max.X - S(14);
         bool changed;
         bool active;
         // What's typed in the fallback when the face hasn't its letters (the fallback has Latin too).
-        var inputPx = heightCss <= 34 ? 13 : 14;
-        using (Txt.PushFor(text.Length > 0 ? text : hint, Face.Sans, inputPx))
+        // (Mono at 13, as the mock's token.)
+        var inputPx = heightCss <= 34 || mono ? 13 : 14;
+        var face = mono ? Face.Mono : Face.Sans;
+        using (Txt.PushFor(text.Length > 0 ? text : hint, face, inputPx))
         {
             var fh = ImGui.GetFontSize();
-            ImGui.PushStyleColor(ImGuiCol.Text, Palette.Ink);
-            ImGui.PushStyleColor(ImGuiCol.TextDisabled, Palette.Faint);
-            ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(0, (h - fh) / 2));
             var keep = ImGui.GetCursorScreenPos();
-            ImGui.SetCursorScreenPos(new Vector2(x, pos.Y));
-            ImGui.SetNextItemWidth(MathF.Max(S(20), max.X - S(14) - x));
-            if (Blocked) ImGui.BeginDisabled();
-            changed = ImGui.InputTextWithHint(id, hint, ref text, maxLength, flags);
-            if (Blocked) ImGui.EndDisabled();
-            active = ImGui.IsItemActive();
-            var hovered = ImGui.IsItemHovered() && !Blocked;
-            ImGui.PopStyleVar();
-            ImGui.PopStyleColor(2);
+            bool hovered;
+            using (ImRaii.PushColor(ImGuiCol.Text, Palette.Ink).Push(ImGuiCol.TextDisabled, Palette.Faint))
+            using (ImRaii.PushStyle(ImGuiStyleVar.FramePadding, new Vector2(0, (h - fh) / 2)))
+            {
+                ImGui.SetCursorScreenPos(new Vector2(x, pos.Y));
+                ImGui.SetNextItemWidth(MathF.Max(S(20), wordsEnd - x));
+                using (ImRaii.Disabled(Blocked))
+                    changed = ImGui.InputTextWithHint(id, hint, ref text, maxLength, flags);
+                active = ImGui.IsItemActive();
+                // Escape while typing: ImGui puts back what was there and lets go; a field that clears empties it.
+                if (clearTip != null && ImGui.IsItemDeactivated() && ImGui.IsKeyPressed(ImGuiKey.Escape) && text.Length > 0)
+                {
+                    text = string.Empty;
+                    changed = true;
+                }
+                hovered = ImGui.IsItemHovered() && !Blocked;
+            }
             ImGui.SetCursorScreenPos(keep);
             var edge = bad ? Palette.WithAlpha(Palette.Danger, 0.6f) : active ? Palette.Accent : hovered ? Palette.LineHover : Palette.Line;
             dl.AddRect(pos + new Vector2(0.5f), max - new Vector2(0.5f), Palette.U32(edge), r, ImDrawFlags.None, 1f);
+        }
+        if (canClear)
+        {
+            // After the words' item: a click on it while typing first lets go of the words (ImGui's
+            // click outside), then lands here.
+            bool cleared, clearHover;
+            using (ImRaii.PushId(id))
+                (cleared, clearHover, _) = Hit("##clear", clearPos, new Vector2(clearSize));
+            if (clearHover)
+            {
+                dl.AddCircleFilled(clearPos + new Vector2(clearSize / 2), clearSize / 2, Palette.U32(Palette.AccentWash), 24);
+                Tooltip(clearTip!);
+            }
+            Icons.Draw(dl, Icon.X, clearPos + new Vector2((clearSize - S(14)) / 2), S(14), clearHover ? Palette.Ink : Palette.Body);
+            if (cleared)
+            {
+                text = string.Empty;
+                changed = true;
+            }
         }
         return changed;
     }
 
     /// <summary>The 8px bar (the mock's <c>.meter.l</c>): the tile's track and ice for what's done (the field's ink on the field). See <see cref="Meter"/>.</summary>
     public static void Progress(Vector2 pos, float width, float fraction) => Meter(pos, width, fraction, MeterKind.Ice, large: true);
-
-    /// <summary>
-    /// A pill filled with the iridescent gradient across its length (ImGui's gradients have no
-    /// corners): its round ends in the end colours, and between them the gradient in two spans,
-    /// to orchid at 48% and on to ice.
-    /// </summary>
-    public static void IrisPill(ImDrawListPtr dl, Vector2 pos, Vector2 size)
-    {
-        var r = size.Y / 2;
-        var x0 = pos.X + r;
-        var x1 = pos.X + size.X - r;
-        dl.AddCircleFilled(new Vector2(x0, pos.Y + r), r, Palette.U32(Palette.Iris(0)), 16);
-        dl.AddCircleFilled(new Vector2(MathF.Max(x0, x1), pos.Y + r), r, Palette.U32(Palette.Iris(1)), 16);
-        if (x1 <= x0) return;
-        var mid = x0 + (x1 - x0) * 0.48f;
-        uint C(float t) => Palette.U32(Palette.Iris(t));
-        dl.AddRectFilledMultiColor(new Vector2(x0, pos.Y), new Vector2(mid, pos.Y + size.Y), C(0), C(0.48f), C(0.48f), C(0));
-        dl.AddRectFilledMultiColor(new Vector2(mid, pos.Y), new Vector2(x1, pos.Y + size.Y), C(0.48f), C(1), C(1), C(0.48f));
-    }
 
     /// <summary>
     /// An eyebrow over a title (the mock's <c>.eyebrow</c>): Figtree 600 11px in capitals 0.08em
@@ -820,17 +852,6 @@ public static partial class Kit
         var r = Panels.Count > 0 ? Panels.Peek().Radius : 0;
         var (start, w, h) = EndPanelAt();
         if (edge.W > 0) Dl.AddRect(start + new Vector2(0.5f), start + new Vector2(w, h) - new Vector2(0.5f), Palette.U32(edge), r, ImDrawFlags.None, 1f);
-    }
-
-    /// <summary>A row inside a panel pointed at: a fill edge to edge, rounded where it meets the panel's corners.</summary>
-    public static void RowFill(Vector2 min, Vector2 max, Vector4 color, bool first, bool last)
-    {
-        var (start, w, r) = Panel;
-        var flags = (first ? ImDrawFlags.RoundCornersTop : 0) | (last ? ImDrawFlags.RoundCornersBottom : 0);
-        if (flags == 0) flags = ImDrawFlags.RoundCornersNone;
-        var a = new Vector2(start.X + 1, min.Y + (first ? 1 : 0));
-        var b = new Vector2(start.X + w - 1, max.Y - (last ? 1 : 0));
-        Dl.AddRectFilled(a, b, Palette.U32(color), r - 1, flags);
     }
 
     // ---------------------------------------------------------------------------------------------

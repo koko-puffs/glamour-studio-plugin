@@ -236,25 +236,10 @@ public sealed partial class MainWindow
 
     /// <summary>
     /// A button that asks to be pressed again: outlined as the rest until it's pressed once, then amber
-    /// (its edge, words and wash) with what a second press does. The kit has no amber pill: it's drawn here.
+    /// (its edge, words and wash) with what a second press does.
     /// </summary>
-    private static bool ArmedButton(string id, Vector2 pos, string label, Icon icon, bool armed, bool disabled, string? tip)
-    {
-        if (!armed) return BtnAt(id, pos, label, BtnSize.Sm, Btn.Glass, icon, disabled, tip, MathF.Min(BtnW(label, BtnSize.Sm, icon), Kit.Width));
-        var w = MathF.Min(BtnW(label, BtnSize.Sm, icon), Kit.Width);
-        var h = Kit.ButtonHeight(BtnSize.Sm);
-        var (clicked, hovered, held) = Kit.Hit(id, pos, new Vector2(w, h), disabled);
-        if (tip != null && !Kit.Blocked && ImGui.IsWindowHovered() && ImGui.IsMouseHoveringRect(pos, pos + new Vector2(w, h))) Kit.Tooltip(tip);
-        var dl = Kit.Dl;
-        var wash = held ? Palette.WithAlpha(Palette.Amber, 0.22f) : hovered ? Palette.WithAlpha(Palette.Amber, 0.18f) : Palette.AmberWash;
-        dl.AddRectFilled(pos, pos + new Vector2(w, h), Palette.U32(wash), h / 2);
-        dl.AddRect(pos + new Vector2(0.5f), pos + new Vector2(w, h) - new Vector2(0.5f), Palette.U32(Palette.Amber), h / 2, ImDrawFlags.None, 1f);
-        var x = pos.X + S(13);
-        Icons.Draw(dl, icon, new Vector2(x, pos.Y + (h - S(14)) / 2), S(14), Palette.Amber);
-        Txt.Line(dl, new Vector2(x + S(14 + 7), pos.Y), Txt.Fit(label, Face.SansSemibold, 13, w - S(13 * 2 + 21)), Face.SansSemibold, 13, Palette.Amber, 34);
-        Kit.FocusRing(pos, pos + new Vector2(w, h), h / 2);
-        return clicked;
-    }
+    private static bool ArmedButton(string id, Vector2 pos, string label, Icon icon, bool armed, bool disabled, string? tip) =>
+        BtnAt(id, pos, label, BtnSize.Sm, armed ? Btn.Amber : Btn.Glass, icon, disabled, tip, MathF.Min(BtnW(label, BtnSize.Sm, icon), Kit.Width));
 
     /// <summary>While Make room for me works: what it's at, Stop, the bar (periwinkle), places freed.</summary>
     private void PaneDresserRun()
@@ -833,16 +818,9 @@ public sealed partial class MainWindow
         PaneText("Wear puts a plate on you, as the window's own apply does. To fill a plate, open Glamour Plates at a glamour dresser.");
     }
 
-    /// <summary>A gearset's job on a plate's row: a small mono tag (18 tall, Geist Mono 500 10px). Returns its width.</summary>
-    private static float JobTag(float right, float rowTop, float rowH, string job)
-    {
-        var w = S(6) * 2 + Txt.Measure(job, Face.MonoMedium, 10).X;
-        var h = S(18);
-        var pos = new Vector2(right - w, rowTop + (rowH - h) / 2);
-        Kit.Dl.AddRectFilled(pos, pos + new Vector2(w, h), Palette.U32(Palette.Tile), S(Palette.RadiusTag));
-        Txt.Line(Kit.Dl, pos + new Vector2(S(6), 0), job, Face.MonoMedium, 10, Palette.Body, 18);
-        return w;
-    }
+    /// <summary>A gearset's job on a plate's row, its right edge at <paramref name="right"/>: the Kit's job tag. Returns its width.</summary>
+    private static float JobTag(float right, float rowTop, float rowH, string job) =>
+        Kit.JobTag(new Vector2(right - Kit.JobTagWidth(job, 6), rowTop + (rowH - S(18)) / 2), job, padCss: 6);
 
     // ---------------------------------------------------------------------------------------------
     // The armoire: your looks' pieces in it, what from your bags it takes, what could move there.

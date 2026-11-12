@@ -124,7 +124,7 @@ public sealed class Fonts : IDisposable
         (Face.Echo, 104), (Face.Echo, 72),
         (Face.Hand, 18), (Face.Hand, 15), (Face.Hand, 13),
         (Face.Mono, 13), (Face.Mono, 12), (Face.Mono, 11), (Face.Mono, 10),
-        (Face.MonoMedium, 13), (Face.MonoMedium, 12), (Face.MonoMedium, 11),
+        (Face.MonoMedium, 13), (Face.MonoMedium, 12), (Face.MonoMedium, 11), (Face.MonoMedium, 10),
         (Face.Fallback, 11), (Face.Fallback, 13), (Face.Fallback, 15), (Face.Fallback, 18), (Face.Fallback, 24), (Face.Fallback, 34),
     };
 

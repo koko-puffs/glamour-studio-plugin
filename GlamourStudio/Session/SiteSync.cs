@@ -96,6 +96,12 @@ public sealed class SiteSync : IDisposable
     /// <summary>The site said the token's no good (revoked): link again.</summary>
     public bool TokenRefused { get; private set; }
 
+    /// <summary>
+    /// The last read of what the site does with your characters failed (the site couldn't be reached):
+    /// it's read again a minute later, and nothing's sent or asked meanwhile.
+    /// </summary>
+    public bool CharactersUnreachable { get; private set; }
+
     // What came back, read by the window (framework thread).
     public Library Library { get; private set; } = Library.Empty;
 
@@ -152,6 +158,7 @@ public sealed class SiteSync : IDisposable
         Plans = Array.Empty<PlannedPlate>();
         plansFor = null;
         siteChoices = null;
+        CharactersUnreachable = false;
         charactersFor = null;
         telling.Clear();
         LastSync = null;
@@ -304,9 +311,13 @@ public sealed class SiteSync : IDisposable
                 TokenRefused |= r.TokenRefused;
                 // A passing trouble: read again in a minute (nothing's sent or asked until it is).
                 if (r.Hint is "offline" or "wait" or "server")
+                {
                     nextCharacters = Min(nextCharacters, DateTime.UtcNow + TimeSpan.FromMinutes(1));
+                    CharactersUnreachable = true;
+                }
                 return;
             }
+            CharactersUnreachable = false;
             var read = r.Value!;
             // Your answer the site hasn't confirmed, or one answered or confirmed since this was read: it stands,
             // not what was read (the site's old answer).

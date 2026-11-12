@@ -77,6 +77,7 @@ public static class Palette
     public static readonly Vector4 Danger = Hex(0xff7a9a);                 // went wrong
     public static readonly Vector4 DangerWash = Rgba(255, 122, 154, 0.12f);
     public static readonly Vector4 DangerEdge = Rgba(255, 122, 154, 0.45f);
+    public static readonly Vector4 OnDanger = Hex(0x2a0711);               // words on the filled danger answer
 
     // ---------------------------------------------------------------------------------------------
     // The names from before the redesign, with the new values (the screens move to the names above).

@@ -659,6 +659,14 @@ public class ConsentTests
         Assert.Equal("Send this character's wardrobe to Glamour Studio?", Consent.Question(""));
         Assert.Equal("A new character on Lich", Consent.Eyebrow("Lich"));
     }
+
+    [Fact]
+    public void TheQuestionSaysWhatGoesAndThatItStaysPrivate()
+    {
+        // The mock's two paragraphs (docs/redesign/pages/characters.html).
+        Assert.StartsWith("Its glamour dresser, armoire, bags, armoury chest, saddlebags, retainers, plates and outfit go to your closet", Consent.QuestionWhat);
+        Assert.Contains("Nothing is sent until you say yes.", Consent.QuestionPrivate);
+    }
 }
 
 public class AppearanceTests

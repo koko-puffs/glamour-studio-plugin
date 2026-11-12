@@ -143,6 +143,15 @@ public sealed unsafe class Recorder : IDisposable
 
     public bool Recording { get; private set; }
 
+    /// <summary>When the recording going (or the last one) was started, UTC (default: never).</summary>
+    public DateTime StartedAt
+    {
+        get
+        {
+            lock (lines) return started;
+        }
+    }
+
     public string? SetupError { get; private set; }
 
     public int LineCount

@@ -189,14 +189,14 @@ public sealed partial class MainWindow
         {
             if (me != null)
                 Ask("Forget this character?",
-                    $"{(who != null ? who + "'s" : "Its")} dresser, armoire, saddlebags, retainers and plates as last read are forgotten here (they're read again as you open them). "
-                    + "The site keeps what it was sent until you forget the character there too, or turn it off in Account → Characters.",
+                    $"{(who != null ? who + "'s" : "Its")} dresser, armoire, saddlebags, retainers and plates as last read are forgotten here (they're read again as you open them).",
                     "Forget", "Keep",
                     () =>
                     {
                         wardrobe.Forget(me.Key);
                         Notify("Forgotten");
-                    }, danger: true);
+                    }, danger: true,
+                    note: "The site keeps what it was sent until you forget the character there too, or turn it off in Account → Characters.");
         }
         Kit.EndPanel();
 
@@ -266,9 +266,6 @@ public sealed partial class MainWindow
 
     private string markDraft = string.Empty;
 
-    /// <summary>When the recording going was started (seen started, for one begun by /gstudio record while Settings was shut).</summary>
-    private DateTime? recordingSince;
-
     /// <summary>A saved recording's path as shown (from pluginConfigs on), worked out once a path.</summary>
     private (string? Path, string Shown) savedShown;
 
@@ -279,8 +276,6 @@ public sealed partial class MainWindow
     private void DrawReportGroup()
     {
         var recording = recorder.Recording;
-        if (!recording) recordingSince = null;
-        else recordingSince ??= DateTime.UtcNow;
         var lines = recorder.LineCount;
         var stopped = !recording && lines > 0;
 
@@ -290,7 +285,9 @@ public sealed partial class MainWindow
         var i = 0;
         if (recording)
         {
-            var since = recordingSince is { } s ? DateTime.UtcNow - s : TimeSpan.Zero;
+            // (The recorder's own start: one begun by /gstudio record while Settings was shut is timed right too.)
+            var started = recorder.StartedAt;
+            var since = started != default ? DateTime.UtcNow - started : TimeSpan.Zero;
             const string stop = "Stop";
             var sw = SmWidth(stop, Icon.Square);
             var r = Row(i++, $"Recording · {Words.Count(lines, "line")} · {Model.Elapsed.Clock(since)}",
@@ -337,11 +334,7 @@ public sealed partial class MainWindow
         Kit.EndPanel();
     }
 
-    private void StartRecording()
-    {
-        recorder.Start();
-        if (recorder.Recording) recordingSince = DateTime.UtcNow;
-    }
+    private void StartRecording() => recorder.Start();
 
     /// <summary>Mark a step: a small field and Mark (Enter marks too); an empty mark isn't written.</summary>
     private void DrawMarkRow()
@@ -519,7 +512,7 @@ public sealed partial class MainWindow
         if (index > 0) Kit.Divider(at.X, at.X + w, at.Y);
         var top = at.Y + (h - contentH) / 2;
         var text = tokenDraft;
-        if (Kit.Field("##site-token", new Vector2(at.X, top), fw, ref text, "gsp_…", null, 128, ImGuiInputTextFlags.Password, 40, bad: tokenProblem != null))
+        if (Kit.Field("##site-token", new Vector2(at.X, top), fw, ref text, "gsp_…", null, 128, ImGuiInputTextFlags.Password, 40, bad: tokenProblem != null, mono: true))
         {
             tokenDraft = text;
             tokenProblem = null;
