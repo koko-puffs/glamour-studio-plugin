@@ -91,6 +91,7 @@ public static partial class Kit
     {
         var (ink, _, edge) = ToneColors(tone);
         var w = WhoPillWidth(text, compact);
+        var full = text;
         if (!compact && maxWidth > 0 && w > maxWidth)
         {
             text = Txt.Fit(text, Face.SansMedium, 12, MathF.Max(S(20), maxWidth - (w - Txt.Measure(text, Face.SansMedium, 12).X)));
@@ -108,7 +109,8 @@ public static partial class Kit
             Txt.Line(dl, new Vector2(pos.X + S(5 + 24 + 8 + 7 + 8), pos.Y), text, Face.SansMedium, 12, ink, 34);
         if (hovered)
         {
-            if (compact) Tooltip(tip, text);
+            // (A line cut to fit is said in full, as the rail's foot had it.)
+            if (compact || !string.Equals(text, full, StringComparison.Ordinal)) Tooltip(tip, full);
             else if (tip != null) Tooltip(tip);
         }
         FocusRing(pos, max, h / 2);

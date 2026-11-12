@@ -427,8 +427,12 @@ public sealed partial class MainWindow
         var look = PickedLook(planned) ?? planned;
         var current = EditorPieces(plate);
         var filled = look != null && lastFill is { } lf && lf.LookId == look.Id && lf.Result.Plate == plate;
-        // Changes made by hand and not saved: Fill waits (it would mix its pieces in with them).
-        if (editorChanges && !filled)
+        // Changes made by hand and not saved: Fill waits (it would mix its pieces in with them). The
+        // plugin's own fill of this plate standing (any look's: from the window, Plate it, or here before
+        // Another look was picked) isn't changes by hand: CheckFill lets the fill go once the plate's
+        // pieces are changed by hand.
+        var fillStands = lastFill is { } lf2 && lf2.Result.Plate == plate;
+        if (editorChanges && !fillStands)
         {
             WarnCard($"Plate {plate} has changes not saved: save them, or put it back, first.");
             return;
