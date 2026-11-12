@@ -591,14 +591,55 @@ public sealed partial class MainWindow : Window
     }
 
     /// <summary>
-    /// The tool's mark, as the site's (features/marks.ts) and the plugin's icon: a white hanger on a
-    /// rounded square of its violet, <paramref name="size"/> across.
+    /// The tool's mark, as the site's (kokos-tools: features/marks.ts) and the plugin's icon: an
+    /// arched dressing-room mirror of its violet, a white hanger in it, <paramref name="size"/>
+    /// across (drawn in the mark's own 30 × 30 grid, scaled; flat violet, where the icon's mirror is
+    /// the studio's blend of violet into orchid).
     /// </summary>
     private static void Mark(ImDrawListPtr dl, Vector2 pos, float size)
     {
-        dl.AddRectFilled(pos, pos + new Vector2(size), Palette.U32(Palette.AccentFill), size * 0.27f);
+        var k = size / 30f;
+        Vector2 P(float x, float y) => pos + new Vector2(x, y) * k;
+        var tile = Palette.U32(Palette.AccentFill);
+        // The mirror: straight sides, an arch over the top, its foot's corners rounded.
+        Span<Vector2> pts = stackalloc Vector2[48];
+        var n = 0;
+        for (var i = 0; i <= 24; i++)
+        {
+            var a = MathF.PI + MathF.PI * i / 24;
+            pts[n++] = P(15 + 12.5f * MathF.Cos(a), 14.5f + 12.5f * MathF.Sin(a));
+        }
+        for (var i = 0; i <= 6; i++)
+        {
+            var a = MathF.PI / 2 * i / 6;
+            pts[n++] = P(25.5f + 2 * MathF.Cos(a), 26.5f + 2 * MathF.Sin(a));
+        }
+        for (var i = 0; i <= 6; i++)
+        {
+            var a = MathF.PI / 2 + MathF.PI / 2 * i / 6;
+            pts[n++] = P(4.5f + 2 * MathF.Cos(a), 26.5f + 2 * MathF.Sin(a));
+        }
+        FillConvex(dl, pts[..n], tile);
+        // The hanger, in the middle of the mirror.
         var icon = size * 0.62f;
-        Icons.Draw(dl, Icon.Hanger, pos + new Vector2((size - icon) / 2), icon, Palette.White);
+        Icons.Draw(dl, Icon.Hanger, pos + new Vector2((size - icon) / 2, size * 0.56f - icon * 0.486f), icon, Palette.White, 1.9f);
+    }
+
+    /// <summary>
+    /// A convex shape filled, its points turned to go clockwise on screen if they don't (ImGui
+    /// smooths a filled shape's edge only then).
+    /// </summary>
+    private static void FillConvex(ImDrawListPtr dl, Span<Vector2> pts, uint col)
+    {
+        var area = 0f;
+        for (var i = 0; i < pts.Length; i++)
+        {
+            var a = pts[i];
+            var b = pts[(i + 1) % pts.Length];
+            area += a.X * b.Y - b.X * a.Y;
+        }
+        if (area < 0) pts.Reverse();
+        dl.AddConvexPolyFilled(ref pts[0], pts.Length, col);
     }
 
     /// <summary>The header's Settings button.</summary>
