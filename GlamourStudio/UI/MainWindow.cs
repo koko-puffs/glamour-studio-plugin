@@ -12,12 +12,13 @@ using static GlamourStudio.UI.Theme;
 namespace GlamourStudio.UI;
 
 /// <summary>
-/// The plugin's one window, in Glamour Studio's look (the site's violet night and its lilac), wide: a
-/// header across the top (the title, or the back arrow at the top left on a screen below; what the
-/// plugin's doing; Settings at the top right), the rail down the left (Home, Looks, Plates, Closet,
-/// Make room, and your character with how your closet's sent), and the screen beside it, most of
-/// them a list or grid with the thing picked in a side pane. A look opened is a screen of its own,
-/// the back arrow at its top left; Settings is one column, as Housing Studio's and Raid Planner's.
+/// The plugin's one window, in Glamour Studio's "Character Sheet" look (docs/redesign): under
+/// Dalamud's own title bar, the site's bar (the logo and GLAMOUR STUDIO; Home · Looks · Plates ·
+/// Closet · Make room with their counts and the holo underline under the one you're on; your
+/// character's pill with what's going on; Refresh and Settings), and the screen under it across the
+/// whole width, most of them a list or grid with the thing picked in a side pane. A look opened and
+/// Settings are screens below: the bar holds the back arrow at the top left and the screen's title.
+/// (A rail down the left held the places and your character until the redesign.)
 /// </summary>
 public sealed partial class MainWindow : Window
 {
@@ -60,7 +61,7 @@ public sealed partial class MainWindow : Window
 
         Size = new Vector2(1120, 760);
         SizeCondition = ImGuiCond.FirstUseEver;
-        // 900 wide at the least: the rail as icons, a list and its side pane; 1000 and up, the rail with its words.
+        // 900 wide at the least: the bar's places as icons, a list and its side pane; 1000 and up, the places with their words.
         SizeConstraints = new WindowSizeConstraints { MinimumSize = new Vector2(900, 600), MaximumSize = new Vector2(2400, 2400) };
         Flags = ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse;
     }
@@ -126,11 +127,14 @@ public sealed partial class MainWindow : Window
 
     public override void PostDraw() => Theme.Pop();
 
-    /// <summary>The header's height (16 above and below a 36px row), and the line under it.</summary>
-    private const float HeaderCss = 68;
+    /// <summary>The bar's height under Dalamud's title bar, its line included (the mock's 56).</summary>
+    private const float HeaderCss = Kit.BarHeightCss;
 
-    /// <summary>The window's sides, as the layout's (24px).</summary>
+    /// <summary>The page's sides, as the mock's (<c>.page</c>: 20px top and bottom, 24px either side).</summary>
     private const float SideCss = 24;
+
+    /// <summary>The page's top and bottom padding.</summary>
+    private const float PageTopCss = 20;
 
     public override void Draw()
     {
@@ -156,14 +160,14 @@ public sealed partial class MainWindow : Window
                     var win = ImGui.GetWindowPos();
                     var size = ImGui.GetWindowSize();
                     var top = ImGui.GetCursorScreenPos().Y;
-                    // The hairline under Dalamud's title bar.
-                    Kit.Dl.AddLine(new Vector2(win.X + 1, top + 0.5f), new Vector2(win.X + size.X - 1, top + 0.5f), Palette.U32(Palette.Line), 1f);
-                    DrawHeader(new Vector2(win.X, top), size.X);
                     var bodyTop = top + S(HeaderCss);
-                    Kit.Dl.AddLine(new Vector2(win.X + 1, bodyTop - 0.5f), new Vector2(win.X + size.X - 1, bodyTop - 0.5f), Palette.U32(Palette.Divider), 1f);
+                    // The bar's line; the place you're on draws its holo underline over it.
+                    Kit.Dl.AddLine(new Vector2(win.X + 1, bodyTop - 0.5f), new Vector2(win.X + size.X - 1, bodyTop - 0.5f), Palette.U32(Palette.Line), 1f);
+                    DrawBar(new Vector2(win.X, top), size.X);
+                    // The page: the whole width under the bar (each screen pads itself: the mock's 20 and 24).
                     var body = new Vector2(win.X, bodyTop);
                     var bodySize = new Vector2(size.X, win.Y + size.Y - bodyTop);
-                    noteAt = body + new Vector2(S(SideCss), S(20));
+                    noteAt = body + new Vector2(S(SideCss), S(PageTopCss));
                     switch (screen)
                     {
                         case Screen.Settings:
@@ -172,30 +176,21 @@ public sealed partial class MainWindow : Window
                         case Screen.Look:
                             DrawLook(openLook!, body, bodySize);
                             break;
+                        case Screen.Looks:
+                            DrawLooks(body, bodySize);
+                            break;
+                        case Screen.Plates:
+                            DrawPlates(body, bodySize);
+                            break;
+                        case Screen.Closet:
+                            DrawCloset(body, bodySize);
+                            break;
+                        case Screen.MakeRoom:
+                            DrawCleanup(body, bodySize);
+                            break;
                         default:
-                            var railW = RailWidth(size.X);
-                            DrawRail(body, new Vector2(railW, bodySize.Y));
-                            var content = new Vector2(body.X + railW, body.Y);
-                            var contentSize = new Vector2(bodySize.X - railW, bodySize.Y);
-                            switch (screen)
-                            {
-                                case Screen.Looks:
-                                    DrawLooks(content, contentSize);
-                                    break;
-                                case Screen.Plates:
-                                    DrawPlates(content, contentSize);
-                                    break;
-                                case Screen.Closet:
-                                    DrawCloset(content, contentSize);
-                                    break;
-                                case Screen.MakeRoom:
-                                    DrawCleanup(content, contentSize);
-                                    break;
-                                default:
-                                    screen = Screen.Home;
-                                    DrawHome(content, contentSize);
-                                    break;
-                            }
+                            screen = Screen.Home;
+                            DrawHome(body, bodySize);
                             break;
                     }
                 }
@@ -227,17 +222,19 @@ public sealed partial class MainWindow : Window
     /// <summary>The screens' failures already in the log (by screen, kind and message).</summary>
     private readonly HashSet<string> failures = new();
 
-    /// <summary>A screen that failed: a short note where it would be.</summary>
+    /// <summary>A screen that failed: a short note where it would be (the mock's card with the danger edge, the warning sign, the words).</summary>
     private static void DrawFailed(Vector2 at)
     {
         Palette.Opacity = 1f;
-        if (at == Vector2.Zero) at = ImGui.GetWindowPos() + new Vector2(S(SideCss), S(HeaderCss) + S(20));
+        if (at == Vector2.Zero) at = ImGui.GetWindowPos() + new Vector2(S(SideCss), S(HeaderCss) + S(PageTopCss));
         const string text = "This screen failed (see /xllog)";
         var size = Txt.Measure(text, Face.Sans, 13);
         var dl = Kit.Dl;
-        dl.AddRectFilled(at, at + size + new Vector2(S(16) * 2, S(10) * 2), Palette.U32(Palette.Card), S(10));
-        dl.AddRect(at, at + size + new Vector2(S(16) * 2, S(10) * 2), Palette.U32(Palette.Danger), S(10), ImDrawFlags.None, 1f);
-        Txt.Draw(dl, at + new Vector2(S(16), S(10)), text, Face.Sans, 13, Palette.Danger);
+        var box = new Vector2(S(16 + 16 + 10) + size.X + S(16), MathF.Max(size.Y, S(16)) + S(14) * 2);
+        dl.AddRectFilled(at, at + box, Palette.U32(Palette.Card), S(Palette.RadiusLg));
+        dl.AddRect(at + new Vector2(0.5f), at + box - new Vector2(0.5f), Palette.U32(Palette.DangerEdge), S(Palette.RadiusLg), ImDrawFlags.None, 1f);
+        Icons.Draw(dl, Icon.AlertTriangle, at + new Vector2(S(16), (box.Y - S(16)) / 2), S(16), Palette.Danger);
+        Txt.Draw(dl, at + new Vector2(S(16 + 16 + 10), (box.Y - size.Y) / 2), text, Face.Sans, 13, Palette.Body);
     }
 
     /// <summary>Another character: what was worked out for the last one goes.</summary>
@@ -292,14 +289,11 @@ public sealed partial class MainWindow : Window
                 catch (Exception ex)
                 {
                     Services.Log.Error(ex, "Glamour Studio action failed");
-                    Notify("Something went wrong (see /xllog)");
+                    Frame.Warn("Something went wrong (see /xllog)");
                 }
             }
         }
     }
-
-    /// <summary>The rail's width: its words from 1000px of window up, its icons alone below.</summary>
-    private static float RailWidth(float windowW) => windowW >= S(1000) ? S(212) : S(64);
 
     private void Go(Screen to)
     {
@@ -308,80 +302,162 @@ public sealed partial class MainWindow : Window
     }
 
     // ---------------------------------------------------------------------------------------------
-    // The header: the title (or back and the screen's title), what's going on, Settings.
+    // The bar: the brand and the places (or back and the screen's title), the pill, Refresh, Settings.
 
-    private void DrawHeader(Vector2 winTop, float width)
+    /// <summary>The bar's places, in its order (the mock's: Make room is the fifth, no longer apart under Tidy up).</summary>
+    private static readonly (Screen Screen, Icon Icon, string Label)[] BarPlaces =
     {
-        var x0 = winTop.X + S(SideCss);
-        var x1 = winTop.X + width - S(SideCss);
-        var y = winTop.Y + S(16);
-        var dl = Kit.Dl;
-        float left;
-        switch (screen)
+        (Screen.Home, Icon.House, "Home"),
+        (Screen.Looks, Icon.Hanger, "Looks"),
+        (Screen.Plates, Icon.Layers, "Plates"),
+        (Screen.Closet, Icon.Box, "Closet"),
+        (Screen.MakeRoom, Icon.Package, "Make room"),
+    };
+
+    /// <summary>Each place's id, made once (not a new string every frame).</summary>
+    private static readonly string[] BarPlaceIds = Array.ConvertAll(BarPlaces, p => "##place-" + p.Label);
+
+    /// <summary>Each place's count this frame (null: none yet), worked out once a frame for the bar.</summary>
+    private readonly string?[] placeCounts = new string?[5];
+
+    /// <summary>
+    /// The bar (the mock's <c>.bar</c>): 56 tall, 18px in at the left and 14 at the right. On the
+    /// five places: the brand, a slash, the places, then at the right the pill, Refresh and Settings.
+    /// Under 1000 wide (or when they don't fit) the places' counts go, then their words, the
+    /// wordmark and the pill's line (each to a tooltip). On a look or Settings: the back arrow, the
+    /// screen's eyebrow and title, and what's at its right.
+    /// </summary>
+    private void DrawBar(Vector2 winTop, float width)
+    {
+        var h = S(HeaderCss) - 1;
+        var x0 = winTop.X + S(18);
+        var x1 = winTop.X + width - S(14);
+        var y = winTop.Y;
+        var btnY = y + (h - S(36)) / 2;
+
+        if (screen == Screen.Settings)
         {
-            case Screen.Look when openLook != null:
-            {
-                if (Kit.IconButton("##back", new Vector2(x0, y), Icon.ArrowLeft, lookFrom switch
-                    {
-                        Screen.Home => "Back to Home",
-                        Screen.Plates => "Back to your plates",
-                        _ => "Back to your looks",
-                    }, 36))
-                    Later(LeaveLook);
-                left = x0 + S(36 + 14);
-                break;
-            }
-            case Screen.Settings:
-            {
-                if (Kit.IconButton("##back", new Vector2(x0, y), Icon.ArrowLeft, "Back", 36)) Later(LeaveSettings);
-                Title(new Vector2(x0 + S(36 + 14), y + (S(36) - S(20 * TitleLine)) / 2), "Settings", x1 - x0 - S(50), 20, 1);
-                return;
-            }
-            default:
-                left = x0;
-                break;
+            DrawBackBar(x0, x1, y, h, "Back", LeaveSettings, null, "Settings", false);
+            return;
         }
-
-        // Settings at the top right, always (but on Settings), and Refresh beside it.
-        SettingsButton(new Vector2(x1 - S(36), y));
-        var right = x1 - S(36) - S(8);
-        if (Kit.IconButton("##refresh", new Vector2(right - S(36), y), Icon.Refresh,
-                sync.LibraryBusy ? "Reading…" : "Read it all again: your looks, list and plans from the site, your wardrobe from the game", 36, Btn.Glass, sync.LibraryBusy))
-            Later(RefreshEverything);
-        right -= S(36) + S(14);
-
         if (screen == Screen.Look && openLook != null)
         {
-            const string site = "On the site";
-            var sw = Kit.ButtonWidth(site, BtnSize.Sm, Icon.ExternalLink, Btn.Quiet);
-            if (Kit.Button("##look-site", new Vector2(right - sw, y + (S(36) - Kit.ButtonHeight(BtnSize.Sm)) / 2), site, Btn.Quiet, BtnSize.Sm, Icon.ExternalLink, 0, false,
-                    "The look's page on Glamour Studio"))
-                Dalamud.Utility.Util.OpenLink(SiteLink.LookUrl(openLook.Id));
-            right -= sw + S(14);
-            var tw = right - left;
-            var eyebrowH = Kit.EyebrowHeight;
-            var blockH = eyebrowH + S(4) + S(20 * TitleLine);
-            var ty = y + (S(36) - blockH) / 2;
-            Kit.Eyebrow(new Vector2(left, ty), LookEyebrow(openLook), null, tw);
-            Title(new Vector2(left, ty + eyebrowH + S(4)), openLook.Name, tw, 20, 1);
+            var back = lookFrom switch
+            {
+                Screen.Home => "Back to Home",
+                Screen.Plates => "Back to your plates",
+                _ => "Back to your looks",
+            };
+            DrawBackBar(x0, x1, y, h, back, LeaveLook, LookEyebrow(openLook), openLook.Name, true);
             return;
         }
 
-        // The mark and the title (as the site's bar has them: a white hanger on a rounded violet
-        // square, then the name in Outfit, all of it one colour), then what's going on in a pill
-        // before Settings.
-        Mark(dl, new Vector2(left, y + (S(36) - S(30)) / 2), S(30));
-        left += S(30) + S(12);
-        var titleW = Txt.Measure("Glamour Studio", Face.Display, 22).X;
-        Title(new Vector2(left, y + (S(36) - S(22 * TitleLine)) / 2), "Glamour Studio", MathF.Min(titleW + S(4), right - left), 22, 1);
-        var (status, tone, pulse) = StatusNow();
-        var room = right - (left + titleW + S(24));
-        if (room > S(80))
+        // Refresh and Settings at the right, quiet; the pill before them.
+        var right = DrawBarEnd(x1, btnY);
+        var narrow = width < S(1000);
+        var me = wardrobe.Current;
+        for (var i = 0; i < BarPlaces.Length; i++) placeCounts[i] = RailCount(BarPlaces[i].Screen, me);
+        float PlacesWidth(bool counts, bool icons)
         {
-            var pw = MathF.Min(Kit.StatusPillWidth(status), room);
-            Kit.StatusPill(new Vector2(right - pw, y + S(4)), status, tone, pulse, room);
+            var sum = 0f;
+            for (var i = 0; i < BarPlaces.Length; i++) sum += Kit.PlaceWidth(BarPlaces[i].Label, counts ? placeCounts[i] : null, icons) + S(2);
+            return sum;
         }
-        _ = dl;
+        var (pillText, pillTone, pillOff, pulse) = PillNow();
+        var slash = S(6 + 8) + Txt.Measure("/", Face.Sans, 16).X;
+        var (mode, pillW) = Model.BarFit.Choose(right - x0, narrow,
+            Kit.BrandWidth(true) + S(4) + slash, Kit.BrandWidth(false) + S(4) + slash,
+            PlacesWidth(true, false), PlacesWidth(false, false), PlacesWidth(false, true),
+            Kit.WhoPillWidth(pillText), S(160), Kit.WhoPillWidth(pillText, compact: true), S(12));
+        var icons = mode == Model.BarMode.Icons;
+
+        var x = x0 + Kit.Brand(new Vector2(x0, y), h, wordmark: !icons) + S(4);
+        x += S(6);
+        Txt.Line(Kit.Dl, new Vector2(x, y), "/", Face.Sans, 16, Palette.Faint, h / S(1));
+        x += Txt.Measure("/", Face.Sans, 16).X + S(8);
+        for (var i = 0; i < BarPlaces.Length; i++)
+        {
+            var (s, icon, label) = BarPlaces[i];
+            var count = mode == Model.BarMode.Full ? placeCounts[i] : null;
+            if (Kit.Place(BarPlaceIds[i], new Vector2(x, y), h, icon, label, count, screen == s, icons, placeCounts[i]))
+                Later(() => Go(s));
+            x += Kit.PlaceWidth(label, count, icons) + S(2);
+        }
+
+        // Your character: pointing at it shows the name and world; pressing it opens Settings → Account.
+        var name = me?.Name is { Length: > 0 } n ? n : null;
+        var tip = name != null ? (me?.World is { Length: > 0 } world ? $"{name} · {world}" : name) : null;
+        var pillX = right - S(6) - pillW;
+        var (pressed, _) = Kit.WhoPill("##who", new Vector2(pillX, y + (h - S(34)) / 2), InitialsOf(name), pillText, pillTone, pillOff, pulse,
+            pillW, icons, tip);
+        if (pressed) Later(() => OpenSettings(SettingsTab.Account));
+    }
+
+    /// <summary>Refresh and Settings at the bar's right (quiet, round, 36), 6px apart. Returns where what's before them ends.</summary>
+    private float DrawBarEnd(float x1, float btnY)
+    {
+        var x = x1 - S(36);
+        SettingsButton(new Vector2(x, btnY));
+        x -= S(6) + S(36);
+        DrawRefresh(new Vector2(x, btnY));
+        return x;
+    }
+
+    /// <summary>Refresh: dimmed while it reads, its arrows turning (still under reduced motion).</summary>
+    private void DrawRefresh(Vector2 pos)
+    {
+        var busy = sync.LibraryBusy;
+        var dl = Kit.Dl;
+        var start = Kit.TurnStart(dl);
+        if (Kit.IconButton("##refresh", pos, Icon.RefreshCw,
+                busy ? "Reading…" : "Read it all again: your looks, list and plans from the site, your wardrobe from the game", 36, Btn.Quiet, busy))
+            Later(RefreshEverything);
+        if (busy && !ReducedMotion)
+            Kit.TurnSince(dl, start, pos + new Vector2(S(18)), (float)(ImGui.GetTime() * 240 % 360));
+    }
+
+    /// <summary>
+    /// The bar of a screen below (a look, Settings): the back arrow (outlined, round 36), the
+    /// screen's eyebrow and title (Bricolage 19), then at the right On the site (a look), Refresh and
+    /// Settings (not on Settings itself).
+    /// </summary>
+    private void DrawBackBar(float x0, float x1, float y, float h, string backTip, Action back, string? eyebrow, string title, bool look)
+    {
+        var btnY = y + (h - S(36)) / 2;
+        if (Kit.IconButton("##back", new Vector2(x0, btnY), Icon.ArrowLeft, backTip, 36)) Later(back);
+        var left = x0 + S(36 + 12);
+        var right = x1;
+        if (look)
+        {
+            right = DrawBarEnd(x1, btnY) - S(6);
+            const string site = "On the site";
+            var sw = Kit.ButtonWidth(site, BtnSize.Sm, Icon.ExternalLink, Btn.Quiet);
+            if (Kit.Button("##look-site", new Vector2(right - sw, y + (h - Kit.ButtonHeight(BtnSize.Sm)) / 2), site, Btn.Quiet, BtnSize.Sm, Icon.ExternalLink, 0, false,
+                    "The look's page on Glamour Studio", iconCss: 14) && openLook != null)
+                Dalamud.Utility.Util.OpenLink(SiteLink.LookUrl(openLook.Id));
+            right -= sw + S(12);
+        }
+        var tw = MathF.Max(S(40), right - left);
+        var titleH = Kit.DisplayHeight(19) * 0.86f;
+        var blockH = (eyebrow != null ? Kit.EyebrowHeight + S(3) : 0) + titleH;
+        var ty = y + (h - blockH) / 2;
+        if (eyebrow != null)
+        {
+            Kit.Eyebrow(new Vector2(left, ty), eyebrow, null, tw);
+            ty += Kit.EyebrowHeight + S(3);
+        }
+        // (Bricolage's capitals sit high in its line: the line box is the mock's 1.05em.)
+        Kit.Display(new Vector2(left, ty - Kit.DisplayHeight(19) * 0.07f), title, 19, Palette.Ink, tw);
+    }
+
+    /// <summary>The pill's line and how it looks: the header's status (the first that's true wins), or "Log in to a character".</summary>
+    private (string Text, Tone Tone, bool Off, bool Pulse) PillNow()
+    {
+        var (text, tone, pulse) = StatusNow();
+        if (recorder.Recording) return (text, Tone.Recording, false, true);
+        if (wardrobe.Current == null && editorPlate <= 0) return ("Log in to a character", Tone.Neutral, true, false);
+        // Not linked, or not sent: the face greys.
+        return (text, tone, tone == Tone.Neutral, pulse);
     }
 
     private void LeaveLook()
@@ -400,104 +476,16 @@ public sealed partial class MainWindow : Window
         };
     }
 
-    // ---------------------------------------------------------------------------------------------
-    // The rail: where you can go, and your character.
-
-    private static readonly (Screen Screen, Icon Icon, string Label)[] RailItems =
-    {
-        (Screen.Home, Icon.House, "Home"),
-        (Screen.Looks, Icon.Hanger, "Looks"),
-        (Screen.Plates, Icon.Layers, "Plates"),
-        (Screen.Closet, Icon.Archive, "Closet"),
-    };
-
-    private void DrawRail(Vector2 min, Vector2 size)
-    {
-        var dl = Kit.Dl;
-        dl.AddRectFilled(min, min + size, Palette.U32(Palette.Rail), S(14), ImDrawFlags.RoundCornersBottomLeft);
-        dl.AddLine(new Vector2(min.X + size.X - 0.5f, min.Y), new Vector2(min.X + size.X - 0.5f, min.Y + size.Y), Palette.U32(Palette.Divider), 1f);
-        var compact = size.X < S(120);
-        Kit.BeginPane("##rail", min, new Vector2(size.X - 1, size.Y), 12, 16, 16, scroll: false);
-        // (The rail's own draw list from here: what's drawn in it sits over its card, not under it.)
-        dl = Kit.Dl;
-        var x = Kit.Left;
-        var w = Kit.Width;
-        var me = wardrobe.Current;
-        foreach (var (s, icon, label) in RailItems)
-        {
-            var at = Kit.At;
-            if (Kit.NavItem($"##nav-{label}", at, w, icon, label, compact ? null : RailCount(s, me), screen == s, compact)) Later(() => Go(s));
-            Kit.Reserve(at, w, S(40));
-            Kit.Gap(2);
-        }
-        if (compact) Kit.Gap(14);
-        else
-        {
-            Kit.Gap(14);
-            var lat = Kit.At;
-            Kit.Eyebrow(new Vector2(x + S(12), lat.Y), "Tidy up", Palette.Dim);
-            Kit.Reserve(lat, w, Kit.EyebrowHeight + S(6));
-            Kit.Gap(2);
-        }
-        {
-            var at = Kit.At;
-            if (Kit.NavItem("##nav-room", at, w, Icon.Package, "Make room", compact ? null : RailCount(Screen.MakeRoom, me), screen == Screen.MakeRoom, compact))
-                Later(() => Go(Screen.MakeRoom));
-            Kit.Reserve(at, w, S(40));
-        }
-
-        // Your character, at the foot.
-        var cardH = compact ? S(44) : S(14) * 2 + S(34) + S(10) + S(16);
-        var bottom = min.Y + size.Y - S(16);
-        var cardTop = MathF.Max(Kit.At.Y + S(12), bottom - cardH);
-        var ct = new Vector2(x, cardTop);
-        var name = me?.Name is { Length: > 0 } n ? n : "Not logged in";
-        var initials = InitialsOf(name);
-        var (line, dot) = CharacterLine();
-        if (compact)
-        {
-            var c = new Vector2(x + w / 2, ct.Y + S(22));
-            dl.AddCircleFilled(c, S(17), Palette.U32(Palette.BlushTile), 40);
-            var iw = Txt.Measure(initials, Face.SansSemibold, 12);
-            Txt.Draw(dl, c - iw / 2, initials, Face.SansSemibold, 12, Palette.AccentText);
-            Kit.Dot(c + new Vector2(S(12), S(12)), dot, 8);
-            if (!Kit.Blocked && ImGui.IsWindowHovered() && ImGui.IsMouseHoveringRect(c - new Vector2(S(17)), c + new Vector2(S(17))))
-                Kit.Tooltip($"{name}{(me?.World is { Length: > 0 } wd ? " · " + wd : string.Empty)}\n{line}");
-        }
-        else
-        {
-            Kit.Card(ct, ct + new Vector2(w, cardH), Palette.Card, Palette.Line, 14);
-            var p = ct + new Vector2(S(14));
-            var c = p + new Vector2(S(17));
-            dl.AddCircleFilled(c, S(17), Palette.U32(Palette.BlushTile), 40);
-            var iw = Txt.Measure(initials, Face.SansSemibold, 12);
-            Txt.Draw(dl, c - iw / 2, initials, Face.SansSemibold, 12, Palette.AccentText);
-            var tx = p.X + S(34 + 10);
-            var tw = ct.X + w - S(14) - tx;
-            var nh = Txt.Natural(Face.SansSemibold, 13);
-            var wh = Txt.Natural(Face.Sans, 12);
-            var ty = c.Y - (nh + wh) / 2;
-            Txt.Draw(dl, new Vector2(tx, ty), Txt.Fit(name, Face.SansSemibold, 13, tw), Face.SansSemibold, 13, Palette.Ink);
-            Txt.Draw(dl, new Vector2(tx, ty + nh), Txt.Fit(me?.World ?? string.Empty, Face.Sans, 12, tw), Face.Sans, 12, Palette.Muted);
-            var ly = p.Y + S(34) + S(10);
-            Kit.Dot(new Vector2(p.X + S(3.5f), ly + S(8)), dot);
-            Txt.Line(dl, new Vector2(p.X + S(15), ly), Txt.Fit(line, Face.Sans, 12, w - S(28) - S(15)), Face.Sans, 12, Palette.Muted, 16);
-        }
-        Kit.Reserve(new Vector2(x, cardTop), w, cardH);
-        Kit.EndPane();
-    }
-
-    private (string Name, string Initials) initials = (string.Empty, string.Empty);
+    private (string? Name, string Initials) initials = (null, "?");
 
     /// <summary>A name's initials (the first two words'), worked out again only when the name changes.</summary>
-    private string InitialsOf(string name)
+    private string InitialsOf(string? name)
     {
-        if (name != initials.Name)
-            initials = (name, string.Concat(name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(p => char.ToUpperInvariant(p[0]))));
+        if (name != initials.Name) initials = (name, Model.Initials.Of(name));
         return initials.Initials;
     }
 
-    /// <summary>A rail item's count: your looks, plates with something on them of 20, pieces you have, the dresser's places used of 800.</summary>
+    /// <summary>A place's count: your looks, plates with something on them of 20, pieces you have, the dresser's places used of 800.</summary>
     private string? RailCount(Screen s, CharacterWardrobe? me) => s switch
     {
         Screen.Looks when Linked && sync.LibraryAt != null => sync.Library.Mine.Count.ToString("N0", System.Globalization.CultureInfo.InvariantCulture),
@@ -512,24 +500,6 @@ public sealed partial class MainWindow : Window
     {
         Where(0);
         return placeIndex.Count;
-    }
-
-    /// <summary>The line under your character in the rail, and its dot's colour.</summary>
-    private (string Line, Vector4 Dot) CharacterLine()
-    {
-        if (!sync.Linked) return ("Not linked to the site", Palette.Faint);
-        if (sync.TokenRefused) return ("Link again: token refused", Palette.Danger);
-        if (sync.Syncing) return ("Sending your closet…", Palette.Accent);
-        if (sync.SyncProblem != null) return ("Closet not sent: see Closet", Palette.Danger);
-        switch (sync.StepFor(wardrobe.Current))
-        {
-            case ConsentStep.AskPlayer:
-                return ("Not sent yet: say yes or no", Palette.Faint);
-            case ConsentStep.Hold or ConsentStep.TellNo:
-                return ("Not sent: you said no", Palette.Faint);
-        }
-        if (sync.LastSyncAt is { } at) return ($"Closet sent {Words.Ago(at, DateTimeOffset.UtcNow)}", Palette.Success);
-        return (config.AutoSync ? "Linked · sends as you play" : "Linked", Palette.Success);
     }
 
     /// <summary>Runs after this frame's drawing is finished.</summary>
@@ -556,13 +526,14 @@ public sealed partial class MainWindow : Window
     // ---------------------------------------------------------------------------------------------
     // Titles and the header every screen below Home has.
 
-    /// <summary>A title's line, times its size (Outfit's display lines are tight, as the site's are).</summary>
-    private const float TitleLine = 1.1f;
+    /// <summary>A title's line, times its size (the mock's display lines are tight: 0.98 to 1.05).</summary>
+    private const float TitleLine = 1.05f;
 
     /// <summary>
-    /// A title in Outfit 700, in normal capitals, as the site's display type (Syne 800 in capitals
-    /// until 0.6.16), on up to <paramref name="lines"/> lines, cut with an ellipsis on the last.
-    /// Returns its height; with <paramref name="draw"/> false, only measures.
+    /// A title in Bricolage 800 capitals, as the mock's display type (Outfit 700 in normal capitals
+    /// until the redesign), on up to <paramref name="lines"/> lines, cut with an ellipsis on the last.
+    /// Returns its height; with <paramref name="draw"/> false, only measures. (<see cref="Kit.Display"/>
+    /// is the Kit's, one line, with the stacked shadows the field's titles have.)
     /// </summary>
     private static float Title(Vector2 pos, string text, float maxWidth, int px = 24, int lines = 2, bool draw = true, Vector4? color = null)
     {
@@ -574,7 +545,7 @@ public sealed partial class MainWindow : Window
         foreach (var word in text.Split(' ', StringSplitOptions.RemoveEmptyEntries))
         {
             var candidate = cur.Length == 0 ? word : cur + " " + word;
-            if (cur.Length == 0 || Txt.Measure(candidate, Face.Display, px).X <= maxWidth) cur = candidate;
+            if (cur.Length == 0 || Kit.DisplayWidth(candidate, px) <= maxWidth) cur = candidate;
             else
             {
                 rows.Add(cur);
@@ -584,68 +555,24 @@ public sealed partial class MainWindow : Window
         rows.Add(cur);
         if (rows.Count > lines) rows = rows.Take(lines - 1).Append(string.Join(' ', rows.Skip(lines - 1))).ToList();
         if (!draw) return lh * rows.Count;
-        var dl = Kit.Dl;
+        // Bricolage's line is 1.2em; the title's is tighter, so each line's glyphs are centred in it.
+        var nudge = (lh - Kit.DisplayHeight(px)) / 2;
         for (var i = 0; i < rows.Count; i++)
-            Txt.Line(dl, pos + new Vector2(0, lh * i), Txt.Fit(rows[i], Face.Display, px, maxWidth), Face.Display, px, color ?? Palette.Ink, lineCss);
+            Kit.Display(pos + new Vector2(0, lh * i + nudge), rows[i], px, color ?? Tint.Ink, maxWidth);
         return lh * rows.Count;
     }
 
-    /// <summary>
-    /// The tool's mark, as the site's (kokos-tools: features/marks.ts) and the plugin's icon: an
-    /// arched dressing-room mirror of its violet, a white hanger in it, <paramref name="size"/>
-    /// across (drawn in the mark's own 30 × 30 grid, scaled; flat violet, where the icon's mirror is
-    /// the studio's blend of violet into orchid).
-    /// </summary>
+    /// <summary>The tool's mark: the logo texture (the clothes tag), <paramref name="size"/> screen px across.</summary>
     private static void Mark(ImDrawListPtr dl, Vector2 pos, float size)
     {
-        var k = size / 30f;
-        Vector2 P(float x, float y) => pos + new Vector2(x, y) * k;
-        var tile = Palette.U32(Palette.AccentFill);
-        // The mirror: straight sides, an arch over the top, its foot's corners rounded.
-        Span<Vector2> pts = stackalloc Vector2[48];
-        var n = 0;
-        for (var i = 0; i <= 24; i++)
-        {
-            var a = MathF.PI + MathF.PI * i / 24;
-            pts[n++] = P(15 + 12.5f * MathF.Cos(a), 14.5f + 12.5f * MathF.Sin(a));
-        }
-        for (var i = 0; i <= 6; i++)
-        {
-            var a = MathF.PI / 2 * i / 6;
-            pts[n++] = P(25.5f + 2 * MathF.Cos(a), 26.5f + 2 * MathF.Sin(a));
-        }
-        for (var i = 0; i <= 6; i++)
-        {
-            var a = MathF.PI / 2 + MathF.PI / 2 * i / 6;
-            pts[n++] = P(4.5f + 2 * MathF.Cos(a), 26.5f + 2 * MathF.Sin(a));
-        }
-        FillConvex(dl, pts[..n], tile);
-        // The hanger, in the middle of the mirror.
-        var icon = size * 0.62f;
-        Icons.Draw(dl, Icon.Hanger, pos + new Vector2((size - icon) / 2, size * 0.56f - icon * 0.486f), icon, Palette.White, 1.9f);
+        _ = dl;
+        Kit.Logo(pos, size / S(1));
     }
 
-    /// <summary>
-    /// A convex shape filled, its points turned to go clockwise on screen if they don't (ImGui
-    /// smooths a filled shape's edge only then).
-    /// </summary>
-    private static void FillConvex(ImDrawListPtr dl, Span<Vector2> pts, uint col)
-    {
-        var area = 0f;
-        for (var i = 0; i < pts.Length; i++)
-        {
-            var a = pts[i];
-            var b = pts[(i + 1) % pts.Length];
-            area += a.X * b.Y - b.X * a.Y;
-        }
-        if (area < 0) pts.Reverse();
-        dl.AddConvexPolyFilled(ref pts[0], pts.Length, col);
-    }
-
-    /// <summary>The header's Settings button.</summary>
+    /// <summary>The bar's Settings button (quiet, round 36).</summary>
     private void SettingsButton(Vector2 pos)
     {
-        if (Kit.IconButton("##settings", pos, Icon.Sliders, "Settings", 36)) OpenSettings(settingsTab);
+        if (Kit.IconButton("##settings", pos, Icon.SlidersH, "Settings", 36, Btn.Quiet)) OpenSettings(settingsTab);
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -661,7 +588,9 @@ public sealed partial class MainWindow : Window
 
     /// <summary>
     /// The question over the plugin's window: a window of its own the size of the plugin's, kept in
-    /// front, which darkens only the plugin's window and takes every click on it; the card in its middle.
+    /// front, which darkens only the plugin's window and takes every click on it; the card in its
+    /// middle (the mock's <c>.dialog</c>: 440 wide, 28px corners, the strong hairline, no glow; the
+    /// title in display capitals, the yes the sticker, or the danger outline).
     /// </summary>
     private void DrawConfirm()
     {
@@ -685,27 +614,23 @@ public sealed partial class MainWindow : Window
         {
             if (!shown) return;
             var dl = ImGui.GetWindowDrawList();
-            dl.AddRectFilled(winPos, winPos + winSize, Palette.U32(Palette.WithAlpha(Palette.Ground, 0.75f)), S(14));
-            var width = MathF.Min(S(420), winSize.X - S(48));
-            var pad = S(24);
+            dl.AddRectFilled(winPos, winPos + winSize, Palette.U32(Palette.WithAlpha(Palette.Ground, 0.75f)), S(12));
+            var width = MathF.Min(S(440), winSize.X - S(48));
+            var pad = S(26);
             var inner = width - pad * 2;
             var cardH = confirmCardH > 0 ? confirmCardH : S(200);
             var cardPos = new Vector2(winPos.X + (winSize.X - width) / 2, winPos.Y + MathF.Max(S(40), (winSize.Y - cardH) / 2));
-            var r = S(Palette.RadiusLg);
-            // The site's glow under its dialogs.
-            for (var g = 3; g >= 1; g--)
-                dl.AddRectFilled(cardPos - new Vector2(S(6 * g)), cardPos + new Vector2(width, cardH) + new Vector2(S(6 * g)),
-                    Palette.U32(Palette.WithAlpha(Palette.Accent, 0.025f)), r + S(6 * g));
+            var r = S(Palette.RadiusXl);
             dl.AddRectFilled(cardPos, cardPos + new Vector2(width, cardH), Palette.U32(Palette.Card), r);
-            dl.AddRect(cardPos, cardPos + new Vector2(width, cardH), Palette.U32(Palette.LineStrong), r);
+            dl.AddRect(cardPos + new Vector2(0.5f), cardPos + new Vector2(width, cardH) - new Vector2(0.5f), Palette.U32(Palette.LineStrong), r, ImDrawFlags.None, 1f);
 
-            var at = cardPos + new Vector2(pad, pad);
+            var at = cardPos + new Vector2(pad, S(24));
             ImGui.SetCursorScreenPos(at);
             Kit.PushBox(at.X, inner);
-            var titleH = Title(at, c.Title, inner, 20, 2);
+            var titleH = Title(at, c.Title, inner, 22, 2);
             Kit.Reserve(at, inner, titleH);
             Kit.Gap(10);
-            Txt.Para(new[] { new Run(c.Body, Face.Sans, 14, Palette.Soft) }, 21);
+            Txt.Para(new[] { new Run(c.Body, Face.Sans, 14, Palette.Body) }, 21);
             Kit.Gap(20);
             var buttons = Kit.At;
             var yesStyle = c.Danger ? Btn.Danger : Btn.Primary;
@@ -721,7 +646,7 @@ public sealed partial class MainWindow : Window
             if (ImGui.IsKeyPressed(ImGuiKey.Escape)) close = true;
             Kit.Reserve(buttons, inner, Kit.ButtonHeight(BtnSize.Md));
             Kit.PopBox();
-            confirmCardH = Kit.At.Y - cardPos.Y + pad;
+            confirmCardH = Kit.At.Y - cardPos.Y + S(22);
             if (close && ReferenceEquals(confirm, c)) confirm = null;
         }
         finally

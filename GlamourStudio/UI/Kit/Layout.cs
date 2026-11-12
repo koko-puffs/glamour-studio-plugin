@@ -7,8 +7,8 @@ using static GlamourStudio.UI.Theme;
 namespace GlamourStudio.UI;
 
 /// <summary>
-/// A chip's colour: the outline; mint (yours, where a plate can take it, done); lilac (to do); or
-/// orchid (you don't have it yet), as the site's tags are.
+/// A chip's colour (drawn as the mock's tags now): plain; ice (yours, where a plate can take it,
+/// done); lilac (to do); or pink (you don't have it yet).
 /// </summary>
 public enum ChipKind
 {
@@ -138,9 +138,9 @@ public static partial class Kit
         var (clicked, hovered, _) = Hit(id, pos, new Vector2(width, h));
         var dl = Dl;
         var max = pos + new Vector2(width, h);
-        if (on) dl.AddRectFilled(pos, max, Palette.U32(Palette.AccentPicked), S(12));
+        if (on) dl.AddRectFilled(pos, max, Palette.U32(Palette.AccentWash), S(12));
         else if (hovered) dl.AddRectFilled(pos, max, Palette.U32(Palette.RowHover), S(12));
-        var ink = on ? Palette.AccentSoft : hovered ? Palette.Ink : Palette.Muted;
+        var ink = on ? Palette.Ink : hovered ? Palette.Body : Palette.Muted;
         if (compact)
         {
             Icons.Draw(dl, icon, new Vector2(pos.X + (width - S(16)) / 2, pos.Y + (h - S(16)) / 2), S(16), on ? Palette.Accent : ink);
@@ -160,7 +160,7 @@ public static partial class Kit
                 cw = 0;
             }
             Txt.Line(dl, new Vector2(lx, pos.Y), Txt.Fit(label, Face.SansMedium, 14, room - (cw > 0 ? cw + S(6) : 0)), Face.SansMedium, 14, ink, 40);
-            if (count != null) Txt.Line(dl, new Vector2(pos.X + width - S(12) - cw, pos.Y), count, Face.Mono, 11, Palette.Dim, 40);
+            if (count != null) Txt.Line(dl, new Vector2(pos.X + width - S(12) - cw, pos.Y), count, Face.Mono, 11, on ? Palette.Accent : Palette.Faint, 40);
         }
         FocusRing(pos, max, S(12));
         return clicked;
@@ -174,7 +174,7 @@ public static partial class Kit
 
     public static float SegWidth(IReadOnlyList<TabSpec> tabs, float pad = 14)
     {
-        var w = S(1) * 2 + S(4) * 2 + S(3) * Math.Max(0, tabs.Count - 1);
+        var w = S(1) * 2 + S(3) * 2 + S(2) * Math.Max(0, tabs.Count - 1);
         foreach (var t in tabs) w += SegItemWidth(t, pad);
         return w;
     }
@@ -190,37 +190,38 @@ public static partial class Kit
         var w = SegWidth(tabs, pad);
         var h = SegHeight;
         var dl = Dl;
-        dl.AddRect(pos + new Vector2(0.5f), pos + new Vector2(w, h) - new Vector2(0.5f), Palette.U32(Palette.LineStrong), h / 2, ImDrawFlags.None, 1f);
-        var x = pos.X + S(1) + S(4);
-        var y = pos.Y + S(1) + S(4);
+        dl.AddRectFilled(pos, pos + new Vector2(w, h), Palette.U32(Palette.Card), h / 2);
+        dl.AddRect(pos + new Vector2(0.5f), pos + new Vector2(w, h) - new Vector2(0.5f), Palette.U32(Palette.Line), h / 2, ImDrawFlags.None, 1f);
+        var x = pos.X + S(1) + S(3);
+        var y = pos.Y + S(1) + S(3);
         var result = selected;
         // The picked one's pill, gliding to it.
         if (selected >= 0 && selected < tabs.Count)
         {
             var px = x;
-            for (var i = 0; i < selected; i++) px += SegItemWidth(tabs[i], pad) + S(3);
+            for (var i = 0; i < selected; i++) px += SegItemWidth(tabs[i], pad) + S(2);
             var (gx, gw) = Glide(id, px - pos.X, SegItemWidth(tabs[selected], pad));
             var gp = new Vector2(pos.X + gx, y);
-            dl.AddRectFilled(gp, gp + new Vector2(gw, S(30)), Palette.U32(Palette.Picked), S(15));
+            dl.AddRectFilled(gp, gp + new Vector2(gw, S(32)), Palette.U32(Palette.Picked), S(16));
         }
         for (var i = 0; i < tabs.Count; i++)
         {
             var t = tabs[i];
             var iw = SegItemWidth(t, pad);
             var p = new Vector2(x, y);
-            var size = new Vector2(iw, S(30));
+            var size = new Vector2(iw, S(32));
             ImGui.PushID(id);
             var (clicked, hovered, _) = Hit(Part(i), p, size);
             ImGui.PopID();
             if (clicked) result = i;
             var on = i == selected;
-            if (!on && hovered) dl.AddRectFilled(p, p + size, Palette.U32(Palette.LineFaint), size.Y / 2);
-            var ink = on ? Palette.OnPicked : hovered ? Palette.Ink : Palette.Muted;
+            if (!on && hovered) dl.AddRectFilled(p, p + size, Palette.U32(Palette.AccentWash), size.Y / 2);
+            var ink = on ? Palette.OnPicked : hovered ? Palette.Body : Palette.Muted;
             var tx = p.X + S(pad);
-            tx += Txt.Line(dl, new Vector2(tx, p.Y), t.Label, Face.SansSemibold, 13, ink, 30);
-            if (t.Count != null) Txt.Line(dl, new Vector2(tx + S(6), p.Y), t.Count, Face.Mono, 11, Palette.WithAlpha(ink, 0.75f), 30);
+            tx += Txt.Line(dl, new Vector2(tx, p.Y), t.Label, Face.SansSemibold, 13, ink, 32);
+            if (t.Count != null) Txt.Line(dl, new Vector2(tx + S(6), p.Y), t.Count, Face.Mono, 11, on ? Palette.OnField2 : Palette.Faint, 32);
             FocusRing(p, p + size, size.Y / 2);
-            x += iw + S(3);
+            x += iw + S(2);
         }
         return result;
     }
@@ -228,44 +229,43 @@ public static partial class Kit
     // ---------------------------------------------------------------------------------------------
     // Chips in three colours and three sizes.
 
-    private static (float H, float Pad, int Px) ChipSpec(int size) => size switch
+    private static TagSize ChipTag(int size) => size switch
     {
-        18 => (18, 6, 10),
-        22 => (22, 8, 11),
-        _ => (24, 10, 12),
+        18 => TagSize.Sm,
+        22 => TagSize.Md,
+        _ => TagSize.Lg,
     };
 
-    public static float ChipW(string text, bool tick = false, int size = 24)
+    private static TagKind ChipTagKind(ChipKind kind) => kind switch
     {
-        var (_, pad, px) = ChipSpec(size);
-        return S(pad) * 2 + (tick ? S(12 + 6) : 0) + Txt.Measure(text, Face.Sans, px).X;
-    }
+        ChipKind.Ok => TagKind.Ok,
+        ChipKind.Accent => TagKind.Ink,
+        ChipKind.Love => TagKind.Miss,
+        _ => IsOnField ? TagKind.OnField : TagKind.Plain,
+    };
 
-    /// <summary>A chip (24, 22 or 18 tall): the strong outline, or mint, lilac or orchid, with a tick before its words if asked. Returns its width.</summary>
+    public static float ChipW(string text, bool tick = false, int size = 24) => TagWidth(text, tick ? Icon.Check : null, ChipTag(size));
+
+    /// <summary>A chip (24, 22 or 18 tall: the mock's tags at 24, 21 and 19), plain, ice, lilac or pink, with a tick before its words if asked. Returns its width. See <see cref="Tag"/>.</summary>
     public static float Chip(Vector2 pos, string text, ChipKind kind, bool tick = false, int size = 24, float minWidth = 0)
     {
-        var (hc, pad, px) = ChipSpec(size);
-        var h = S(hc);
-        var w = MathF.Max(minWidth, ChipW(text, tick, size));
-        var (fill, edge, ink) = kind switch
+        var w = ChipW(text, tick, size);
+        // A chip given a least width keeps its words in its middle.
+        var x = minWidth > w ? pos.X + (minWidth - w) / 2 : pos.X;
+        if (minWidth > w)
         {
-            ChipKind.Ok => (Palette.SuccessChip, Palette.SuccessEdge, Palette.Success),
-            ChipKind.Accent => (Palette.AccentChip, Palette.AccentEdge, Palette.AccentText),
-            ChipKind.Love => (Palette.LoveChip, Palette.LoveEdge, Palette.Love),
-            _ => (System.Numerics.Vector4.Zero, Palette.LineStrong, Palette.Soft),
-        };
-        var dl = Dl;
-        if (fill.W > 0) dl.AddRectFilled(pos, pos + new Vector2(w, h), Palette.U32(fill), h / 2);
-        dl.AddRect(pos + new Vector2(0.5f), pos + new Vector2(w, h) - new Vector2(0.5f), Palette.U32(edge), h / 2, ImDrawFlags.None, 1f);
-        var content = ChipW(text, tick, size) - S(pad) * 2;
-        var x = pos.X + (w - content) / 2;
-        if (tick)
-        {
-            Icons.Draw(dl, Icon.Check, new Vector2(x, pos.Y + (h - S(12)) / 2), S(12), ink, 2.2f);
-            x += S(12 + 6);
+            var (fill, _) = ChipTagKind(kind) switch
+            {
+                TagKind.Ok => (Palette.IceWash, 0),
+                TagKind.Ink => (Palette.AccentWash, 0),
+                TagKind.Miss => (Palette.PinkWash, 0),
+                TagKind.OnField => (Palette.OnFieldWash, 0),
+                _ => (Palette.Tile, 0),
+            };
+            Dl.AddRectFilled(pos, pos + new Vector2(minWidth, TagHeight(ChipTag(size))), Palette.U32(fill), S(Palette.RadiusTag));
         }
-        Txt.Line(dl, new Vector2(x, pos.Y), text, Face.Sans, px, ink, hc);
-        return w;
+        Tag(new Vector2(x, pos.Y), text, ChipTagKind(kind), tick ? Icon.Check : null, ChipTag(size));
+        return MathF.Max(minWidth, w);
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -285,7 +285,7 @@ public static partial class Kit
     {
         text = Txt.Sentence(text);
         var t = maxWidth > 0 ? Txt.Fit(text, SubFace, SubPx, maxWidth) : text;
-        return Txt.Draw(Dl, pos, t, SubFace, SubPx, color ?? Palette.Dim);
+        return Txt.Draw(Dl, pos, t, SubFace, SubPx, color ?? Tint.Muted);
     }
 
     public static float SubWidth(string text) => Txt.Measure(Txt.Sentence(text), SubFace, SubPx).X;
@@ -294,28 +294,27 @@ public static partial class Kit
     public static float SubHeight => Txt.Natural(SubFace, SubPx);
 
     /// <summary>
-    /// A heading (15px 600, ink) with a small label on its right, on one row; when the two don't fit
-    /// side by side, the label goes on a line of its own under the heading (it squeezed the heading
-    /// out: "Gearsets" in a narrow pane showed only its label).
+    /// A heading in Bricolage capitals (Ink; OnField on the field) with a small line on its right, on
+    /// one row; when the two don't fit side by side, the line goes under the heading. (Outfit 600 in
+    /// normal capitals until the redesign; <see cref="SectionHead"/> is the mock's with a count.)
     /// </summary>
     public static void Heading(string text, string? sub = null, float px = 15, Vector4? subColor = null)
     {
         var at = At;
         var w = Width;
-        // (Outfit 600 a pixel bigger than the size asked for: it's smaller than Figtree for its em.)
-        var ipx = (int)px + 1;
-        var h = Txt.Natural(Face.Heading, ipx);
+        var ipx = (int)px;
+        var h = DisplayHeight(ipx);
         var subW = sub != null ? SubWidth(sub) : 0;
-        var textW = Txt.Measure(text, Face.Heading, ipx).X;
+        var textW = DisplayWidth(text, ipx);
         if (sub == null || textW + S(12) + subW <= w)
         {
-            Txt.Line(Dl, at, Txt.Fit(text, Face.Heading, ipx, w - subW - (sub != null ? S(12) : 0)), Face.Heading, ipx, Palette.Ink);
+            Display(at, text, ipx, Tint.Ink, w - subW - (sub != null ? S(12) : 0));
             if (sub != null)
                 Sub(new Vector2(at.X + w - subW, at.Y + (h - SubHeight) / 2 + S(1)), sub, subColor);
             Reserve(at, w, h);
             return;
         }
-        Txt.Line(Dl, at, Txt.Fit(text, Face.Heading, ipx, w), Face.Heading, ipx, Palette.Ink);
+        Display(at, text, ipx, Tint.Ink, w);
         var sh = SubHeight;
         Sub(new Vector2(at.X, at.Y + h + S(3)), sub, subColor, w);
         Reserve(at, w, h + S(3) + sh);
@@ -326,8 +325,8 @@ public static partial class Kit
     {
         var at = At;
         var w = Width;
-        var h = Txt.Natural(Face.Heading, 16);
-        Txt.Line(Dl, at, text, Face.Heading, 16, Palette.Ink);
+        var h = DisplayHeight(16);
+        Display(at, text, 16, Tint.Ink, w * 0.6f);
         var lw = Txt.Measure(link, Face.Sans, 13).X;
         var lh = Txt.Natural(Face.Sans, 13);
         var pos = new Vector2(at.X + w - lw, at.Y + (h - lh) / 2);
@@ -341,22 +340,32 @@ public static partial class Kit
     {
         var size = Txt.Measure(text, face, px);
         var (clicked, hovered, _) = Hit(id, pos, size);
-        Txt.Draw(Dl, pos, text, face, px, hovered ? Palette.Ink : Palette.AccentText);
+        Txt.Draw(Dl, pos, text, face, px, hovered ? Tint.Ink : Tint.Accent);
         return clicked;
     }
 
-    /// <summary>The ready ring: a <paramref name="thickness"/> track with the green arc for what's ready, round from the top.</summary>
-    public static void Ring(Vector2 center, float radius, float thickness, float fraction)
+    /// <summary>
+    /// The ready ring (the mock's <c>.ring</c>: two arcs): a <paramref name="thickness"/> track (the
+    /// tile; the field's ink at 18% on the field) and the arc for what's ready, round-ended from the
+    /// top, ice (the field's ink on the field; or <paramref name="arc"/>). Screen px. See <see cref="ReadyRing"/>.
+    /// </summary>
+    public static void Ring(Vector2 center, float radius, float thickness, float fraction, Vector4? arc = null)
     {
         var dl = Dl;
         var r = radius - thickness / 2;
         dl.PathArcTo(center, r, 0, MathF.PI * 2, 64);
-        dl.PathStroke(Palette.U32(Palette.Line), ImDrawFlags.Closed, thickness);
+        dl.PathStroke(Palette.U32(Tint.Track), ImDrawFlags.Closed, thickness);
         fraction = Math.Clamp(fraction, 0, 1);
         if (fraction <= 0) return;
+        var col = Palette.U32(arc ?? Tint.Fill);
         var start = -MathF.PI / 2;
-        dl.PathArcTo(center, r, start, start + MathF.PI * 2 * fraction, Math.Max(8, (int)(64 * fraction)));
-        dl.PathStroke(Palette.U32(Palette.Success), fraction >= 1 ? ImDrawFlags.Closed : ImDrawFlags.None, thickness);
+        var end = start + MathF.PI * 2 * fraction;
+        dl.PathArcTo(center, r, start, end, Math.Max(8, (int)(64 * fraction)));
+        dl.PathStroke(col, fraction >= 1 ? ImDrawFlags.Closed : ImDrawFlags.None, thickness);
+        if (fraction >= 1) return;
+        // Round ends.
+        dl.AddCircleFilled(center + new Vector2(MathF.Cos(start), MathF.Sin(start)) * r, thickness / 2, col, 12);
+        dl.AddCircleFilled(center + new Vector2(MathF.Cos(end), MathF.Sin(end)) * r, thickness / 2, col, 12);
     }
 
     /// <summary>An empty slot's tile: the raised ground, a hairline (dashed when it's somewhere to add).</summary>
@@ -365,12 +374,8 @@ public static partial class Kit
         var r = S(radius);
         var old = Palette.Opacity;
         Palette.Opacity = old * alpha;
-        if (dashed) Dashed(pos, pos + new Vector2(size), r, Palette.LineDashed, 1f);
-        else
-        {
-            Dl.AddRectFilled(pos, pos + new Vector2(size), Palette.U32(Palette.Raised), r);
-            Dl.AddRect(pos + new Vector2(0.5f), pos + new Vector2(size) - new Vector2(0.5f), Palette.U32(Palette.LineFaint), r, ImDrawFlags.None, 1f);
-        }
+        if (dashed) Dashed(pos, pos + new Vector2(size), r, Tint.Dashed, 1f);
+        else Dl.AddRectFilled(pos, pos + new Vector2(size), Palette.U32(Palette.Tile), r);
         Palette.Opacity = old;
     }
 
@@ -380,8 +385,8 @@ public static partial class Kit
         var dl = Dl;
         var c = pos + new Vector2(size / 2);
         dl.AddCircleFilled(c, size / 2, Palette.U32(lit ? Palette.BlushTile : Palette.Tile), 48);
-        dl.AddCircle(c, size / 2 - 0.5f, Palette.U32(lit ? Palette.AccentEdge : Palette.Line), 48, 1f);
-        Icons.Draw(dl, icon, c - new Vector2(S(iconPx) / 2), S(iconPx), lit ? Palette.Accent : Palette.Dim);
+        if (lit) dl.AddCircle(c, size / 2 - 0.5f, Palette.U32(Palette.AccentLine), 48, 1f);
+        Icons.Draw(dl, icon, c - new Vector2(S(iconPx) / 2), S(iconPx), lit ? Palette.Accent : Palette.Muted);
     }
 
     /// <summary>A dot of a colour, 7px (or another size).</summary>
