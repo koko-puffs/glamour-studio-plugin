@@ -133,4 +133,98 @@ public class KitModelTests
         var dashes = Dashes.Along(pts, 6);
         Assert.InRange(dashes.Count, 30, 32);
     }
+
+    // ---------------------------------------------------------------------------------------------
+    // Characters a face hasn't got: never ImGui's "?".
+
+    /// <summary>A stand-in face: Latin-1 and the base punctuation; the fallback: kana and kanji, and Ł.</summary>
+    private static bool InFace(char c) => c is >= ' ' and <= '\u00FF' || c is '’' or '“' or '”' or '–' or '—' or '…';
+
+    private static bool InFallback(char c) => c is >= '\u3040' and <= '\u30FF' or >= '\u4E00' and <= '\u9FFF' or 'Ł';
+
+    [Theory]
+    [InlineData("Moonlit Scholar")]
+    [InlineData("Fête d’été · Ñoño Größe")]
+    [InlineData("Tailor’s “Day” Off…")]
+    public void LatinNamesStayInTheirFace(string text)
+    {
+        var wanted = new HashSet<char>();
+        Assert.Null(Glyphs.Split(text, InFace, InFallback, wanted));
+        Assert.Empty(wanted);
+    }
+
+    [Fact]
+    public void OtherScriptsGoToTheFallbackInRuns()
+    {
+        var wanted = new HashSet<char>();
+        var runs = Glyphs.Split("Look 月の学者 by Mira", InFace, InFallback, wanted);
+        Assert.NotNull(runs);
+        Assert.Equal(new[] { ("Look ", false), ("月の学者", true), (" by Mira", false) }, runs!);
+        Assert.Empty(wanted);
+        runs = Glyphs.Split("ŁUKASZ", InFace, InFallback, wanted);
+        Assert.Equal(new[] { ("Ł", true), ("UKASZ", false) }, runs!);
+    }
+
+    [Fact]
+    public void WhatNeitherHasIsLeftOutAndAskedFor()
+    {
+        var wanted = new HashSet<char>();
+        // Hangul (not in either yet), an emoji (never: outside the BMP), a control.
+        var runs = Glyphs.Split("Moon 달 🌙 x\u0001", InFace, InFallback, wanted);
+        Assert.NotNull(runs);
+        var drawn = string.Concat(runs!.Select(r => r.Text));
+        Assert.Equal("Moon   x", drawn);
+        Assert.DoesNotContain('?', drawn);
+        Assert.Equal(new[] { '달' }, wanted.ToArray());
+        // Nothing drawable at all: no runs, nothing drawn.
+        Assert.Empty(Glyphs.Split("🌙", InFace, InFallback, wanted)!);
+    }
+
+    [Theory]
+    [InlineData('é', true)]
+    [InlineData('月', true)]
+    [InlineData('\uD83C', false)]
+    [InlineData('\uE040', false)]
+    [InlineData('\u0007', false)]
+    [InlineData('\uFFFD', false)]
+    [InlineData('\u0085', false)]
+    public void OnlyRealCharactersAreAskedFor(char c, bool wantable) => Assert.Equal(wantable, Glyphs.Wantable(c));
+
+    [Fact]
+    public void LatinExtrasGoToTheFacesToo()
+    {
+        Assert.True(Glyphs.IsLatinish('Ł'));
+        Assert.True(Glyphs.IsLatinish('ș'));
+        Assert.True(Glyphs.IsLatinish('ố'));
+        Assert.False(Glyphs.IsLatinish('月'));
+        Assert.False(Glyphs.IsLatinish('é')); // Latin-1: in every face from the start
+    }
+
+    [Fact]
+    public void RangesAreSortedJoinedAndEndWithZero()
+    {
+        var r = Glyphs.Ranges(new[] { 'b', 'a', 'c', '月' }, withBase: false);
+        Assert.Equal(new ushort[] { 'a', 'c', '月', '月', 0 }, r);
+        var withBase = Glyphs.Ranges(new[] { 'Ł' });
+        Assert.Equal(0, withBase[^1]);
+        Assert.Equal(0x20, withBase[0]);
+        // Every pair is in order and none overlaps the next.
+        for (var i = 0; i + 3 < withBase.Length; i += 2)
+        {
+            Assert.True(withBase[i] <= withBase[i + 1]);
+            Assert.True(withBase[i + 1] + 1 < withBase[i + 2]);
+        }
+        // Latin-1's letters (é ö ñ ß) and the curly apostrophe are in every face's atlas.
+        foreach (var c in "éöñßÆøÿ’“”–—…")
+            Assert.Contains(Glyphs.Base, b => c >= b.From && c <= b.To);
+    }
+
+    [Theory]
+    [InlineData(10, 11)]
+    [InlineData(13, 13)]
+    [InlineData(14, 15)]
+    [InlineData(20, 24)]
+    [InlineData(60, 34)]
+    public void TheFallbackSizeIsTheNearestAtLeastAsBig(int px, int expected) =>
+        Assert.Equal(expected, Glyphs.Nearest(px, new[] { 11, 13, 15, 18, 24, 34 }));
 }

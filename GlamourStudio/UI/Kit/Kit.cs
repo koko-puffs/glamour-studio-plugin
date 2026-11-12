@@ -632,7 +632,9 @@ public static partial class Kit
         }
         bool changed;
         bool active;
-        using (Txt.Fonts.Push(Face.Sans, heightCss <= 34 ? 13 : 14))
+        // What's typed in the fallback when the face hasn't its letters (the fallback has Latin too).
+        var inputPx = heightCss <= 34 ? 13 : 14;
+        using (Txt.PushFor(text.Length > 0 ? text : hint, Face.Sans, inputPx))
         {
             var fh = ImGui.GetFontSize();
             ImGui.PushStyleColor(ImGuiCol.Text, Palette.Ink);
@@ -857,19 +859,20 @@ public static partial class Kit
             ImGui.PushTextWrapPos(S(260));
             if (title != null)
             {
-                using (Txt.Fonts.Push(Face.SansSemibold, 13))
+                // (A name the face hasn't the letters for is drawn in the fallback: never ImGui's "?".)
+                using (Txt.PushFor(title, Face.SansSemibold, 13))
                 {
                     ImGui.PushStyleColor(ImGuiCol.Text, Palette.Ink);
-                    ImGui.TextUnformatted(title);
+                    ImGui.TextUnformatted(Txt.Drawable(title, Face.SansSemibold, 13));
                     ImGui.PopStyleColor();
                 }
             }
             if (text.Length > 0)
             {
-                using (Txt.Fonts.Push(Face.Sans, 13))
+                using (Txt.PushFor(text, Face.Sans, 13))
                 {
                     if (bodyColor is { } bc) ImGui.PushStyleColor(ImGuiCol.Text, bc);
-                    ImGui.TextUnformatted(text);
+                    ImGui.TextUnformatted(Txt.Drawable(text, Face.Sans, 13));
                     if (bodyColor != null) ImGui.PopStyleColor();
                 }
             }

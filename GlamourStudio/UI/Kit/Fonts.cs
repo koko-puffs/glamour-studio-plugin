@@ -48,6 +48,13 @@ public enum Face
 
     /// <summary>Geist Mono 500: a number that leads.</summary>
     MonoMedium,
+
+    /// <summary>
+    /// Noto Sans CJK Medium (Dalamud's own), at 11 13 15 18 24 34, holding only the characters the
+    /// window's faces haven't got and that it has been asked to draw (kana, kanji, hangul, …): Txt
+    /// draws such characters in it by itself. Not for the screens to ask for.
+    /// </summary>
+    Fallback,
 }
 
 /// <summary>
@@ -67,7 +74,17 @@ public enum Face
 ///
 /// On a Japanese client the sans sizes are Dalamud's own font (it has the kana and kanji that item
 /// names need); the other faces keep the design's (with Dalamud's language's glyphs merged in up to
-/// 30px: past that, a CJK atlas at every big size would be many megabytes, for a title or two).
+/// 30px: past that, a CJK atlas at every big size would be many megabytes; the fallback draws them).
+///
+/// No name ever shows ImGui's "?": each face's atlas holds Latin-1 and the common punctuation
+/// (<see cref="Glyphs.Base"/>); a character a face hasn't got is drawn by <see cref="Txt"/> in
+/// <see cref="Face.Fallback"/> (Noto Sans CJK) at the nearest of its sizes, scaled to the size
+/// asked for; one neither has yet is left out for a moment and asked for (<see cref="Want"/>): the
+/// atlas is built again with it, at most once a second, the Latin ones (Ł, ő, ș) in the faces too.
+/// The atlas grows only by what's shown: about 4,000 to 5,500 px² a CJK character at 100% scale
+/// (its six sizes; four times that at 200%), so 500 different kanji are 2 to 2.7 million px. Merging
+/// Japanese's common set (about 3,200 glyphs) into the big display sizes instead would be about 21
+/// million px for 44 and 60 alone.
 /// </summary>
 public sealed class Fonts : IDisposable
 {
@@ -79,6 +96,15 @@ public sealed class Fonts : IDisposable
     private const float ShantellLine = 1.34f;
 
     private const float GeistMonoLine = 1.3f;
+
+    /// <summary>Noto Sans CJK's (ascent − descent) / em.</summary>
+    private const float NotoLine = 1.448f;
+
+    /// <summary>The fallback's sizes (CSS px, ascending): the window's text sizes, and 34 for titles (bigger ones are drawn from it, scaled).</summary>
+    public static readonly int[] FallbackSizes = { 11, 13, 15, 18, 24, 34 };
+
+    /// <summary>The most characters ever asked for (a list of ever-new names mustn't grow the atlas for ever).</summary>
+    private const int MostWanted = 6000;
 
     /// <summary>The biggest size that has Dalamud's language's glyphs merged in.</summary>
     private const int ExtraGlyphsUpTo = 30;
@@ -99,7 +125,20 @@ public sealed class Fonts : IDisposable
         (Face.Hand, 18), (Face.Hand, 15), (Face.Hand, 13),
         (Face.Mono, 13), (Face.Mono, 12), (Face.Mono, 11), (Face.Mono, 10),
         (Face.MonoMedium, 13), (Face.MonoMedium, 12), (Face.MonoMedium, 11),
+        (Face.Fallback, 11), (Face.Fallback, 13), (Face.Fallback, 15), (Face.Fallback, 18), (Face.Fallback, 24), (Face.Fallback, 34),
     };
+
+    // What the faces' atlases hold besides Latin-1, as the builds read it (on Dalamud's build thread:
+    // swapped whole, never changed in place).
+    private static volatile ushort[] faceRanges = Glyphs.Ranges(Array.Empty<char>());
+    private static volatile ushort[] fallbackRanges = Glyphs.Ranges(new[] { ' ' }, withBase: false);
+
+    /// <summary>Every character asked for so far, and whether some came since the last build.</summary>
+    private readonly HashSet<char> wanted = new();
+
+    private bool pending;
+    private DateTime lastBuild = DateTime.MinValue;
+    private readonly IFontAtlas atlas;
 
     private readonly Dictionary<(Face, int), IFontHandle> handles = new();
 
@@ -122,7 +161,7 @@ public sealed class Fonts : IDisposable
 
     public Fonts()
     {
-        var atlas = Services.PluginInterface.UiBuilder.FontAtlas;
+        atlas = Services.PluginInterface.UiBuilder.FontAtlas;
         var japanese = Services.ClientState.ClientLanguage == ClientLanguage.Japanese;
         foreach (var (face, px) in Wanted)
         {
@@ -135,6 +174,7 @@ public sealed class Fonts : IDisposable
                 Face.SansExtraBold => "Figtree-ExtraBold.ttf",
                 Face.Display or Face.Heading or Face.Echo => "BricolageGrotesque-ExtraBold.ttf",
                 Face.Hand => "ShantellSans-560.ttf",
+                Face.Fallback => string.Empty,
                 Face.MonoMedium => "GeistMono-Medium.ttf",
                 _ => "GeistMono-Regular.ttf",
             };
@@ -142,11 +182,14 @@ public sealed class Fonts : IDisposable
             {
                 Face.Display or Face.Heading or Face.Echo => BricolageLine,
                 Face.Hand => ShantellLine,
+                Face.Fallback => NotoLine,
                 Face.Mono or Face.MonoMedium => GeistMonoLine,
                 _ => FigtreeLine,
             };
             var dalamudFont = japanese && face is Face.Sans or Face.SansMedium or Face.SansSemibold or Face.SansBold or Face.SansExtraBold;
-            var handle = Make(atlas, file, px * line, dalamudFont, face == Face.Echo, px <= ExtraGlyphsUpTo);
+            var handle = face == Face.Fallback
+                ? MakeFallback(atlas, px * line)
+                : Make(atlas, file, px * line, dalamudFont, face == Face.Echo, px <= ExtraGlyphsUpTo);
             // Dalamud may say so from another thread.
             handle.ImFontChanged += (_, _) => Interlocked.Increment(ref generation);
             handles[(face, px)] = handle;
@@ -184,12 +227,64 @@ public sealed class Fonts : IDisposable
             }
             var font = dalamudFont
                 ? tk.AddDalamudDefaultFont(sizePx, null)
-                : tk.AddFontFromMemory(Read(file), new SafeFontConfig { SizePx = sizePx }, file);
+                : tk.AddFontFromMemory(Read(file), new SafeFontConfig { SizePx = sizePx, GlyphRanges = faceRanges }, file);
             // The game's own symbols (the HQ mark in item names) and whatever Dalamud's language needs.
             tk.AddGameSymbol(new SafeFontConfig { SizePx = sizePx, MergeFont = font });
             if (extraGlyphs || dalamudFont)
                 tk.AttachExtraGlyphsForDalamudLanguage(new SafeFontConfig { SizePx = sizePx, MergeFont = font });
         }));
+
+    /// <summary>The fallback at a size: Noto Sans CJK with only the characters asked for (and the space).</summary>
+    private static IFontHandle MakeFallback(IFontAtlas atlas, float sizePx) =>
+        atlas.NewDelegateFontHandle(e => e.OnPreBuild(tk =>
+            tk.AddDalamudAssetFont(Dalamud.DalamudAsset.NotoSansCjkMedium, new SafeFontConfig { SizePx = sizePx, GlyphRanges = fallbackRanges })));
+
+    /// <summary>The fallback's handle for drawing at <paramref name="px"/>, and the size it was made at (CSS px).</summary>
+    public (IFontHandle Handle, int Px) Fallback(int px)
+    {
+        var at = Glyphs.Nearest(px, FallbackSizes);
+        return (handles[(Face.Fallback, at)], at);
+    }
+
+    /// <summary>Asks for characters the faces and the fallback haven't got: they're in the next build (see <see cref="Tick"/>).</summary>
+    public void Want(IEnumerable<char> chars)
+    {
+        foreach (var c in chars)
+        {
+            if (wanted.Count >= MostWanted) return;
+            if (Glyphs.Wantable(c) && wanted.Add(c)) pending = true;
+        }
+    }
+
+    /// <summary>
+    /// Once a frame or so (Txt calls it): builds the atlas again with what's been asked for, at most
+    /// once a second and never while it's building. The faces' "Generation" goes up when it's done,
+    /// and the text measured without the new glyphs is measured again.
+    /// </summary>
+    public void Tick()
+    {
+        if (!pending) return;
+        var now = DateTime.UtcNow;
+        if (now - lastBuild < TimeSpan.FromSeconds(1)) return;
+        if (atlas.BuildTask is { IsCompleted: false }) return;
+        pending = false;
+        lastBuild = now;
+        var latin = new List<char>();
+        foreach (var c in wanted)
+            if (Glyphs.IsLatinish(c)) latin.Add(c);
+        faceRanges = Glyphs.Ranges(latin);
+        var all = new List<char>(wanted) { ' ' };
+        fallbackRanges = Glyphs.Ranges(all, withBase: false);
+        try
+        {
+            if (atlas.AutoRebuildMode == FontAtlasAutoRebuildMode.OnNewFrame) atlas.BuildFontsOnNextFrame();
+            else _ = atlas.BuildFontsAsync();
+        }
+        catch (Exception ex)
+        {
+            Services.Log.Warning(ex, "Glamour Studio couldn't build its fonts again for new characters");
+        }
+    }
 
     private static readonly Dictionary<string, byte[]> Files = new();
 

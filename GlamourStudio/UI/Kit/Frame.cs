@@ -100,8 +100,7 @@ public static class Frame
                 if (tex != null) dl.AddImage(tex.Handle, ip, ip + new Vector2(S(16)), Vector2.Zero, Vector2.One, Palette.U32(Vector4.One));
                 else Icons.Draw(dl, Icon.Sparkles, ip, S(16), Palette.Accent);
             }
-            using (Txt.Fonts.Push(Face.SansMedium, 13))
-                dl.AddText(new Vector2(MathF.Round(pos.X + S(13) + lead), MathF.Round(pos.Y + (box.Y - ImGui.GetFontSize()) / 2)), Palette.U32(Palette.Ink), text);
+            Txt.Line(dl, new Vector2(pos.X + S(13) + lead, pos.Y), text, Face.SansMedium, 13, Palette.Ink, box.Y / S(1));
         }
         finally
         {
