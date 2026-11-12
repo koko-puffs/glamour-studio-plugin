@@ -601,9 +601,6 @@ public sealed partial class MainWindow
         Txt.Para(OneRun, LineCss(px), center);
     }
 
-    /// <summary>A line of the pane's (12px, muted): kept for what's laid by the views' own pane parts.</summary>
-    private void PaneNote(string text, Vector4? color = null) => PaneText(text, 12, color ?? Palette.Muted);
-
     /// <summary>
     /// A section's heading (the mock's <c>.pane .sec-h</c>): Bricolage capitals at 13 (line 1.02), a
     /// faint mono count 8px after it on its baseline.
