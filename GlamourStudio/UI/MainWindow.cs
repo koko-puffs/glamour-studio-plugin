@@ -511,7 +511,7 @@ public sealed partial class MainWindow : Window
     private int PiecesKnown()
     {
         Where(0);
-        return placeIndex.Count;
+        return gearKnown;
     }
 
     /// <summary>Runs after this frame's drawing is finished.</summary>

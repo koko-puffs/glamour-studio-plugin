@@ -1298,17 +1298,25 @@ public sealed partial class MainWindow
         return examined;
     }
 
-    private (Examined? For, int Wardrobe, string Name, string Initials, string Yours, (uint Icon, Own Own, Piece Piece)[] Tiles)? examinedWords;
+    private (Examined? For, int Wardrobe, string Name, string Initials, string Yours, (uint Icon, Own Own, Piece Piece, string? Title, string? What)[] Tiles)? examinedWords;
 
     private void DrawExaminedCard(Examined e)
     {
         if (examinedWords is not { } ew || !ReferenceEquals(ew.For, e) || ew.Wardrobe != wardrobe.Version)
         {
             var made = Slots.All.Where(e.Pieces.ContainsKey).Select(s => e.Pieces[s])
-                .Select(p => (data.Item(p.Item)?.Icon ?? 0, Where(p.Item) != null ? Own.Ice : Own.Pink, p)).ToArray();
+                .Select(p => (data.Item(p.Item)?.Icon ?? 0, Where(p.Item) != null ? Own.Ice : Own.Pink, p, (string?)null, (string?)null)).ToList();
+            // Their facewear and fashion accessory after the twelve (yours: unlocked on this character).
+            var known = data.Collections;
+            if (e.Extras.HasFace)
+                made.Add((known.FaceIcon(e.Extras.Face, e.Extras.Colour), Where(e.Extras.Face) != null ? Own.Ice : Own.Pink, new Piece(e.Extras.Face),
+                    known.FaceName(e.Extras.Face, e.Extras.Colour) ?? data.ItemName(e.Extras.Face), $"Facewear · {Core.Collections.ColourName(e.Extras.Colour)}"));
+            if (e.Extras.HasFashion)
+                made.Add((known.Accessory(e.Extras.Fashion)?.Icon ?? 0, Where(e.Extras.Fashion) != null ? Own.Ice : Own.Pink, new Piece(e.Extras.Fashion),
+                    known.Accessory(e.Extras.Fashion)?.Name ?? data.ItemName(e.Extras.Fashion), "Fashion accessory"));
             var yours = made.Count(t => t.Item2 == Own.Ice);
             examinedWords = ew = (e, wardrobe.Version, e.Name.Length > 0 ? $"{e.Name}'s outfit" : "Their outfit",
-                Model.Initials.Of(e.Name.Length > 0 ? e.Name : null), $"{yours} of {made.Length} yours", made);
+                Model.Initials.Of(e.Name.Length > 0 ? e.Name : null), $"{yours} of {made.Count} yours", made.ToArray());
         }
         Kit.BeginPanel("##examine", 14, 16, 14);
         var at = Kit.At;
@@ -1350,8 +1358,11 @@ public sealed partial class MainWindow
             if (!Kit.Blocked && ImGui.IsWindowHovered() && ImGui.IsMouseHoveringRect(p, p + new Vector2(size)))
             {
                 var piece = ew.Tiles[i].Piece;
-                Kit.Tooltip(data.ItemName(piece.Item), (DyeLine(piece) is { } d ? d + "\n" : string.Empty)
-                    + (ew.Tiles[i].Own == Own.Ice ? "Yours" : "Not yours yet"));
+                if (ew.Tiles[i] is { Title: { } named, What: { } what })
+                    Kit.Tooltip(named, $"{what}\n{(ew.Tiles[i].Own == Own.Ice ? "Unlocked on this character" : "Not unlocked on this character yet")}");
+                else
+                    Kit.Tooltip(data.ItemName(piece.Item), (DyeLine(piece) is { } d ? d + "\n" : string.Empty)
+                        + (ew.Tiles[i].Own == Own.Ice ? "Yours" : "Not yours yet"));
             }
         }
         var rows = (ew.Tiles.Length + perRow - 1) / perRow;

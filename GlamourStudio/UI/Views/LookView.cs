@@ -327,9 +327,10 @@ public sealed partial class MainWindow
         var blockers = (ready.ToStore > 0 ? 1 : 0) + (ready.Missing > 0 ? 1 : 0);
         var blockH = blockers > 0 && !ready.PlateReady ? S(2 + 12) * 2 + rowH * blockers + S(6) * (blockers - 1) : 0;
         var stripH = rgbs.Count > 0 ? S(34) : 0;
+        var extrasH = look.Extras.Any ? S(28) : 0;
         const string tryLabel = "Try it on";
         var btnH = sticker ? Kit.StickerHeight() + S(3) : Kit.ButtonHeight(BtnSize.Sm);
-        var total = ringD + gap + titleH + S(4) + lineH + (blockH > 0 ? gap + blockH : 0) + (stripH > 0 ? gap + stripH : 0) + gap + btnH;
+        var total = ringD + gap + titleH + S(4) + lineH + (blockH > 0 ? gap + blockH : 0) + (stripH > 0 ? gap + stripH : 0) + (extrasH > 0 ? gap + extrasH : 0) + gap + btnH;
         var y = pos.Y + MathF.Max(0, (size.Y - total) / 2);
         var cx = pos.X + size.X / 2;
 
@@ -378,6 +379,13 @@ public sealed partial class MainWindow
             y += stripH;
         }
 
+        if (extrasH > 0)
+        {
+            y += gap;
+            SheetExtras(look.Extras, new Vector2(pos.X, y), size.X);
+            y += extrasH;
+        }
+
         y += gap;
         const string tryTip = "Opens the game's fitting room with the look on you (any piece, yours or not)";
         if (sticker)
@@ -391,6 +399,40 @@ public sealed partial class MainWindow
             var bw = Kit.ButtonWidth(tryLabel, BtnSize.Sm, Icon.Shirt);
             if (Kit.Button("##look-try", new Vector2(cx - bw / 2, y), tryLabel, Btn.Glass, BtnSize.Sm, Icon.Shirt, 0, false, tryTip, iconCss: 14))
                 Later(() => TryOn(look.Pieces));
+        }
+    }
+
+    /// <summary>
+    /// The look's facewear and fashion accessory under the palette strip (plates don't hold them): each
+    /// its icon (28, ice when unlocked, pink when not) and its name, side by side in the middle; pointed
+    /// at, what it is and that Wear puts it on.
+    /// </summary>
+    private void SheetExtras(Extras extras, Vector2 pos, float width)
+    {
+        var known = data.Collections;
+        var items = new List<(uint Item, uint Icon, string Name, string Tip)>(2);
+        if (extras.HasFace)
+            items.Add((extras.Face, known.FaceIcon(extras.Face, extras.Colour), known.FaceName(extras.Face, extras.Colour) ?? data.ItemName(extras.Face),
+                $"Facewear · {Collections.ColourName(extras.Colour)}. Plates don't hold it: Wear puts it on with /facewear."));
+        if (extras.HasFashion)
+            items.Add((extras.Fashion, known.Accessory(extras.Fashion)?.Icon ?? 0, known.Accessory(extras.Fashion)?.Name ?? data.ItemName(extras.Fashion),
+                "Fashion accessory. Plates don't hold it: Wear puts it on with /fashion."));
+        var dl = Kit.Dl;
+        var tile = S(28);
+        var each = (width - S(12) * (items.Count - 1)) / items.Count;
+        var widths = items.Select(i => MathF.Min(tile + S(6) + Txt.Measure(i.Name, Face.SansMedium, 12).X, each)).ToArray();
+        var x = pos.X + (width - widths.Sum() - S(12) * (items.Count - 1)) / 2;
+        for (var i = 0; i < items.Count; i++)
+        {
+            var (item, icon, name, tip) = items[i];
+            var unlocked = Where(item) == Place.Unlocked;
+            Kit.Item(new Vector2(x, pos.Y), 28, icon, unlocked ? Own.Ice : Own.Pink, !unlocked);
+            var tx = x + tile + S(6);
+            var nameFit = Txt.Fit(name, Face.SansMedium, 12, MathF.Max(S(10), widths[i] - tile - S(6)));
+            Txt.Draw(dl, new Vector2(tx, pos.Y + (tile - Txt.Natural(Face.SansMedium, 12)) / 2), nameFit, Face.SansMedium, 12, Palette.Body);
+            if (!Kit.Blocked && ImGui.IsWindowHovered() && ImGui.IsMouseHoveringRect(new Vector2(x, pos.Y), new Vector2(x + widths[i], pos.Y + tile)))
+                Kit.Tooltip(name, $"{tip} {(unlocked ? "Unlocked on this character." : "Not unlocked on this character yet.")}");
+            x += widths[i] + S(12);
         }
     }
 
@@ -692,11 +734,11 @@ public sealed partial class MainWindow
     }
 
     /// <summary>The open slip's lines (what filling will do), worked out again only when the plan, the plate or the look's sending change.</summary>
-    private (PlatePlan Plan, int Plate, int Sent, bool Clear, List<(Vector4 Dot, string Text)> Lines)? openSlipLines;
+    private (PlatePlan Plan, int Plate, int Sent, bool Clear, Extras Extras, List<(Vector4 Dot, string Text)> Lines)? openSlipLines;
 
-    private List<(Vector4 Dot, string Text)> SlipLines(PlatePlan plan, int plate, int sent)
+    private List<(Vector4 Dot, string Text)> SlipLines(PlatePlan plan, int plate, int sent, Extras extras)
     {
-        if (openSlipLines is { } c && ReferenceEquals(c.Plan, plan) && c.Plate == plate && c.Sent == sent && c.Clear == config.ClearBare) return c.Lines;
+        if (openSlipLines is { } c && ReferenceEquals(c.Plan, plan) && c.Plate == plate && c.Sent == sent && c.Clear == config.ClearBare && c.Extras == extras) return c.Lines;
         var lines = new List<(Vector4, string)>();
         var set = plan.Set.ToList();
         lines.Add((plan.Ready > 0 ? Palette.Ice : Palette.Pink,
@@ -726,7 +768,8 @@ public sealed partial class MainWindow
         var cleared = plan.Steps.Count(s => s.Kind == StepKind.Clear);
         if (cleared > 0 && config.ClearBare) lines.Add((Palette.Faint, LookSheet.Emptied(cleared)));
         if (sent > 0 && sent != plate) lines.Add((Palette.Amber, $"It was sent for plate {sent}: pick plate {sent} in the game's window to put it there"));
-        openSlipLines = (plan, plate, sent, config.ClearBare, lines);
+        if (Words.NotOnPlates(extras) is { } notOn) lines.Add((Palette.Accent, notOn));
+        openSlipLines = (plan, plate, sent, config.ClearBare, extras, lines);
         return lines;
     }
 
@@ -742,7 +785,7 @@ public sealed partial class MainWindow
         else SlipTop("Take it into the game", $"Plate {plate}", 26, "Open now");
         Kit.SlipTear();
         var px = compact ? 13 : 12;
-        var lines = SlipLines(plan, plate, sent);
+        var lines = SlipLines(plan, plate, sent, look.Extras);
         for (var i = 0; i < lines.Count; i++)
         {
             if (i > 0) Kit.Gap(4);
@@ -835,6 +878,11 @@ public sealed partial class MainWindow
         Kit.SlipTear();
         var (line, wishable) = ClosedWords(look, ready);
         Words12(line, Palette.Muted);
+        if (Words.NotOnPlates(look.Extras) is { } notOn)
+        {
+            Kit.Gap(6);
+            Words12(notOn, Palette.Muted);
+        }
         if (Linked && wishable.Count > 0)
         {
             Kit.Gap(8);
