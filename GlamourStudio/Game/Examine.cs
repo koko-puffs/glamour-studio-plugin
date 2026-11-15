@@ -7,13 +7,15 @@ using GlamourStudio.Core;
 
 namespace GlamourStudio.Game;
 
-/// <summary>Someone's outfit, from the game's Examine window: their name and what they show (glamour and all).</summary>
-public sealed record Examined(uint EntityId, string Name, Body Body, Dictionary<Slot, Piece> Pieces);
+/// <summary>Someone's outfit, from the game's Examine window: their name and what they show (glamour and all), with their facewear and fashion accessory.</summary>
+public sealed record Examined(uint EntityId, string Name, Body Body, Dictionary<Slot, Piece> Pieces, Extras Extras = default);
 
 /// <summary>
 /// The game's Examine window (<c>CharacterInspect</c>): while it's open, the gear it shows is in the
 /// <c>Examine</c> container, in the order of what you wear (the waist's place empty), each piece's
-/// glamour in <c>GlamourId</c>. Framework thread.
+/// glamour in <c>GlamourId</c>. Their facewear is the window's (<c>UIState.Inspect.GlassesIds</c>);
+/// their fashion accessory is read off them (<c>OrnamentData.OrnamentId</c>) while they're near.
+/// Framework thread.
 /// </summary>
 public static unsafe class Examine
 {
@@ -62,12 +64,25 @@ public static unsafe class Examine
             var body = who is Dalamud.Game.ClientState.Objects.Types.ICharacter ch && ch.Customize.Length > 1 && ch.Customize[1] == 0
                 ? Body.Masculine
                 : Body.Feminine;
-            return new Examined(id, name, body, pieces);
+            return new Examined(id, name, body, pieces, ExtrasOf(data, who));
         }
         catch (Exception ex)
         {
             Services.Log.Debug(ex, "Glamour Studio couldn't read the Examine window");
             return null;
         }
+    }
+
+    /// <summary>The facewear the window shows and the accessory they hold (none when they aren't near).</summary>
+    private static Extras ExtrasOf(GameData data, Dalamud.Game.ClientState.Objects.Types.IGameObject? who)
+    {
+        var known = data.Collections;
+        if (!known.Known) return default;
+        uint glasses = 0, ornament = 0;
+        var ui = FFXIVClientStructs.FFXIV.Client.Game.UI.UIState.Instance();
+        if (ui != null) glasses = ui->Inspect.GlassesIds[0];
+        if (who is Dalamud.Game.ClientState.Objects.Types.ICharacter && who.Address != nint.Zero)
+            ornament = ((FFXIVClientStructs.FFXIV.Client.Game.Character.Character*)who.Address)->OrnamentData.OrnamentId;
+        return known.Worn(glasses, ornament);
     }
 }

@@ -16,13 +16,19 @@ public enum Place
     Inventory,
     Saddlebag,
     Retainer,
+
+    /// <summary>
+    /// Your facewear styles and fashion accessories unlocked (the game's collections, read by
+    /// themselves), as the items that unlock them: never in the way, so the handiest of all.
+    /// </summary>
+    Unlocked,
 }
 
 /// <summary>The places by name, and the order a piece found in two is kept by (the handiest first).</summary>
 public static class Places
 {
-    /// <summary>The handiest first: a piece in the dresser and on a retainer is "in the dresser".</summary>
-    public static readonly Place[] ByPriority = { Place.Dresser, Place.Armoire, Place.Armoury, Place.Inventory, Place.Saddlebag, Place.Retainer };
+    /// <summary>The handiest first: a piece in the dresser and on a retainer is "in the dresser" (unlocked first of all: the site's order).</summary>
+    public static readonly Place[] ByPriority = { Place.Unlocked, Place.Dresser, Place.Armoire, Place.Armoury, Place.Inventory, Place.Saddlebag, Place.Retainer };
 
     public static string Key(Place p) => p switch
     {
@@ -31,6 +37,7 @@ public static class Places
         Place.Armoury => "armoury",
         Place.Inventory => "inventory",
         Place.Saddlebag => "saddlebag",
+        Place.Unlocked => "unlocked",
         _ => "retainer",
     };
 
@@ -42,6 +49,7 @@ public static class Places
         Place.Armoury => "Armoury chest",
         Place.Inventory => "Bags",
         Place.Saddlebag => "Saddlebags",
+        Place.Unlocked => "Facewear and accessories",
         _ => "Retainers",
     };
 
@@ -53,6 +61,7 @@ public static class Places
         Place.Armoury => "in your armoury chest",
         Place.Inventory => "in your bags",
         Place.Saddlebag => "in your saddlebags",
+        Place.Unlocked => "unlocked",
         _ => "on a retainer",
     };
 
@@ -128,6 +137,9 @@ public sealed class CharacterWardrobe
 
     /// <summary>What they wear (their glamour, as seen), last time it was looked at.</summary>
     public Dictionary<Slot, Piece> Outfit { get; set; } = new();
+
+    /// <summary>The facewear and fashion accessory they wear (by their unlock items), read with <see cref="Outfit"/>.</summary>
+    public Extras OutfitExtras { get; set; }
 
     public DateTime? OutfitReadAt { get; set; }
 
@@ -232,7 +244,7 @@ public sealed class Wardrobe
             sb.Append('|').Append(character.Key).Append(character.Name).Append(character.World);
             foreach (var plate in character.Plates.OrderBy(p => p.Plate))
                 sb.Append('#').Append(plate.Plate).Append(LookJson.Write(plate.Pieces).ToJsonString());
-            sb.Append('|').Append(LookJson.Write(character.Outfit).ToJsonString()).Append(character.Body);
+            sb.Append('|').Append(LookJson.Write(character.Outfit, character.OutfitExtras).ToJsonString()).Append(character.Body);
             sb.Append('|').Append(Appearance.Json(character.Customize, character.Colours)?.ToJsonString());
         }
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(sb.ToString())));
@@ -255,7 +267,7 @@ public sealed class Wardrobe
                     .Select(p => (JsonNode)new JsonObject { ["plate"] = p.Plate, ["pieces"] = LookJson.Write(p.Pieces) }).ToArray());
             if (character.OutfitReadAt != null)
             {
-                var outfit = new JsonObject { ["body"] = LookJson.BodyKey(character.Body), ["pieces"] = LookJson.Write(character.Outfit) };
+                var outfit = new JsonObject { ["body"] = LookJson.BodyKey(character.Body), ["pieces"] = LookJson.Write(character.Outfit, character.OutfitExtras) };
                 if (Appearance.Json(character.Customize, character.Colours) is { } look) outfit["appearance"] = look;
                 args["p_outfit"] = outfit;
             }

@@ -427,6 +427,7 @@ public sealed partial class MainWindow
                     Place.Inventory => ("In your bags", Icon.Bag),
                     Place.Armoury => ("Armoury chest", Icon.Shield),
                     Place.Saddlebag => ("Saddlebags", Icon.Backpack),
+                    Place.Unlocked => ("Unlocked", Icon.Sparkles),
                     _ => ("On a retainer", Icon.User),
                 };
                 return (text, TagKind.Amber, icon, Own.Amber,
@@ -632,7 +633,7 @@ public sealed partial class MainWindow
         switch (kind)
         {
             case SlipKind.Filled:
-                DrawFilled(filled!.Value.Result, filled.Value.Plan, compact);
+                DrawFilled(look, filled!.Value.Result, filled.Value.Plan, compact);
                 break;
             case SlipKind.Open:
                 DrawOpenSlip(look, compact);
@@ -907,7 +908,7 @@ public sealed partial class MainWindow
     }
 
     /// <summary>The slip after filling: what went on, then Save in the game, then Wear plate N (the sticker) or Fill it again.</summary>
-    private void DrawFilled(FillResult result, PlatePlan plan, bool compact)
+    private void DrawFilled(Look look, FillResult result, PlatePlan plan, bool compact)
     {
         var saved = !editorChanges;
         Kit.BeginSlip("##slip", 16, 18, Palette.Ground2);
@@ -919,15 +920,20 @@ public sealed partial class MainWindow
             Kit.Gap(4);
             DotLine(Palette.Amber, problem, compact ? 13 : 12);
         }
+        if (Words.NotOnPlates(look.Extras) is { } extrasLine)
+        {
+            Kit.Gap(4);
+            DotLine(Palette.Accent, extrasLine, compact ? 13 : 12);
+        }
         Kit.Gap(10);
         var row = Kit.At;
         var blocked = Gearsets.Blocked(true);
         var wear = $"Wear plate {result.Plate}";
         if (Kit.Sticker("##wear", row, wear, StickerSize.Md, Icon.Shirt, 0, !saved || blocked != null,
-                !saved ? "Save the plate in the game first" : blocked ?? "Puts the plate on your current gearset, as /gearset change does (in a sanctuary, on a job its gear fits)"))
+                !saved ? "Save the plate in the game first" : blocked ?? WearTip(look.Extras)))
             Later(() =>
             {
-                if (PlateEditor.Wear(result.Plate) is { } why) Frame.Warn(why);
+                if (WearPlate(result.Plate, look.Extras) is { } why) Frame.Warn(why);
             });
         var x2 = row.X + Kit.StickerWidth(wear, StickerSize.Md, Icon.Shirt) + S(3 + 8);
         if (Kit.Button("##again", new Vector2(x2, row.Y + (Kit.StickerHeight() - Kit.ButtonHeight(BtnSize.Sm)) / 2), "Fill it again", Btn.Quiet, BtnSize.Sm, Icon.Refresh, iconCss: 14))

@@ -371,7 +371,7 @@ public sealed partial class MainWindow
                      match != null ? $"It's your look “{match.Name}” already"
                      : Linked ? $"A new private look of yours on the site from what you wear, as “{name}”, to remix in the dressing room"
                      : "Link your account first (Settings → Account)"))
-            KeepAsLook(me, 0, name, me.Outfit);
+            KeepAsLook(me, 0, name, me.Outfit, me.OutfitExtras);
 
         // Its pieces between, as many as fit (six at most).
         var ix = x0 + colW + S(14);
@@ -397,7 +397,7 @@ public sealed partial class MainWindow
         return icons;
     }
 
-    private void KeepAsLook(CharacterWardrobe me, int plate, string name, IReadOnlyDictionary<Slot, Piece> pieces)
+    private void KeepAsLook(CharacterWardrobe me, int plate, string name, IReadOnlyDictionary<Slot, Piece> pieces, Extras extras = default)
     {
         var body = me.Body;
         var key = me.Key;
@@ -412,7 +412,7 @@ public sealed partial class MainWindow
                 Notify($"Kept as “{r.Value!.Name}” in your looks");
             }
             else Frame.Warn(r.Why ?? "The site said no");
-        });
+        }, extras);
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -484,14 +484,14 @@ public sealed partial class MainWindow
         const string wearLabel = "Wear it";
         var wearW = Kit.StickerWidth(wearLabel, StickerSize.Md, Icon.Shirt);
         var wearBlocked = pieces.Count == 0 ? "Nothing's on this plate" : Gearsets.Blocked(true);
+        // The look it is (or the one planned for it, when that's on it) brings its facewear and accessory.
+        var extras = match?.Extras ?? (card.OnPlan ? card.Planned?.Extras ?? default : default);
         // (Its block reaches 3px past it: the wrap leaves that room.)
         if (Kit.Sticker("##wear-plate", wrap.Next(wearW + S(3), Kit.StickerHeight() + S(3)), wearLabel, StickerSize.Md, Icon.Shirt, wearW, wearBlocked != null,
-                wearBlocked ?? "Changes to your gearset with this plate, as /gearset change does (in a sanctuary, on a job its gear fits)"))
+                wearBlocked ?? WearTip(extras)))
             Later(() =>
             {
-                var why = PlateEditor.Wear(plate);
-                recorder.Note($"WEAR plate {plate}: {why ?? "asked the game"}");
-                if (why != null) Frame.Warn(why);
+                if (WearPlate(plate, extras) is { } why) Frame.Warn(why);
             });
         const string tryLabel = "Try it on";
         var tryW = Kit.ButtonWidth(tryLabel, BtnSize.Sm);

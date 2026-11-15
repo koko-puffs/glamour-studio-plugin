@@ -465,6 +465,13 @@ public sealed partial class MainWindow
         PaneSec();
         SecHead("Slot by slot", on ? "all on it" : $"{changes.ToString(En)} to change");
         SlotRows(thePlan, current);
+        if (Words.NotOnPlates(look.Extras) is { } notOn)
+        {
+            PaneSec();
+            SecHead("Not on plates");
+            ExtrasRows("##c-plate-x", look.Extras);
+            PaneText(notOn, 11, Palette.Muted);
+        }
 
         // The dyes: from your bags, left to dye, bottles to get.
         var bag = thePlan.BagDyes;
@@ -1228,10 +1235,10 @@ public sealed partial class MainWindow
                         var lw = Txt.Measure(label, Face.SansSemibold, 12).X;
                         var blocked = Gearsets.Blocked(true);
                         if (PaneLink("##c-try-wear", new Vector2(at.X + w - lw, at.Y + (rowH - Txt.Natural(Face.SansSemibold, 12)) / 2), label, out _, null, blocked != null,
-                                blocked ?? "Puts the plate on your current gearset, as /gearset change does"))
+                                blocked ?? WearTip(look.Extras)))
                             Later(() =>
                             {
-                                var why = PlateEditor.Wear(plate);
+                                var why = WearPlate(plate, look.Extras);
                                 if (why != null) Frame.Warn(why);
                                 else Notify($"Plate {plate} on");
                             });
@@ -1255,6 +1262,7 @@ public sealed partial class MainWindow
                 var (tag, own) = WhereOf(p.Item);
                 PieceRow($"##c-tp-{Slots.Key(slot)}", p.Item, null, DyeLine(p), tag, tileCss: 28, own: own, ghost: Where(p.Item) == null);
             }
+            if (look != null) ExtrasRows("##c-tp-x", look.Extras);
             var missing = MissingOf(pieces);
             WishButton("##c-try-wish", missing, missing.Count == 1 ? "Add the one you don't have to your wishlist" : $"Add the {missing.Count} you don't have to your wishlist");
         }
@@ -1290,6 +1298,7 @@ public sealed partial class MainWindow
                     Linked ? "Everything the fitting room has on, as a private look of yours on the site, to remix in the dressing room" : "Link your account first (Settings → Account)"))
             {
                 var snapshot = new Dictionary<Slot, Piece>(shown);
+                var face = FittingRoom.ShownExtras(data);
                 var body = me?.Body ?? Body.Feminine;
                 Later(() =>
                 {
@@ -1298,7 +1307,7 @@ public sealed partial class MainWindow
                     {
                         keepingTried = false;
                         Say(r.Ok ? $"Kept as “{r.Value!.Name}” in your looks" : r.Why ?? "The site said no", r.Ok, null);
-                    });
+                    }, face);
                 });
             }
             Kit.Reserve(at, w, h);
@@ -1399,6 +1408,7 @@ public sealed partial class MainWindow
             var (tag, own) = WhereOf(p.Item);
             PieceRow($"##c-ex-{Slots.Key(slot)}", p.Item, null, DyeLine(p), tag, tileCss: 28, own: own, ghost: Where(p.Item) == null);
         }
+        ExtrasRows("##c-ex-x", e.Extras);
         var missing = MissingOf(e.Pieces);
         WishButton("##c-ex-wish", missing, missing.Count == 1 ? "Add the 1 you don't have to your wishlist" : $"Add the {missing.Count} you don't have to your wishlist");
 
@@ -1422,6 +1432,7 @@ public sealed partial class MainWindow
         {
             var pieces = new Dictionary<Slot, Piece>(e.Pieces);
             var body = e.Body;
+            var extras = e.Extras;
             // Named after them, as Home's Keep it as a look does ("Their name's outfit").
             var lookName = e.Name.Length > 0 ? $"{e.Name}'s outfit" : "An outfit I saw";
             Later(() =>
@@ -1431,7 +1442,7 @@ public sealed partial class MainWindow
                 {
                     keepingExamined = false;
                     Say(r.Ok ? $"Kept as “{r.Value!.Name}” in your looks" : r.Why ?? "The site said no", r.Ok, null);
-                });
+                }, extras);
             });
         }
         Kit.Reserve(row2, Kit.Width, Kit.ButtonHeight(BtnSize.Sm));

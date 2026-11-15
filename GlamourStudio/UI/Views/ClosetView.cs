@@ -22,7 +22,7 @@ public sealed partial class MainWindow
     private static readonly (Place Place, Icon Icon)[] ClosetPlaces =
     {
         (Place.Armoire, Icon.Archive), (Place.Armoury, Icon.Shield), (Place.Inventory, Icon.Bag),
-        (Place.Saddlebag, Icon.Package), (Place.Retainer, Icon.Users),
+        (Place.Saddlebag, Icon.Package), (Place.Retainer, Icon.Users), (Place.Unlocked, Icon.Sparkles),
     };
 
     /// <summary>The side pane's width (the mock's <c>.cv</c>: 380).</summary>

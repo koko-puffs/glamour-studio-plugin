@@ -1378,7 +1378,7 @@ public sealed partial class MainWindow
                 keepingExamined = false;
                 if (r.Ok) Notify($"Kept as “{r.Value!.Name}” in your looks");
                 else Frame.Warn(r.Why ?? "The site said no");
-            });
+            }, e.Extras);
         }
         Kit.Reserve(brow, w, Kit.ButtonHeight(BtnSize.Sm));
         Kit.EndPanel();

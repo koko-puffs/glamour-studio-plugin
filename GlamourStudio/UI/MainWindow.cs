@@ -535,6 +535,30 @@ public sealed partial class MainWindow : Window
 
     private static void Notify(string text) => Frame.Toast(text);
 
+    /// <summary>Wear's tooltip: the gearset change, and the look's facewear and accessory after it.</summary>
+    private static string WearTip(Extras extras) =>
+        "Puts the plate on your current gearset, as /gearset change does (in a sanctuary, on a job its gear fits)"
+        + (extras.HasFace && extras.HasFashion ? ", then its facewear and fashion accessory (/facewear, /fashion)"
+            : extras.HasFace ? ", then its facewear (/facewear)"
+            : extras.HasFashion ? ", then its fashion accessory (/fashion)" : string.Empty);
+
+    /// <summary>
+    /// Wears a plate (<see cref="PlateEditor.Wear"/>), then a look's facewear and fashion accessory
+    /// (plates hold neither: <see cref="FaceAndFashion"/>), saying in a toast what the game didn't put on.
+    /// Null when it was asked of the game, else why not.
+    /// </summary>
+    private string? WearPlate(int plate, Extras extras = default)
+    {
+        var why = PlateEditor.Wear(plate);
+        recorder.Note($"WEAR plate {plate}{(extras.Any ? $" with facewear {extras.Face}/{extras.Colour} and accessory {extras.Fashion}" : string.Empty)}: {why ?? "asked the game"}");
+        if (why == null && extras.Any)
+            FaceAndFashion.PutOn(data, extras, said =>
+            {
+                if (said != null) Frame.Warn(said);
+            });
+        return why;
+    }
+
     // ---------------------------------------------------------------------------------------------
     // Titles and the header every screen below Home has.
 

@@ -711,9 +711,10 @@ public sealed partial class MainWindow
     /// (600, 12.5) and a muted line under it, and at the right a tag or an xs button. 46 tall at
     /// least, a hairline over it when it follows another. True when the button's pressed.
     /// </summary>
+    /// <param name="icon">The tile's icon, when it isn't the item's (a facewear colour's, an accessory's own).</param>
     private bool PieceRow(string id, uint item, string? name = null, string? line = null, TagSpec? tag = null, string? button = null,
         bool buttonDisabled = false, string? tip = null, float tileCss = 32, Own own = Own.None, bool ghost = false, bool picked = false,
-        Btn buttonStyle = Btn.Glass, Icon? buttonIcon = null)
+        Btn buttonStyle = Btn.Glass, Icon? buttonIcon = null, uint icon = 0)
     {
         var divider = PaneNext(row: true);
         var at = Kit.At;
@@ -726,7 +727,7 @@ public sealed partial class MainWindow
         var dl = Kit.Dl;
         if (picked) dl.AddRectFilled(new Vector2(at.X - S(6), at.Y), new Vector2(at.X + w + S(6), at.Y + h), Palette.U32(Palette.AccentWash), S(10));
         if (divider) Kit.Divider(at.X, at.X + w, at.Y);
-        Kit.Item(new Vector2(at.X, at.Y + (h - tile) / 2), tileCss, item != 0 ? data.Item(item)?.Icon ?? 0 : 0, own, ghost, Palette.Ground);
+        Kit.Item(new Vector2(at.X, at.Y + (h - tile) / 2), tileCss, icon != 0 ? icon : item != 0 ? data.Item(item)?.Icon ?? 0 : 0, own, ghost, Palette.Ground);
         var x = at.X + tile + S(9);
         var right = at.X + w;
         var clicked = false;
@@ -749,6 +750,36 @@ public sealed partial class MainWindow
         Kit.Reserve(at, w, h);
         return clicked;
     }
+
+    /// <summary>
+    /// A look's facewear and fashion accessory as piece rows (plates don't hold them): each with its
+    /// own icon and name (the facewear's colour's), what it is under it, and whether it's unlocked on
+    /// this character (the plugin reads your collections by itself).
+    /// </summary>
+    private void ExtrasRows(string id, Extras extras, float tileCss = 28)
+    {
+        var known = data.Collections;
+        if (extras.HasFace)
+        {
+            var (tag, own) = UnlockOf(extras.Face);
+            PieceRow($"{id}-face", extras.Face, known.FaceName(extras.Face, extras.Colour) ?? data.ItemName(extras.Face),
+                $"Facewear · {Collections.ColourName(extras.Colour)}", tag, tileCss: tileCss, own: own, ghost: Where(extras.Face) == null,
+                icon: known.FaceIcon(extras.Face, extras.Colour), tip: "Plates don't hold facewear: Wear puts it on with /facewear");
+        }
+        if (extras.HasFashion)
+        {
+            var (tag, own) = UnlockOf(extras.Fashion);
+            var piece = known.Accessory(extras.Fashion);
+            PieceRow($"{id}-fashion", extras.Fashion, piece?.Name ?? data.ItemName(extras.Fashion), "Fashion accessory", tag, tileCss: tileCss, own: own,
+                ghost: Where(extras.Fashion) == null, icon: piece?.Icon ?? 0, tip: "Plates don't hold fashion accessories: Wear puts it on with /fashion");
+        }
+    }
+
+    /// <summary>A facewear style's or accessory's tag: unlocked (ice), on your wishlist, or not yet.</summary>
+    private (TagSpec Tag, Own Own) UnlockOf(uint item) =>
+        Where(item) == Place.Unlocked ? (new TagSpec("Unlocked", TagKind.Ok), Own.Ice)
+        : sync.Library.Wishes.Contains(LookJson.BaseId(item)) ? (new TagSpec("Wishlist", TagKind.Star, Icon.Star), Own.Star)
+        : (new TagSpec("Not unlocked", TagKind.Miss), Own.Pink);
 
     /// <summary>The first pieces of a look as tiles side by side, in the slots' order. Returns the width taken.</summary>
     private float LookIcons(Vector2 pos, IReadOnlyDictionary<Slot, Piece> pieces, int most, float sizeCss, float gapCss = 4)
@@ -884,6 +915,7 @@ public sealed partial class MainWindow
             Place.Armoury => (new TagSpec("Armoury", TagKind.Amber, icons ? Icon.Shirt : null), Own.Amber),
             Place.Saddlebag => (new TagSpec("Saddlebag", TagKind.Amber, icons ? Icon.Bag : null), Own.Amber),
             Place.Retainer => (new TagSpec("Retainer", TagKind.Amber, icons ? Icon.Users : null), Own.Amber),
+            Place.Unlocked => (new TagSpec("Unlocked", TagKind.Ok, icons ? Icon.Sparkles : null), Own.Ice),
             _ => sync.Library.Wishes.Contains(LookJson.BaseId(item))
                 ? (new TagSpec("Wishlist", TagKind.Star, Icon.Star), Own.Star)
                 : (new TagSpec("Don't have", TagKind.Miss), Own.Pink),
