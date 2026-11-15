@@ -332,6 +332,8 @@ public sealed partial class MainWindow
         var dl = Kit.Dl;
         var cards = me.PlatesReadAt != null ? PlateCards(me) : null;
         var match = PlateMatch(0, me.Outfit);
+        // (The same gear with other facewear or another fashion accessory is another look: it can be kept.)
+        if (match != null && match.Extras.Clean != me.OutfitExtras.Clean) match = null;
         var name = me.Name.Length > 0 ? $"{me.Name}'s outfit" : "My outfit";
         var kept = keptFrom.TryGetValue((me.Key, 0), out var k) && Plates.Same(k.Pieces, me.Outfit) ? k.Look : null;
         var busy = keeping.Contains((me.Key, 0));

@@ -326,7 +326,8 @@ last opened Glamour Plates · 2 h ago" ("Read 2 h ago", or nothing, when there's
 plates, **What you're wearing**: whose outfit, up to six of its pieces, the look of yours it is (or
 how many pieces), Try it on (as it is: nothing's changed in the game) and **Copy my game outfit** (a
 new private look of yours from what you wear, named "Their name's outfit", to remix in the dressing
-room; then Open it on the site; greyed when it's your look already). Then all twenty plates five
+room; then Open it on the site; greyed when it's your look already, its facewear and fashion
+accessory the same too). Then all twenty plates five
 across, each a numbered card: up to six of its pieces on a raised well, the look it is (or how many
 pieces) on two lines at most, "Planned: Moonlit Scholar" under it, a lilac dot by its number when a
 look's planned for it on the site, the jobs of the gearsets linked to it, and **On** in ice on the
