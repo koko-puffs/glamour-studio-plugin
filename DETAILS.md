@@ -12,6 +12,7 @@ sends, how the code is laid out, releasing, and the release notes. The short ver
 - [Making a report: the recorder](#making-a-report-the-recorder)
 - [Reading your wardrobe](#reading-your-wardrobe)
 - [Filling a plate](#filling-a-plate)
+- [Facewear and fashion accessories](#facewear-and-fashion-accessories)
 - [The site](#the-site)
 - [Asking about each character](#asking-about-each-character)
 - [The code](#the-code)
@@ -52,6 +53,10 @@ dressed in any piece of gear, dyed, saved, shared. The plugin is its half in the
   caption it and send it to the look's Worn in game.
 - **Examine.** While the game's Examine window is open, the outfit you're looking at: Try it on, or
   Keep it as a look of yours.
+- **Facewear and fashion accessories.** A look can have facewear (glasses, in one of twelve
+  colours) and a fashion accessory (a parasol, wings…) beside its twelve pieces. Plates can't hold
+  them, so Wear puts them on after the plate. What you wear and what you've unlocked go to the site
+  too (see [Facewear and fashion accessories](#facewear-and-fashion-accessories)).
 
 `/gstudio` opens the window, `/gstudio settings` opens Settings, `/gstudio send` sends your
 closet now, `/gstudio refresh` reads it all again (as the Refresh button does).
@@ -276,7 +281,8 @@ a dye to see to), amber when it's elsewhere of yours, lavender on your wishlist,
 pink, its icon faded); pointed at, a tooltip with all of it. A slot the look leaves bare is a dashed
 outline: — kept, or × emptied on the plate. In the middle: the big ring (how many pieces are ready for
 a plate), Ready for a plate, Not ready yet or Nothing on it, what stands between it and a plate (a
-small callout), its palette strip (its dyes, six at most) and **Try it on** (the sticker when the slip hasn't one; any piece,
+small callout), its palette strip (its dyes, six at most), its facewear and fashion accessory (icon
+and name, ice unlocked or pink not) and **Try it on** (the sticker when the slip hasn't one; any piece,
 yours or not).
 
 At the right, the side (348 wide, 300 under 1000):
@@ -285,7 +291,8 @@ At the right, the side (348 wide, 300 under 1000):
   tag (Open now, Sent for this plate, or Sent for plate 5 in amber: pick plate 5 in the game's
   window), then, past the tear, what it'll do as dotted lines ("All seven go on: six from the
   dresser, one from the armoire", what's elsewhere or not yours, what's dyed from your bags, what to
-  dye in the editor, bare slots emptied), **Put on plate 3** (the sticker) and "nothing's saved till
+  dye in the editor, bare slots emptied, and that its facewear and accessory don't go on plates),
+  **Put on plate 3** (the sticker) and "nothing's saved till
   you press Save in the game". At the dresser, Glamour Plates not open: **Put on a plate…** and Plate
   it's menu (below). Just filled: "Filled: press Save in the game" (Filled, once saved), what went
   on, **Wear plate 3** (the sticker, once saved; greyed with why where the game says no: see Wear it)
@@ -341,8 +348,8 @@ No field and no sticker: nothing here is the one thing to do. Down the left:
 
 - **Glamour dresser**: when it was read and Make room; the places used as a big number, "of 800
   places used · 312 free", what gathering outfit sets would free (amber), and the bar.
-- The other places: the armoire, armoury chest, bags, saddlebags and retainers, each its icon, name,
-  when it was read (retainers: how many read, and when the last was) or, in amber, "not read yet:
+- The other places: the armoire, armoury chest, bags, saddlebags, retainers and Facewear and
+  accessories (the styles and accessories unlocked), each its icon, name, when it was read (retainers: how many read, and when the last was) or, in amber, "not read yet:
   open …", and how many pieces.
 - **Your closet on Glamour Studio**, as it stands:
   - sent: "2,140 pieces, sent 4 min ago (12 new)", that it's sent by itself as it changes, **Send
@@ -496,12 +503,12 @@ is off meanwhile). `UI/Companions/Companion.cs` is the panel, `Panes.cs` what ea
 | Beside | It shows |
 | --- | --- |
 | **Glamour Dresser** | The dresser in a line (places used of 800 in mono, free, **Make room** to open the screen), the bar, how many pieces could leave without breaking a look. Then **Try it on one set** (once it's worked, **Store 14 sets for me**) and **Take out 3 duplicates**, each pressed twice: the first press turns it amber for five seconds ("Press again to store them") and says under it what the second will do; until then a line under each says what it could do (in amber, why it can't). While one works: what it's at, Stop, the bar in periwinkle, places freed; at its end what it made (ice) or what's left (amber). **Ready for a plate**: the looks the dresser and armoire have everything for (yours, the ones you love, and the ones sent to you; four, "and N more"), each with **Plate it**: a menu ("Put “the look” on") of the twenty plates, each its number in mono, "Plate N" and what it has on (empty, this look, a look's name or how many pieces) with "planned: the look" under it: the plate planned for this look first (lit), then the empty ones, then the rest; seven show and it scrolls. The one you pick is filled in one go (`UI/Views/PlateIt.cs`): it presses the dresser's own Glamour Plates button (`[u:5]`, as the first recording saw), picks the plate as clicking it does (`[i:17, u:plate−1]`, plate 1 to 14 and 1 to 3 in a recording), waits for the game to show it picked and 0.3 s more for its slots, and fills it as Fill plate does. Nothing's saved: you press Save in the game's window. With the plate open in Glamour Plates holding changes not yet saved, the menu still offers every plate, but picking another is refused with a toast ("Plate 3 has changes not saved: save them, or put it back, first"); nor does it start while Make room for me works. A look's own page has the same, **Put on a plate…**, while the dresser's open. **Bring to the dresser**: your looks' pieces still in your bags, armoury chest, saddlebags or on retainers (six, "and N more"). |
-| **Glamour Plates** (at a dresser) | Follows the plate picked in the game. With changes you made by hand and haven't saved, an amber card, "Plate 3 has changes not saved: save them, or put it back, first", and Fill waits (it would mix its pieces in with yours). Only changes by hand: right after the plugin fills that plate (from the window, Plate it or the panel, with any look) the card isn't shown; changing the plate's pieces by hand afterwards lets the fill go and brings the card back. Else the plan: "Planned on the site" (or "Picked here", a look picked in the panel: **Another look** lists the ready ones, then the rest of yours; a pick made here is for its plate, Back to the plan undoes it), its name (opening it in the plugin), On it or Not on it yet, its pieces. **Slot by slot** (so many to change, or all on it): each slot's piece with a tag: On it, Changes, Armoire, In your bags… (and the other places), Don't have, Emptied or Kept. The dyes: from your bags (ice), each to dye in the editor (amber), and the missing bottles to put on your wishlist. **Fill plate 3**, the sticker across the panel ("It's on the plate already" when it is). Filled, not saved: an ice-edged card, "Filled · not saved yet", the hand "now press Save in the game", Fill it again and Another look (the look picked there can be filled over the fill at once). Saved: "Saved · on plate 3" and how to wear it (the game won't change gearset at a dresser: close Glamour Plates and the dresser, then Wear plate 3). No plan: the ready looks, each with Fill with it, or plan one on the site. |
+| **Glamour Plates** (at a dresser) | Follows the plate picked in the game. With changes you made by hand and haven't saved, an amber card, "Plate 3 has changes not saved: save them, or put it back, first", and Fill waits (it would mix its pieces in with yours). Only changes by hand: right after the plugin fills that plate (from the window, Plate it or the panel, with any look) the card isn't shown; changing the plate's pieces by hand afterwards lets the fill go and brings the card back. Else the plan: "Planned on the site" (or "Picked here", a look picked in the panel: **Another look** lists the ready ones, then the rest of yours; a pick made here is for its plate, Back to the plan undoes it), its name (opening it in the plugin), On it or Not on it yet, its pieces. **Slot by slot** (so many to change, or all on it): each slot's piece with a tag: On it, Changes, Armoire, In your bags… (and the other places), Don't have, Emptied or Kept. The dyes: from your bags (ice), each to dye in the editor (amber), and the missing bottles to put on your wishlist. **Fill plate 3**, the sticker across the panel ("It's on the plate already" when it is). Filled, not saved: an ice-edged card, "Filled · not saved yet", the hand "now press Save in the game", Fill it again and Another look (the look picked there can be filled over the fill at once). Saved: "Saved · on plate 3" and how to wear it (the game won't change gearset at a dresser: close Glamour Plates and the dresser, then Wear plate 3). No plan: the ready looks, each with Fill with it, or plan one on the site. A look with facewear or a fashion accessory lists them under the slots as **Not on plates**, with "…don't go on plates: Wear puts them on after the plate." |
 | **Glamour Plates** (from the Character window) | Every plate with something on it, by its look's name (or how many pieces), its linked gearsets' jobs, **On** for the one you wear, **Wear** for the rest (it picks the plate, `[i:17, u:plate−1]`, and once the game shows it picked presses the window's own apply, `[i:15, u:0]`, which applies the plate picked: 0.6.6 sent the plate's number with the apply and the window applied plate 1; nothing's applied if the plate isn't shown picked within two seconds. `/gearset change` is refused while this window's open, "…while occupied", a recording saw; greyed in combat); the plate picked in the game highlighted; "and N empty plates". It fills no plate: that's the dresser's Glamour Plates. |
 | **Armoire** | Your looks' pieces stored in it (plates take them from there); what in your bags and armoury chest it takes, each with **Store**, and **Store all** (one by one, half a second apart, a refused piece asked again, then said); how many pieces in your dresser it would take (and which), each a place freed once moved. |
 | **Storing an outfit set** | The set's name in the header; dresser places freed by storing it (its loose pieces, less the one place the set takes); your looks that use it and which of its pieces; each piece and where it is. |
-| **Fitting Room** | Your looks (**Ready** or **All**, a small segmented pick) to step through with the arrows ("3 of 12"), each put on in the fitting room (the panel stays while it reopens): its name, where each piece is, the ones you don't have onto your wishlist, and **Wear it · plate N** when the look's on a plate. **Tried on by hand**: what the fitting room has on that isn't the look's (with no look, everything on; with one, the extra pieces too), and **Keep it as a look** (everything it has on, as a private look "Tried on"). |
-| **Examine** | How many of their pieces you have (a ring), each piece and where yours is, the missing ones onto your wishlist, Try it on, Keep it as a look (named after them, "Their name's outfit", as Home's; "An outfit I saw" when the name can't be read). "reading their outfit…" until two reads agree. |
+| **Fitting Room** | Your looks (**Ready** or **All**, a small segmented pick) to step through with the arrows ("3 of 12"), each put on in the fitting room (the panel stays while it reopens): its name, where each piece is (its facewear and accessory after them, Unlocked or not), the ones you don't have onto your wishlist, and **Wear it · plate N** when the look's on a plate (its facewear and accessory after it). **Tried on by hand**: what the fitting room has on that isn't the look's (with no look, everything on; with one, the extra pieces too), and **Keep it as a look** (everything it has on, as a private look "Tried on", with the facewear its view has on). |
+| **Examine** | How many of their pieces you have (a ring), each piece and where yours is (their facewear and accessory after them), the missing ones onto your wishlist, Try it on, Keep it as a look (named after them, "Their name's outfit", as Home's; "An outfit I saw" when the name can't be read). "reading their outfit…" until two reads agree. |
 | **Dye** | The piece being dyed (the first dyeable gear in the window's values, else the one piece its preview shows: not yet watched), your looks that have it and the dyes each wants, the bottles in your bags for them, the missing ones onto your wishlist. |
 | **A retainer's bags** | Your looks' pieces on this retainer that aren't in your dresser or armoire; how much glamour on it no look uses, and what of it the armoire takes (and which); your other retainers, each with how many of your looks' pieces it has (or not read yet). |
 | **Market board** | Your wishlist: what the market board sells (each with the look it's for, the cheapest listing while its results are open, **Search**, which types it into the market board's search and searches: not yet watched, else it copies the name), and what it doesn't (untradable), each with **Take off** (off your wishlist). |
@@ -641,7 +648,8 @@ million).
 | Armoire | each `Cabinet` row's item, if `UIState.Cabinet.IsItemInCabinet` | once you've opened it since logging in, and `IsCabinetLoaded` |
 | Retainers | `RetainerPage1`–`7` and `RetainerEquippedItems`, by the active retainer's id | a second after a retainer's bags open (so the pages are its own), every page loaded |
 | Plates | `MirageManager.GlamourPlates` (20 plates of 12 slots: item and two stains each) | once you've opened Glamour Plates since logging in, and `GlamourPlatesLoaded` |
-| What you wear | `EquippedItems`: each slot's glamour (`GlamourId`) or the piece, and its stains | always |
+| What you wear | `EquippedItems`: each slot's glamour (`GlamourId`) or the piece, and its stains; your facewear and fashion accessory (`Character.DrawData.GlassesIds[0]`, `OrnamentData.OrnamentId`) | always |
+| Facewear and accessories (`unlocked`) | `PlayerState.IsGlassesStyleUnlocked` and `IsOrnamentUnlocked` for each style and accessory, kept as the items that unlock them | from logging in (`PlayerState.IsLoaded`) |
 | How you look | your character's 26 customize bytes (`IObjectTable.LocalPlayer.Customize`), and the colours they pick from the game's `chara/xls/charamake/human.cmp` (`Core/Appearance.cs`) | with what you wear (since 0.6.14) |
 
 A place is only taken as read when the game has really sent it: its window seen open since this
@@ -752,6 +760,73 @@ picked), so the panel works the set out from its pieces. Gearsets: linking and u
 from the plugin shows in the game's Gear Set list and lasts through logging out; changing gearset
 behaves as Wear's above.
 
+## Facewear and fashion accessories
+
+Facewear (Dawntrail's glasses, eyepatches and goggles: 61 styles in twelve colours) and fashion
+accessories (parasols, wings, packs, the torch…: 56) aren't gear: no plate or slot holds them, you
+unlock them rather than own copies, and facewear takes no dyes (a colour is its own model). The
+plugin keeps each by **the item that unlocks it**, as the site does: a real item id, so the closet,
+the wishlist and "where to get it" work for them as for gear.
+
+**The game's sheets** (`Game/GameData.cs` reads them once, in the background, into
+`Core/Collections.cs`, game-free and tested):
+
+- A facewear **style** is a `GlassesStyle` row (its `Name`, `Icon` and `Glasses[12]`, its twelve
+  colours); each colour a `Glasses` row (`Name` "Silver Oval Spectacles", `Icon`, `Style`, and
+  `Model`: the low 16 bits the model set, the next 16 the colour's variant). Its unlock item is the
+  one whose `ItemAction.Action` is **37312** and whose `AdditionalData` is the style's first Glasses
+  row ("The Faces We Wear - Oval Spectacles" → 1). GlassesStyle 34 is a placeholder no item unlocks.
+- A worn Glasses row is its style's unlock item and a **colour, 1 to 12**: its place among the style's
+  twelve, which is the same as its model's variant (`Model >> 16`; checked over all 731 named rows on
+  XIVAPI, 15 November 2026). 1 undyed, 2 silver, 3 gold, 4 black, 5 white, 6 grey, 7 red, 8 blue,
+  9 green, 10 brass, 11 purple, 12 brown.
+- A fashion accessory is an `Ornament` row (`Singular` "Parasol", `Icon`); its unlock item's
+  `ItemAction.Action` is **20086** with `Data[0]` the row ("Parasol" 30269 → 1).
+
+**What's read and sent:**
+
+- What you wear: `Character.DrawData.GlassesIds[0]` and `Character.OrnamentData.OrnamentId` of
+  your character, with the outfit, sent in `p_outfit.pieces` as
+  `"face": {"item": 44260, "colour": 2, "dyes": [0, 0]}` and `"fashion": {"item": 30269, "dyes": [0, 0]}`
+  beside the twelve slots.
+- What's unlocked: `PlayerState.IsGlassesStyleUnlocked(style)` for each style and
+  `IsOrnamentUnlocked(row)` for each accessory (the game keeps a style unlocked with all twelve
+  colours), from logging in, no window needed. Kept as the place `unlocked` (Closet's place list:
+  "Facewear and accessories") and sent with the closet as pieces in that place, first in the
+  handiest-place order (they're never in another place: only gear is read from your bags).
+- Someone you examine: their facewear from the Examine window (`UIState.Inspect.GlassesIds[0]`),
+  their accessory from them (`OrnamentData.OrnamentId`) while they're near.
+- The fitting room: the facewear its view has on (`AgentTryon` → its view's model data,
+  `GlassesIds[0]`: yours as it opens, or one tried on with its colour picker). The fitting room has no
+  fashion accessory. (Not yet watched in the game.)
+- **Keep it as a look** (someone examined, the fitting room) and **Copy my game outfit** keep them
+  in the new look; a plate has neither.
+
+**Wear** (a look's plate slip once filled, Plates' Wear it when the plate is one of your looks or
+its plan is on it, the fitting room panel's Wear it · plate N): `/gearset change …` as before, then
+`Game/FaceAndFashion.cs` puts on the look's facewear and accessory with the game's own commands,
+`/facewear "<the colour's name>"` and `/fashion "<the accessory's name>"`
+(`UIModule.ProcessChatBoxEntry`, the names from the client's own sheets, so in its language). Two
+seconds after the gearset change (which puts on the gearset's own facewear), waiting while the game's
+busy (25 s at most), the facewear; half a second later the accessory. Each is skipped when it's on
+already (the same accessory again would put it away) and when it isn't unlocked on this character
+(said in the toast). Three seconds later what you wear is read again: anything that didn't go on is
+said in an amber toast ("the game didn't put on Parasol …"; the game says why in chat: accessories
+aren't allowed everywhere). A look with neither does nothing more than before.
+
+**Where they're shown:** a look's sheet has them under the palette strip (icon and name, ice when
+unlocked, pink when not; pointed at, what it is and that Wear puts it on); its plate slip (open,
+filled and closed) says "Its facewear and fashion accessory don't go on plates: Wear puts them on
+after the plate."; the panel beside Glamour Plates lists them under the slots as **Not on plates**
+with that line; the fitting room's and Examine's panels list them after the pieces (Unlocked, on
+your wishlist, or Not unlocked); Home's Examining card shows them after the pieces.
+
+**To check in the game** (not watched yet): that `/facewear` takes a colour's own name ("Silver Oval
+Spectacles"; the first colour's is the style's) and `/fashion` the accessory's `Singular`; whether
+the gearset change keeps or drops an accessory that's out; that the fitting room's view data holds
+the facewear tried on. Trying facewear on in the fitting room (`AgentTryon` takes Glasses rows) isn't
+done yet: Try it on puts on the twelve.
+
 ## The site
 
 Linked exactly as Housing Studio's and Raid Planner's plugins are: a token made on the site
@@ -767,11 +842,11 @@ runs them off the framework thread and takes the answers back to it.
 | --- | --- | --- |
 | `gs_plugin_characters` | linking, changing character, every 10 min while the window's open (30 otherwise) | what the site does with each of your characters (key, `ask` / `yes` / `no`) |
 | `gs_plugin_character` | you answer the question, or flip a character's switch in Settings → Account; an answer the site hasn't heard yet (a minute after a failed try) | your answer for a character: yes with its name and world; no with its key alone, and the site lets go of what it had of it |
-| `gs_plugin_sync` | your wardrobe changed and settled for 10 s, at most every 3 min (and only when what's sent changed); Send it now; saying yes; linking. **Only for a character the site takes (`yes`)** | the character you're on (key, name, world), its pieces each where they are, the places read in full, its plates and what it wears, with how it looks (`p_outfit.appearance`: its customize bytes and their colours as `#rrggbb`, for the site's dressing room to draw it as its mannequin) |
+| `gs_plugin_sync` | your wardrobe changed and settled for 10 s, at most every 3 min (and only when what's sent changed); Send it now; saying yes; linking. **Only for a character the site takes (`yes`)** | the character you're on (key, name, world), its pieces each where they are, the places read in full, its plates and what it wears (its facewear and fashion accessory as `face` and `fashion` among the pieces), with how it looks (`p_outfit.appearance`: its customize bytes and their colours as `#rrggbb`, for the site's dressing room to draw it as its mannequin); the facewear and accessories unlocked as the place `unlocked` |
 | `gs_plugin_looks` | the window opens, every 10 min while it's open, Refresh | your looks (300), the public ones you love (200), your wishlist's items |
 | `gs_plugin_inbox_list` | as the window opens (any way: the plugin list, `/gstudio`, a panel's arrow), every minute while it's open, every 15 otherwise | the looks sent to the game, each whole, with the plate meant |
 | `gs_plugin_inbox_remove` | a sent look went on a plate | it's off the list |
-| `gs_plugin_save_look` | Keep it as a look (a plate, someone examined, what the fitting room has on), Copy my game outfit | a new private look of yours |
+| `gs_plugin_save_look` | Keep it as a look (a plate, someone examined, what the fitting room has on), Copy my game outfit | a new private look of yours, with its facewear and fashion accessory (`face`, `fashion`) when it had them |
 | `gs_plugin_plans` | the window opens and with the looks, and when you change character (30 s at most); only for a character the site takes | that character's plate plans, each look whole |
 | `gs_plugin_wearable` | the window opens, every 10 min while it's open, after a sync that changed the closet, on another character | public looks you own every piece of (Wear today), the most loved first: as the character you're on (`p_character`) when the site takes it, else with all your characters' pieces |
 | `gs_plugin_wish_add` | a panel's "Add … to your wishlist", a look's plate slip's, the right-click menu's | up to 40 pieces (item and dyes) onto your wishlist; a piece on it already stays |
@@ -781,6 +856,12 @@ runs them off the framework thread and takes the answers back to it.
 
 `gs_plugin_sync`'s answer has `wishes_got`: the items it took off your wishlist because this
 sync had them.
+
+Facewear and fashion accessories (0.8.0) need the site's side too (the migration that came with
+them: `gs_pieces_clean`, `gs_looks_before`, `gs_plugin_save_look` taking `face` with its `colour`
+and `fashion`; `gs_plugin_sync` and `gs_closet_rebuild` taking the place `unlocked`, first). An older
+site leaves them out without a word: `gs_pieces_clean` drops keys it doesn't know and
+`gs_plugin_sync` places it doesn't, so nothing fails, they just aren't kept.
 
 On the site, each character's reads are kept apart (`gs_closet_reads`), and the plugin's pieces in
 your closet are made again from all of them, each in its handiest place. So another PC, or one
@@ -840,8 +921,8 @@ words saying to update the plugin.
 | Folder | What |
 | --- | --- |
 | `Plugin.cs`, `Services.cs`, `Configuration.cs` | Loading, the command, the framework tick (reading, the site, opening with the plate editor), settings. |
-| `Core/` | Game-free, tested: slots and the game's orders (`Slots`), looks and their JSON (`Looks`), the wardrobe and what's sent (`Wardrobe`), asking about each character (`Consent`), the plan for a plate (`PlatePlan`), how ready a look is (`Readiness`), the dresser's places, sets to gather and duplicates (`Cleanup`: `DresserCleanup`), your character's colours (`Appearance`), the site's calls (`SiteLink`), words and numbers (`Words`, the invariant culture). |
-| `Game/` | The game: its sheets (`GameData`: items, dyes, armoire rows, outfit sets, jobs), reading your wardrobe (`WardrobeReader`), the plate editor and wearing a plate (`PlateEditor`), try-on (`FittingRoom`), the armoire (`Armoire`), gearsets (`Gearsets`), the Examine window (`Examine`), gathering sets (`OutfitStorer`) and taking out duplicates (`DresserTaker`), the game windows the panels sit by (`GameWindows`), the recorder (`Recorder`, `AtkText`). |
+| `Core/` | Game-free, tested: slots and the game's orders (`Slots`), looks and their JSON (`Looks`), the wardrobe and what's sent (`Wardrobe`), asking about each character (`Consent`), facewear and fashion accessories by their unlock items (`Collections`: `Extras`, the sheets' mapping), the plan for a plate (`PlatePlan`), how ready a look is (`Readiness`), the dresser's places, sets to gather and duplicates (`Cleanup`: `DresserCleanup`), your character's colours (`Appearance`), the site's calls (`SiteLink`), words and numbers (`Words`, the invariant culture). |
+| `Game/` | The game: its sheets (`GameData`: items, dyes, armoire rows, outfit sets, jobs, facewear and fashion accessories), reading your wardrobe (`WardrobeReader`), the plate editor and wearing a plate (`PlateEditor`), a look's facewear and accessory after it (`FaceAndFashion`), try-on (`FittingRoom`), the armoire (`Armoire`), gearsets (`Gearsets`), the Examine window (`Examine`), gathering sets (`OutfitStorer`) and taking out duplicates (`DresserTaker`), the game windows the panels sit by (`GameWindows`), the recorder (`Recorder`, `AtkText`). |
 | `Session/` | `SiteSync`: the site in the background. `Shots`: taking, making and sending a shot. |
 | `UI/MainWindow.cs` | The window: the bar (the brand, the five places, your character's pill, Refresh, Settings; back and the title on a screen below), the screens, the question over the window, toasts, a failed screen's note. |
 | `UI/Views/` | The screens, each a part of `MainWindow`: `Home`, `LooksView`, `LookView` (a look, the plate slip, Put away first, Worn in game), `PlateView`, `ClosetView`, `CleanupView` (Make room) and `AutoRoom` (Make room for me and taking out duplicates: the questions, the runs), `PlateIt` (Plate it), `Settings`, `Characters` (the question about a character, and Settings' characters), `Shared` (where a piece is, dyes' words). |
@@ -867,6 +948,23 @@ this one too, within a few minutes of a release.
 The workflows need Settings → Actions → General → Workflow permissions → Read and write.
 
 ## Release notes
+
+### 0.8.0
+
+**Facewear and fashion accessories** (see [Facewear and fashion accessories](#facewear-and-fashion-accessories)),
+with the site's side (its migration for `face`, `fashion` and the place `unlocked`).
+
+- **Sent to the site**: the facewear (with its colour) and the fashion accessory you wear, with your
+  outfit; and every facewear style and accessory you've unlocked, as your closet's place `unlocked`
+  (Closet lists it as Facewear and accessories), read by itself from logging in. Each is kept by the
+  item that unlocks it.
+- **Wear** puts a look's facewear and fashion accessory on after the plate (`/facewear`, `/fashion`,
+  the names in your client's language), skips what's on already or not unlocked, and says what the
+  game didn't put on.
+- **Keep it as a look** (someone examined, the fitting room) and **Copy my game outfit** keep them.
+- **Shown**: on a look's sheet under its dyes; the plate slip and the Glamour Plates panel say plates
+  can't hold them; the fitting room's and Examine's panels and Home's Examining card list them.
+- The Closet bar's count is your gear only, as before.
 
 ### 0.7.0
 

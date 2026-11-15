@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Serialization;
 
 namespace GlamourStudio.Core;
 
@@ -15,13 +16,17 @@ namespace GlamourStudio.Core;
 /// <param name="Fashion">The fashion accessory's unlock item ("Parasol"), 0 for none.</param>
 public readonly record struct Extras(uint Face = 0, byte Colour = 0, uint Fashion = 0)
 {
+    [JsonIgnore]
     public bool HasFace => Face != 0 && Colour is >= 1 and <= Collections.Colours;
 
+    [JsonIgnore]
     public bool HasFashion => Fashion != 0;
 
+    [JsonIgnore]
     public bool Any => HasFace || HasFashion;
 
     /// <summary>The same with only what's sound kept (a facewear with no colour is none).</summary>
+    [JsonIgnore]
     public Extras Clean => new(HasFace ? Face : 0, HasFace ? Colour : (byte)0, Fashion);
 }
 

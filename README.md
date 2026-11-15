@@ -6,11 +6,12 @@ glamour plates, and your wardrobe on the site.
 At a glamour dresser, open **Glamour Plates**, pick one of your looks in the plugin and press
 **Put on plate 3**: every piece is found in your glamour dresser or armoire and the plate is filled,
 ready for you to check and save. **Try it on** shows any look in the game's fitting room, wherever
-you are.
+you are. Plates can't hold facewear or fashion accessories, so **Wear** puts a look's on after its
+plate.
 
 Linked to your account on the site, it keeps your **closet** there up to date by itself: what's in
-your glamour dresser, armoire, bags, armoury chest, saddlebags and retainers, your glamour plates and
-what you're wearing. Looks you **Send to game** from the site wait in the plugin, and a plate,
+your glamour dresser, armoire, bags, armoury chest, saddlebags and retainers, your glamour plates,
+what you're wearing, and the facewear and fashion accessories you've unlocked. Looks you **Send to game** from the site wait in the plugin, and a plate,
 your outfit or someone you examine can be kept as a new look on the site.
 On each character it hasn't seen before it **asks you first** whether to send that character at
 all, and sends nothing of it until you say yes; what's sent stays private on the site unless you
