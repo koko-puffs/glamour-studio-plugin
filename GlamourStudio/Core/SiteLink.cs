@@ -427,18 +427,18 @@ public static class SiteLink
         return new SiteReply<ShotSent>(null, why, hint);
     }
 
-    /// <summary>Keeps an outfit from the game as a new private look of yours.</summary>
+    /// <summary>Keeps an outfit from the game as a new private look of yours, with its facewear and fashion accessory.</summary>
     public static async Task<SiteReply<SavedLook>> SaveLookAsync(HttpClient http, string token, string name, Body body, IReadOnlyDictionary<Slot, Piece> pieces,
-        CancellationToken cancel = default)
+        Extras extras = default, CancellationToken cancel = default)
     {
         if (!LooksRight(token)) return NoToken<SavedLook>();
-        if (pieces.Count == 0) return new SiteReply<SavedLook>(null, "There's nothing on it to keep.", "pieces");
+        if (pieces.Count == 0 && !extras.Any) return new SiteReply<SavedLook>(null, "There's nothing on it to keep.", "pieces");
         var args = new JsonObject
         {
             ["p_token"] = token,
             ["p_name"] = name,
             ["p_body"] = LookJson.BodyKey(body),
-            ["p_pieces"] = LookJson.Write(pieces),
+            ["p_pieces"] = LookJson.Write(pieces, extras),
         };
         var r = await CallAsync(http, "gs_plugin_save_look", args, CallTimeout, cancel).ConfigureAwait(false);
         if (!r.Ok) return r.As<SavedLook>();

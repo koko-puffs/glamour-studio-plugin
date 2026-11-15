@@ -638,8 +638,8 @@ public sealed class SiteSync : IDisposable
         });
     }
 
-    /// <summary>Keeps an outfit as a new private look of yours; <paramref name="done"/> hears how it went (framework thread).</summary>
-    public void SaveLook(string name, Body body, IReadOnlyDictionary<Slot, Piece> pieces, Action<SiteReply<SavedLook>> done)
+    /// <summary>Keeps an outfit (and its facewear and fashion accessory) as a new private look of yours; <paramref name="done"/> hears how it went (framework thread).</summary>
+    public void SaveLook(string name, Body body, IReadOnlyDictionary<Slot, Piece> pieces, Action<SiteReply<SavedLook>> done, Extras extras = default)
     {
         if (!Linked)
         {
@@ -647,7 +647,7 @@ public sealed class SiteSync : IDisposable
             return;
         }
         var kept = pieces.ToDictionary(p => p.Key, p => p.Value);
-        Run((t, c) => SiteLink.SaveLookAsync(http, t, name, body, kept, c), r =>
+        Run((t, c) => SiteLink.SaveLookAsync(http, t, name, body, kept, extras, c), r =>
         {
             TokenRefused |= r.TokenRefused;
             // The new look is yours now: your looks are read again.

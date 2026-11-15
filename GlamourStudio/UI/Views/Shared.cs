@@ -12,6 +12,9 @@ public sealed partial class MainWindow
     /// <summary>Every piece you have and its handiest place, made again whenever the wardrobe changes.</summary>
     private Dictionary<uint, Place> placeIndex = new();
 
+    /// <summary>How many of <see cref="placeIndex"/> are gear (not the facewear and accessories unlocked).</summary>
+    private int gearKnown;
+
     private (int Version, string? Key, bool Dresser, bool Armoire) placeIndexFor = (-1, null, false, false);
 
     /// <summary>Where a piece is: the dresser or armoire as the game has them now when it does, else the plugin's record.</summary>
@@ -37,6 +40,7 @@ public sealed partial class MainWindow
                         index[LookJson.BaseId(d.Item)] = Place.Dresser;
             }
             placeIndex = index;
+            gearKnown = index.Count(kv => kv.Value != Place.Unlocked);
         }
         return placeIndex.TryGetValue(LookJson.BaseId(item), out var p) ? p : null;
     }

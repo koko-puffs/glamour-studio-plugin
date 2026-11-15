@@ -32,6 +32,7 @@ public enum Body
 /// </summary>
 /// <param name="Mine">Your own look (else one you love, or one sent to you).</param>
 /// <param name="Maker">Who made it, as the site names them.</param>
+/// <param name="Extras">Its facewear and fashion accessory (the site's <c>face</c> and <c>fashion</c>): not on plates.</param>
 public sealed record Look(
     string Id,
     string Name,
@@ -43,7 +44,8 @@ public sealed record Look(
     int Loves,
     DateTimeOffset? UpdatedAt,
     string? Mood = null,
-    string? Job = null)
+    string? Job = null,
+    Extras Extras = default)
 {
     public int Count => Pieces.Count;
 }
@@ -73,8 +75,12 @@ public static class LookJson
 
     public static Body ReadBody(string? s) => s == "masculine" ? Body.Masculine : Body.Feminine;
 
-    /// <summary>Pieces as the site keeps them: <c>{"body": {"item": 123, "dyes": [5, 0]}, …}</c>.</summary>
-    public static JsonObject Write(IReadOnlyDictionary<Slot, Piece> pieces)
+    /// <summary>
+    /// Pieces as the site keeps them: <c>{"body": {"item": 123, "dyes": [5, 0]}, …}</c>, and the look's
+    /// facewear and fashion accessory beside them (<c>"face": {"item", "colour", "dyes"}</c>,
+    /// <c>"fashion": {"item", "dyes"}</c>; an older site leaves both out).
+    /// </summary>
+    public static JsonObject Write(IReadOnlyDictionary<Slot, Piece> pieces, Extras extras = default)
     {
         var o = new JsonObject();
         foreach (var slot in Slots.All)
@@ -86,7 +92,34 @@ public static class LookJson
                 ["dyes"] = new JsonArray(p.Dye1, p.Dye2),
             };
         }
+        if (extras.HasFace)
+            o[FaceKey] = new JsonObject { ["item"] = BaseId(extras.Face), ["colour"] = extras.Colour, ["dyes"] = new JsonArray(0, 0) };
+        if (extras.HasFashion)
+            o[FashionKey] = new JsonObject { ["item"] = BaseId(extras.Fashion), ["dyes"] = new JsonArray(0, 0) };
         return o;
+    }
+
+    /// <summary>The site's keys for a look's facewear and fashion accessory, beside the twelve slots'.</summary>
+    public const string FaceKey = "face";
+
+    public const string FashionKey = "fashion";
+
+    /// <summary>
+    /// A look's facewear and fashion accessory from its pieces' JSON. A facewear with no colour, or
+    /// one past the twelve, is the first colour (undyed); an item it can't read is none.
+    /// </summary>
+    public static Extras ReadExtras(JsonNode? node)
+    {
+        if (node is not JsonObject o) return default;
+        uint face = 0, fashion = 0;
+        byte colour = 0;
+        if (o[FaceKey] is JsonObject f && ItemId(f["item"]) is { } fi)
+        {
+            face = fi;
+            colour = Long(f["colour"]) is { } c and >= 1 and <= Collections.Colours ? (byte)c : (byte)1;
+        }
+        if (o[FashionKey] is JsonObject a && ItemId(a["item"]) is { } ai) fashion = ai;
+        return new Extras(face, colour, fashion);
     }
 
     /// <summary>Pieces from the site's JSON; slots, items or dyes it can't read are left out (a dye past the game's 255 is none).</summary>
@@ -157,7 +190,8 @@ public static class LookJson
             (int)Math.Clamp(loves, 0, int.MaxValue),
             Time(o["updated_at"]),
             Str(o["mood"]),
-            Str(o["job"]));
+            Str(o["job"]),
+            ReadExtras(o["pieces"]));
     }
 
     /// <summary>The plugin's library: your looks, the ones you love, your wishlist. Null when it isn't one.</summary>

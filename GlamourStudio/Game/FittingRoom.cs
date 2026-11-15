@@ -279,6 +279,20 @@ public static unsafe class FittingRoom
         return pieces;
     }
 
+    /// <summary>
+    /// The facewear the fitting room's view has on (its model data's <c>GlassesIds[0]</c>: yours as it
+    /// opens, or one tried on with its colour picker), as a look keeps it; none when it isn't open.
+    /// The fitting room has no fashion accessory.
+    /// </summary>
+    public static Extras ShownExtras(GameData data)
+    {
+        if (!WindowShown) return default;
+        var agent = AgentTryon.Instance();
+        if (agent == null) return default;
+        var face = data.Collections.FaceOf(agent->CharaView.CharaView.ModelData.GlassesIds[0]);
+        return face is { } f ? new Extras(f.Item, f.Colour) : default;
+    }
+
     /// <summary>The fitting room's window when it's shown (for the panel beside it).</summary>
     public static bool IsShown => WindowShown;
 

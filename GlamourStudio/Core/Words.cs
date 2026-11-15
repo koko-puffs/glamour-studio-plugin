@@ -77,4 +77,30 @@ public static class Words
             : have == 0
                 ? $"None of the {Count(total, "piece")} is yours yet"
                 : $"{have} of {Count(total, "piece")} are yours";
+
+    /// <summary>
+    /// The plate slip's line for a look with facewear or a fashion accessory: plates can't hold them,
+    /// Wear puts them on. Null when it has neither.
+    /// </summary>
+    public static string? NotOnPlates(Extras extras) => (extras.HasFace, extras.HasFashion) switch
+    {
+        (true, true) => "Its facewear and fashion accessory don't go on plates: Wear puts them on after the plate.",
+        (true, false) => "Its facewear doesn't go on plates: Wear puts it on after the plate.",
+        (false, true) => "Its fashion accessory doesn't go on plates: Wear puts it on after the plate.",
+        _ => null,
+    };
+
+    /// <summary>What Wear did with a look's facewear and fashion accessory, in a line; null when all went on (or there was nothing to do).</summary>
+    /// <param name="refused">The names the game didn't put on.</param>
+    /// <param name="locked">The names not unlocked on this character (not asked for).</param>
+    public static string? ExtrasOutcome(IReadOnlyList<string> refused, IReadOnlyList<string> locked)
+    {
+        var parts = new List<string>();
+        if (locked.Count > 0) parts.Add($"{List(locked)} {(locked.Count == 1 ? "isn't" : "aren't")} unlocked on this character yet");
+        if (refused.Count > 0)
+            parts.Add($"the game didn't put on {List(refused)} (fashion accessories aren't allowed everywhere, and the game says why in chat)");
+        if (parts.Count == 0) return null;
+        var line = string.Join("; ", parts);
+        return char.ToUpperInvariant(line[0]) + line[1..];
+    }
 }

@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using GlamourStudio.Core;
 using Lumina.Excel.Sheets;
 
@@ -279,6 +281,71 @@ public sealed class GameData
         }
         if (sets == null) return Array.Empty<(int, uint)>();
         return sets.TryGetValue(LookJson.BaseId(setItem), out var p) ? p : Array.Empty<(int, uint)>();
+    }
+
+    private Collections? collections;
+    private Task? collectionsBuilding;
+    private DateTime collectionsRetry;
+
+    /// <summary>
+    /// The game's facewear styles and fashion accessories with the items that unlock them (made once,
+    /// in the background: the Item sheet is walked for the unlock items). Empty until it's made, and
+    /// should a sheet not read (tried again a minute later).
+    /// </summary>
+    public Collections Collections
+    {
+        get
+        {
+            if (Volatile.Read(ref collections) is { } c) return c;
+            if (collectionsBuilding == null && DateTime.UtcNow >= collectionsRetry)
+                collectionsBuilding = Task.Run(() =>
+                {
+                    try
+                    {
+                        Volatile.Write(ref collections, BuildCollections());
+                    }
+                    catch (Exception ex)
+                    {
+                        Services.Log.Warning(ex, "Glamour Studio couldn't read the facewear and fashion accessories");
+                        collectionsRetry = DateTime.UtcNow + RetryEvery;
+                    }
+                    finally
+                    {
+                        collectionsBuilding = null;
+                    }
+                });
+            return Collections.Empty;
+        }
+    }
+
+    private static Collections BuildCollections()
+    {
+        var styles = Services.Data.GetExcelSheet<GlassesStyle>()
+            .Select(r => new GlassesStyleRow(r.RowId, r.Name.ExtractText(), (uint)Math.Max(0, r.Icon), r.Glasses.Select(g => g.RowId).ToArray()))
+            .ToList();
+        var glasses = Services.Data.GetExcelSheet<Glasses>()
+            .Where(r => r.RowId != 0)
+            .Select(r => new GlassesRow(r.RowId, r.Style.RowId, r.Model, r.Name.ExtractText(), (uint)Math.Max(0, r.Icon)))
+            .ToList();
+        var ornaments = Services.Data.GetExcelSheet<Ornament>()
+            .Where(r => r.RowId != 0)
+            .Select(r => new OrnamentRow(r.RowId, Capital(r.Singular.ExtractText()), r.Icon))
+            .ToList();
+        // The unlocking actions first (a handful of rows), then the items that use them.
+        var actions = new Dictionary<uint, (uint Action, uint Data0)>();
+        foreach (var a in Services.Data.GetExcelSheet<ItemAction>())
+        {
+            var type = a.Action.RowId;
+            if (type is Collections.GlassesAction or Collections.OrnamentAction)
+                actions[a.RowId] = (type, a.Data.Count > 0 ? a.Data[0] : 0u);
+        }
+        var items = new List<UnlockItemRow>();
+        foreach (var it in Services.Data.GetExcelSheet<Item>())
+            if (it.RowId != 0 && actions.TryGetValue(it.ItemAction.RowId, out var act))
+                items.Add(new UnlockItemRow(it.RowId, act.Action, act.Data0, it.AdditionalData.RowId));
+        var built = Collections.Build(styles, glasses, ornaments, items);
+        Services.Log.Debug($"Glamour Studio knows {built.Styles.Count} facewear styles and {built.Fashion.Count} fashion accessories");
+        return built;
     }
 
     private static string Capital(string s) => s.Length == 0 ? s : char.ToUpperInvariant(s[0]) + s[1..];

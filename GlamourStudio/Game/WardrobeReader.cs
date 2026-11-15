@@ -218,6 +218,7 @@ public sealed unsafe class WardrobeReader
             // Only a new one when the count changed (the window keys its plate plan on it).
             if (dyes.Count != BagDyes.Count || dyes.Any(kv => BagDyes.GetValueOrDefault(kv.Key) != kv.Value)) BagDyes = dyes;
         }
+        changed |= ReadUnlocked(me, at);
         if (Seen(DresserWindows)) changed |= ReadDresser(me, at);
         if (Seen(ArmoireWindows)) changed |= ReadArmoire(me, at);
         if (Seen(PlateWindows)) changed |= ReadPlates(me, at);
@@ -377,9 +378,52 @@ public sealed unsafe class WardrobeReader
         }
         me.OutfitReadAt = at;
         var looks = ReadAppearance(me);
-        if (Plates.Same(outfit, me.Outfit)) return looks;
+        var extras = ReadExtras(me);
+        if (Plates.Same(outfit, me.Outfit)) return looks || extras;
         me.Outfit = outfit;
         return true;
+    }
+
+    /// <summary>
+    /// The facewear and fashion accessory you wear (your character's <c>DrawData.GlassesIds[0]</c> and
+    /// <c>OrnamentData.OrnamentId</c>), as their unlock items; true when they changed. Left as they were
+    /// while the sheets aren't read yet.
+    /// </summary>
+    private bool ReadExtras(CharacterWardrobe me)
+    {
+        var known = data.Collections;
+        if (!known.Known) return false;
+        Extras now;
+        try
+        {
+            if (Services.Objects.LocalPlayer is not { } player || player.Address == nint.Zero) return false;
+            var chara = (FFXIVClientStructs.FFXIV.Client.Game.Character.Character*)player.Address;
+            now = known.Worn(chara->DrawData.GlassesIds[0], chara->OrnamentData.OrnamentId);
+        }
+        catch (Exception ex)
+        {
+            Services.Log.Debug(ex, "Glamour Studio couldn't read your facewear and fashion accessory");
+            return false;
+        }
+        if (now == me.OutfitExtras) return false;
+        Recorder.Log($"READ facewear {now.Face} colour {now.Colour}, fashion accessory {now.Fashion} (was {me.OutfitExtras.Face}/{me.OutfitExtras.Colour}, {me.OutfitExtras.Fashion})");
+        me.OutfitExtras = now;
+        return true;
+    }
+
+    /// <summary>
+    /// What facewear styles and fashion accessories you've unlocked (<c>PlayerState</c>'s
+    /// <c>IsGlassesStyleUnlocked</c> and <c>IsOrnamentUnlocked</c>: the game has them from logging in),
+    /// kept as the place <see cref="Place.Unlocked"/> by their unlock items.
+    /// </summary>
+    private bool ReadUnlocked(CharacterWardrobe me, DateTime at)
+    {
+        var known = data.Collections;
+        if (!known.Known) return false;
+        var ps = FFXIVClientStructs.FFXIV.Client.Game.UI.PlayerState.Instance();
+        if (ps == null || !ps->IsLoaded) return false;
+        var items = known.Unlocked(s => ps->IsGlassesStyleUnlocked((ushort)s), o => ps->IsOrnamentUnlocked(o));
+        return Keep(me.Read, Place.Unlocked, items, at);
     }
 
     /// <summary>The game's file of the character creator's colours (read once), or null.</summary>
