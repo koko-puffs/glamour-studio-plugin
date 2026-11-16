@@ -42,6 +42,12 @@ public sealed record SyncResult(int Total, int Added, int Moved, int Removed, in
 /// <summary>A shot the site added to a look's Worn in game (<c>gs-plugin-shot</c>).</summary>
 public sealed record ShotSent(string Id, string LookName);
 
+/// <summary>
+/// What the site did with a plate saved in the game (<c>gs_plugin_plate_done</c>, 0.8.0): whether it kept
+/// it (only for a character it takes), and how much of the look is on it.
+/// </summary>
+public sealed record PlateDone(int Plate, bool Kept, int On, int Of);
+
 /// <summary>A look kept on the site from the game (<c>gs_plugin_save_look</c>).</summary>
 public sealed record SavedLook(string Id, string Name);
 
@@ -276,6 +282,40 @@ public static class SiteLink
         var r = await CallAsync(http, "gs_plugin_plans", new JsonObject { ["p_token"] = token, ["p_character"] = character }, CallTimeout, cancel).ConfigureAwait(false);
         if (!r.Ok) return r.As<List<PlannedPlate>>();
         return LookJson.ReadPlans(r.Value) is { } list ? new SiteReply<List<PlannedPlate>>(list) : Unreadable<List<PlannedPlate>>();
+    }
+
+    /// <summary>
+    /// Tells the site a plate the plugin filled was saved in the game (0.8.0): the plate's pieces as saved
+    /// (into the site's plates at once), the look filled (its send there is done with: the site may let you
+    /// know, when you sent it a while ago), when it was saved.
+    /// </summary>
+    public static async Task<SiteReply<PlateDone>> PlateDoneAsync(HttpClient http, string token, string character, int plate, string? lookId,
+        IReadOnlyDictionary<Slot, Piece> pieces, DateTimeOffset savedAt, CancellationToken cancel = default)
+    {
+        if (!LooksRight(token)) return NoToken<PlateDone>();
+        var args = PlateDoneArgs(character, plate, lookId, pieces, savedAt);
+        args["p_token"] = token;
+        var r = await CallAsync(http, "gs_plugin_plate_done", args, CallTimeout, cancel).ConfigureAwait(false);
+        if (!r.Ok) return r.As<PlateDone>();
+        return ReadPlateDone(r.Value) is { } done ? new SiteReply<PlateDone>(done) : Unreadable<PlateDone>();
+    }
+
+    /// <summary><c>gs_plugin_plate_done</c>'s arguments, the token aside.</summary>
+    public static JsonObject PlateDoneArgs(string character, int plate, string? lookId, IReadOnlyDictionary<Slot, Piece> pieces, DateTimeOffset savedAt) => new()
+    {
+        ["p_character"] = character,
+        ["p_plate"] = plate,
+        ["p_look"] = LookJson.IsUuid(lookId) ? lookId : null,
+        ["p_pieces"] = LookJson.Write(pieces),
+        ["p_saved_at"] = savedAt.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture),
+    };
+
+    /// <summary>The answer to a plate saved; null when it isn't one.</summary>
+    public static PlateDone? ReadPlateDone(JsonNode? node)
+    {
+        if (node is not JsonObject o || o["plate"] is null) return null;
+        var kept = o["kept"] is JsonValue k && k.TryGetValue<bool>(out var b) && b;
+        return new PlateDone(Int(o["plate"]), kept, Int(o["on"]), Int(o["of"]));
     }
 
     /// <summary>

@@ -193,6 +193,7 @@ public sealed partial class MainWindow
             plateIt = null;
             Services.Log.Warning(ex, "Glamour Studio couldn't put a look on a plate");
         }
+        WatchDresser();
         if (!config.Companions || CompanionsAway())
         {
             lastPane = null;
@@ -255,6 +256,15 @@ public sealed partial class MainWindow
                 paneErrorAt = now;
                 Services.Log.Warning(ex, "Glamour Studio's panel beside the game window failed");
             }
+        }
+        try
+        {
+            DrawSendToast();
+        }
+        catch (Exception ex)
+        {
+            Frame.Unwind();
+            Services.Log.Warning(ex, "Glamour Studio's toast at the dresser failed");
         }
         RunLater();
     }
@@ -619,6 +629,12 @@ public sealed partial class MainWindow
     private void IconLine(Icon icon, Vector4 iconColor, string text, Vector4? textColor = null)
     {
         PaneNext();
+        IconHere(icon, iconColor, text, textColor);
+    }
+
+    /// <summary><see cref="IconLine"/> where it's drawn (in a card: no section spacing before it).</summary>
+    private static void IconHere(Icon icon, Vector4 iconColor, string text, Vector4? textColor = null)
+    {
         var at = Kit.At;
         var w = Kit.Width;
         var line = S(LineCss(12));

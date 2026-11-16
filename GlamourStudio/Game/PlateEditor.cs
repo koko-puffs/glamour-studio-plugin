@@ -189,6 +189,8 @@ public static unsafe class PlateEditor
                             if (step.DyeFromBags && Dye(agent, index, step, want, dyeItems)) dyed++;
                             break;
                         case StepKind.Clear:
+                        // A piece you don't have at all, its slot emptied (the site's send said "Leave them empty").
+                        case StepKind.Missing when step.Empty:
                             if (data->CurrentItems[index].ItemId == 0) break;
                             data->SelectedItemIndex = (uint)index;
                             agent->ClearItemData((uint)index);

@@ -103,4 +103,66 @@ public static class Words
         var line = string.Join("; ", parts);
         return char.ToUpperInvariant(line[0]) + line[1..];
     }
+
+    /// <summary>"Moonlit Scholar is waiting for plate 4" (the dresser's toast), with how many more wait.</summary>
+    public static string Waiting(string look, int plate, int more = 0) =>
+        $"{look} is waiting for plate {plate.ToString(En)}" + (more > 0 ? $" (and {more.ToString(En)} more)" : string.Empty);
+
+    /// <summary>The send card's eyebrow: "Sent from the site · 3 min ago".</summary>
+    public static string SentFromSite(DateTimeOffset? at, DateTimeOffset now) =>
+        at is { } t ? $"Sent from the site · {Ago(t, now)}" : "Sent from the site";
+
+    /// <summary>The send card's last line: "by Mira Sol · sent by you on the site" (your own look: "your look · …").</summary>
+    public static string SentBy(bool mine, string maker, string? variant = null) =>
+        (mine ? "your look" : $"by {maker}") + (variant != null ? $" · in {variant}" : string.Empty) + " · sent by you on the site";
+
+    /// <summary>"4 of 7 pieces on it." ("All 7 pieces on it.", "It's on it.").</summary>
+    public static string OnIt(int on, int of) =>
+        of <= 0 ? "Nothing of it on it." : on >= of ? (of == 1 ? "It's on it." : $"All {Count(of, "piece")} on it.") : $"{on.ToString(En)} of {Count(of, "piece")} on it.";
+
+    /// <summary>
+    /// The slots a fill empties, in one row (the plate's own order): its label (the last slot's, "Rings"
+    /// for both rings) and its words ("wrists and rings emptied").
+    /// </summary>
+    public static (string Label, string Text) Emptied(IReadOnlyList<Slot> slots)
+    {
+        if (slots.Count == 0) return (string.Empty, string.Empty);
+        var rings = slots.Contains(Slot.RingR) && slots.Contains(Slot.RingL);
+        var words = new List<string>();
+        foreach (var s in slots)
+        {
+            if (rings && s is Slot.RingR or Slot.RingL)
+            {
+                if (!words.Contains("rings")) words.Add("rings");
+                continue;
+            }
+            words.Add(Short(s).ToLowerInvariant());
+        }
+        var label = rings && slots[^1] is Slot.RingR or Slot.RingL ? "Rings" : Short(slots[^1]);
+        return (label, $"{List(words)} emptied");
+    }
+
+    /// <summary>A slot's short word, as the panel's slot rows say it ("Ears", "Wrists", "Ring R").</summary>
+    public static string Short(Slot slot) => slot switch
+    {
+        Slot.Ears => "Ears",
+        Slot.Neck => "Neck",
+        Slot.Wrists => "Wrists",
+        Slot.RingR => "Ring R",
+        Slot.RingL => "Ring L",
+        Slot.Main => "Weapon",
+        Slot.Off => "Off hand",
+        _ => Slots.Word(slot),
+    };
+
+    /// <summary>
+    /// The pieces still to fetch, in a line: "Halfgloves in the armoury chest, Moonlet on Mog Dahl: fill now
+    /// and add them later, or fetch them first". Null when there are none.
+    /// </summary>
+    public static string? ToFetch(IReadOnlyList<(string Name, string Where)> pieces)
+    {
+        if (pieces.Count == 0) return null;
+        var them = pieces.Count == 1 ? "it" : "them";
+        return $"{string.Join(", ", pieces.Select(p => $"{p.Name} {p.Where}"))}: fill now and add {them} later, or fetch {them} first";
+    }
 }

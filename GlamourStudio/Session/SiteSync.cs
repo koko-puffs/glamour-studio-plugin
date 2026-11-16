@@ -118,8 +118,76 @@ public sealed class SiteSync : IDisposable
     public HttpClient Http => http;
 
     /// <summary>The planned look for a plate of the character you're on, or null.</summary>
-    public Look? PlanFor(int plate) =>
-        plansFor != null && plansFor == wardrobe.Current?.Key ? Plans.FirstOrDefault(p => p.Plate == plate)?.Look : null;
+    public Look? PlanFor(int plate) => PlannedFor(plate)?.Look;
+
+    /// <summary>The plan for a plate of the character you're on (with its send, when it was sent from the site), or null.</summary>
+    public PlannedPlate? PlannedFor(int plate) =>
+        plansFor != null && plansFor == wardrobe.Current?.Key ? Plans.FirstOrDefault(p => p.Plate == plate) : null;
+
+    /// <summary>The looks sent from the site that wait for the character you're on, the newest first.</summary>
+    public IReadOnlyList<PlannedPlate> WaitingSends =>
+        plansFor != null && plansFor == wardrobe.Current?.Key
+            ? Plans.Where(p => p.Waiting).OrderByDescending(p => p.SentAt ?? DateTimeOffset.MinValue).ToList()
+            : Array.Empty<PlannedPlate>();
+
+    private DateTime plansReadAt;
+
+    /// <summary>
+    /// At a glamour dresser: the plans read again (a send from your phone a moment ago shows): on coming to
+    /// it (<paramref name="arriving"/>) at most every 20 s, while there every minute.
+    /// </summary>
+    public void WakePlans(bool arriving)
+    {
+        if (!Sends(wardrobe.Current)) return;
+        if (DateTime.UtcNow - plansReadAt < TimeSpan.FromSeconds(arriving ? 20 : 60)) return;
+        plansReadAt = DateTime.UtcNow;
+        RefreshPlans();
+    }
+
+    /// <summary>Telling the site a plate was saved: where each (plate, look) is at.</summary>
+    public enum Telling { Telling, Told, Failed, NotSent }
+
+    private readonly Dictionary<(string Character, int Plate, string? Look), (Telling State, string? Why, PlateDone? Done)> platesTold = new();
+
+    /// <summary>How telling the site about a saved plate went (null: not asked).</summary>
+    public (Telling State, string? Why, PlateDone? Done)? ToldOf(int plate, string? lookId) =>
+        wardrobe.Current?.Key is { } key && platesTold.TryGetValue((key, plate, lookId), out var t) ? t : null;
+
+    /// <summary>
+    /// A plate the plugin filled was saved in the game: the site's told (its plates at once, the send done
+    /// with, a notification when it was sent a while ago). Only for a character the site takes; once for
+    /// each plate and look, unless it failed.
+    /// </summary>
+    public void PlateSaved(int plate, string? lookId, IReadOnlyDictionary<Slot, Piece> pieces)
+    {
+        var me = wardrobe.Current;
+        if (me == null) return;
+        var key = (me.Key, plate, lookId);
+        if (!Sends(me))
+        {
+            platesTold[key] = (Telling.NotSent, null, null);
+            return;
+        }
+        if (platesTold.TryGetValue(key, out var was) && was.State is Telling.Telling or Telling.Told) return;
+        platesTold[key] = (Telling.Telling, null, null);
+        var savedAt = DateTimeOffset.UtcNow;
+        var copy = pieces.ToDictionary(kv => kv.Key, kv => kv.Value);
+        // The send's done with here at once (the dresser's toast goes); the site's word follows.
+        Plans = Plans.Select(p => p.Plate == plate && p.Look.Id == lookId ? p with { Waiting = false, SavedAt = savedAt } : p).ToList();
+        Version++;
+        Run((t, c) => SiteLink.PlateDoneAsync(http, t, me.Key, plate, lookId, copy, savedAt, c), r =>
+        {
+            TokenRefused |= r.TokenRefused;
+            platesTold[key] = r.Ok ? (Telling.Told, null, r.Value) : (Telling.Failed, r.Why, null);
+        }, () => platesTold.Remove(key));
+    }
+
+    /// <summary>Telling the site about a saved plate failed: try again.</summary>
+    public void PlateSavedAgain(int plate, string? lookId, IReadOnlyDictionary<Slot, Piece> pieces)
+    {
+        if (wardrobe.Current?.Key is { } key) platesTold.Remove((key, plate, lookId));
+        PlateSaved(plate, lookId, pieces);
+    }
 
     public DateTime? LibraryAt { get; private set; }
 
@@ -157,6 +225,7 @@ public sealed class SiteSync : IDisposable
         Wearable = Array.Empty<Look>();
         Plans = Array.Empty<PlannedPlate>();
         plansFor = null;
+        platesTold.Clear();
         siteChoices = null;
         CharactersUnreachable = false;
         charactersFor = null;
@@ -517,6 +586,7 @@ public sealed class SiteSync : IDisposable
     {
         var key = wardrobe.Current?.Key;
         if (!Sends(wardrobe.Current) || key == null) return;
+        plansReadAt = DateTime.UtcNow;
         Run((t, c) => SiteLink.PlansAsync(http, t, key, c), r =>
         {
             if (r.Ok)

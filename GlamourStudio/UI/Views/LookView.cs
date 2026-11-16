@@ -48,6 +48,12 @@ public sealed partial class MainWindow
 
     private bool editorWasChanged;
 
+    /// <summary>The filled plate was seen with changes not saved since the fill (so a moment without them is a Save).</summary>
+    private bool fillSawChanges;
+
+    /// <summary>The filled plate was seen saved (Save pressed in the game): the site's been told (0.8.0).</summary>
+    private bool fillSaved;
+
     /// <summary>
     /// Whether the plate last filled still has what went on: changed by hand in the editor since, or
     /// left with the changes not saved (the game throws them away), or saved otherwise since, it hasn't,
@@ -72,6 +78,14 @@ public sealed partial class MainWindow
                 if (now - fillAt > TimeSpan.FromMilliseconds(300)) fillPieces = on;
             }
             else if (!SameItems(on, fillPieces)) lastFill = null;
+            // Saved: the changes the fill made went, and the plate still has what went on.
+            else if (editorChanges) fillSawChanges = true;
+            else if (fillSawChanges && !fillSaved)
+            {
+                fillSaved = true;
+                recorder.Note($"SAVED plate {plate} with “{lastFillName}” ({lf.LookId}): telling the site");
+                sync.PlateSaved(plate, lf.LookId, on);
+            }
             return;
         }
         if (fillLeftAt == null)
@@ -165,6 +179,25 @@ public sealed partial class MainWindow
     /// <summary>Each look's plan, by its pieces (the main window and the panel beside the game's ask for different looks in a frame).</summary>
     private readonly Dictionary<IReadOnlyDictionary<Slot, Piece>, PlatePlan> plans = new(ReferenceEqualityComparer.Instance);
 
+    /// <summary>Plans that empty the slots of pieces you don't have (a send that said so), as <see cref="plans"/>.</summary>
+    private readonly Dictionary<IReadOnlyDictionary<Slot, Piece>, PlatePlan> plansEmpty = new(ReferenceEqualityComparer.Instance);
+
+    /// <summary>
+    /// Whether filling <paramref name="plate"/> with <paramref name="look"/> empties the slots of pieces you don't
+    /// have: the site's send (or plan) of that look for that plate says so.
+    /// </summary>
+    private bool EmptiesMissing(Look look, int plate) =>
+        plate > 0 && sync.PlannedFor(plate) is { } p && p.Look.Id == look.Id && p.Missing == MissingChoice.Empty;
+
+    /// <summary>The plan for a look on a plate, worked out again only when the wardrobe or the settings changed.</summary>
+    private PlatePlan PlanCached(Look look, bool emptyMissing)
+    {
+        if (!emptyMissing) return PlanCached(look);
+        PlanCached(look);
+        if (!plansEmpty.TryGetValue(look.Pieces, out var plan)) plansEmpty[look.Pieces] = plan = PlanFor(look.Pieces, true);
+        return plan;
+    }
+
     /// <summary>The plan for a look, worked out again only when the wardrobe or the settings changed.</summary>
     private PlatePlan PlanCached(Look look)
     {
@@ -174,13 +207,14 @@ public sealed partial class MainWindow
         {
             plansFor = key;
             plans.Clear();
+            plansEmpty.Clear();
         }
         if (!plans.TryGetValue(look.Pieces, out var plan)) plans[look.Pieces] = plan = PlanFor(look.Pieces);
         return plan;
     }
 
     /// <summary>How the look would go on the plate open now (or any plate: the dresser and armoire as last read).</summary>
-    private PlatePlan PlanFor(IReadOnlyDictionary<Slot, Piece> pieces)
+    private PlatePlan PlanFor(IReadOnlyDictionary<Slot, Piece> pieces, bool emptyMissing = false)
     {
         var me = wardrobe.Current;
         var dresser = (IReadOnlyList<DresserPiece>?)me?.Dresser ?? Array.Empty<DresserPiece>();
@@ -191,7 +225,7 @@ public sealed partial class MainWindow
                 .Where(x => x.Row != null)
                 .ToDictionary(x => x.Item, x => x.Row!.Value);
         return PlatePlanner.Plan(pieces, dresser, armoire, data.DyeChannels, Where,
-            new PlateOptions(config.ClearBare, config.DyeFromBags ? wardrobe.BagDyes : null));
+            new PlateOptions(config.ClearBare, config.DyeFromBags ? wardrobe.BagDyes : null, emptyMissing));
     }
 
 
@@ -932,7 +966,7 @@ public sealed partial class MainWindow
         }
         // The dresser and armoire as the game has them this moment.
         wardrobe.Tick(now: true);
-        plan = PlanFor(look.Pieces);
+        plan = PlanFor(look.Pieces, EmptiesMissing(look, PlateEditor.SelectedPlate));
         var result = PlateEditor.Fill(plan, wardrobe.FindDye);
         recorder.Note($"FILL plate {result.Plate} with “{look.Name}” ({look.Id}): set {result.Set}, cleared {result.Cleared}, dyed {result.Dyed}"
                       + (result.Problems.Count > 0 ? $"; problems: {string.Join(" | ", result.Problems)}" : string.Empty));
@@ -942,6 +976,8 @@ public sealed partial class MainWindow
             lastFill = (look.Id, result, plan);
             lastFillName = look.Name;
             fillPieces = null;
+            fillSawChanges = false;
+            fillSaved = false;
             fillAt = DateTime.UtcNow;
             fillLeftAt = null;
         }

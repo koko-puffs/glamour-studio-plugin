@@ -69,7 +69,7 @@ public sealed partial class MainWindow
         if (c.Lines.TryGetValue(look.Id, out var line)) return line;
         var planned = PlannedPlateOf(look.Id);
         var sent = sync.Inbox.FirstOrDefault(s => s.Look.Id == look.Id);
-        var from = planned > 0 ? $"planned for plate {planned}"
+        var from = planned > 0 ? sync.PlannedFor(planned)?.Waiting == true ? $"sent for plate {planned}" : $"planned for plate {planned}"
             : sent != null ? sent.Plate is { } p ? $"sent for plate {p}" : "sent to you"
             : look.Mine ? "your look"
             : string.IsNullOrEmpty(look.Maker) ? "loved" : $"loved · {look.Maker}";
@@ -423,7 +423,8 @@ public sealed partial class MainWindow
         // A look picked here is for the plate it was picked for; one picked at the dresser is offered
         // on whichever plate you pick, until it fills one.
         if (companionPick != null && companionPickPlate != 0 && companionPickPlate != plate) companionPick = null;
-        var planned = sync.PlanFor(plate);
+        var plannedPlate = sync.PlannedFor(plate);
+        var planned = plannedPlate?.Look;
         var look = PickedLook(planned) ?? planned;
         var current = EditorPieces(plate);
         var filled = look != null && lastFill is { } lf && lf.LookId == look.Id && lf.Result.Plate == plate;
@@ -445,25 +446,26 @@ public sealed partial class MainWindow
 
         // (With the slots a look leaves bare kept, Fill leaves what the plate had there.)
         var on = OnPlate(look.Pieces, current, !config.ClearBare);
-        var thePlan = PlanCached(look);
+        // (A send from the site says what to do with the slots of pieces you don't have.)
+        var thePlan = PlanCached(look, EmptiesMissing(look, plate));
         if (filled && editorChanges)
         {
             FilledCard(look, plate, planned, thePlan);
             return;
         }
-        if (filled && on)
+        // Saved (seen saved after the fill, or the whole look's on it): what's on it, the site told, what's left.
+        if (filled && (fillSaved || on))
         {
             // (Wearing it waits: the game won't change gearset with Glamour Plates open at a dresser.)
-            SavedCard(look, plate, planned);
+            SavedCard(look, plate, thePlan, current);
             return;
         }
 
-        PlanCard(look, planned, on);
+        PlanCard(look, planned, on, plannedPlate);
         LookPicker(plate, planned);
 
-        var changes = thePlan.Steps.Count(s => s.Want != null && !(current.TryGetValue(s.Slot, out var has) && SamePiece(has, s.Want.Value)));
         PaneSec();
-        SecHead("Slot by slot", on ? "all on it" : $"{changes.ToString(En)} to change");
+        SecHead("Slot by slot", on ? "all on it" : $"{thePlan.ToPutOn(current).ToString(En)} to put on");
         SlotRows(thePlan, current);
         if (Words.NotOnPlates(look.Extras) is { } notOn)
         {
@@ -476,11 +478,15 @@ public sealed partial class MainWindow
         // The dyes: from your bags, left to dye, bottles to get.
         var bag = thePlan.BagDyes;
         var left = thePlan.Steps.Where(s => s.DyeLeft).ToList();
-        if (bag.Count > 0 || left.Count > 0)
+        var fetch = Words.ToFetch(thePlan.Missing.Where(s => s.Elsewhere != null && s.Want != null)
+            .Select(s => (data.ItemName(s.Want!.Value.Item), WhereWords(s.Want!.Value.Item, s.Elsewhere!.Value))).ToList());
+        if (bag.Count > 0 || left.Count > 0 || fetch != null)
         {
             PaneSec();
-            if (bag.Count > 0)
-                IconLine(Icon.Droplet, Palette.Ice, $"Dyes from your bags: {Words.List(bag.Select(kv => $"{data.DyeName(kv.Key)}{(kv.Value > 1 ? $" ×{kv.Value}" : " ×1")}"))}");
+            if (bag.Count == 1)
+                IconLine(Icon.Droplet, Palette.Ice, $"{data.DyeName(bag.First().Key)} from your bags ×{bag.First().Value.ToString(En)}");
+            else if (bag.Count > 1)
+                IconLine(Icon.Droplet, Palette.Ice, $"From your bags: {Words.List(bag.Select(kv => $"{data.DyeName(kv.Key)} ×{kv.Value.ToString(En)}"))}");
             foreach (var s in left)
             {
                 var want = s.Want!.Value;
@@ -497,10 +503,12 @@ public sealed partial class MainWindow
                     .Select(i => new Piece(i)).ToList();
                 WishButton("##c-plate-dyes", bottles, bottles.Count == 1 ? $"Add {data.ItemName(bottles[0].Item)} to your wishlist" : $"Add the {bottles.Count} dyes to your wishlist");
             }
+            // Pieces of yours not where a plate takes them from: fill now, or fetch them first.
+            if (fetch != null) IconLine(Icon.Droplet, Palette.Amber, fetch);
         }
 
         // Fill: the panel's sticker, the one thing to do beside Glamour Plates.
-        var can = !on && (thePlan.Ready > 0 || thePlan.Steps.Any(s => s.Kind == StepKind.Clear));
+        var can = !on && (thePlan.Ready > 0 || thePlan.Steps.Any(s => s.Kind == StepKind.Clear || s.Empty));
         PaneSec();
         PaneNext();
         var at = Kit.At;
@@ -522,12 +530,17 @@ public sealed partial class MainWindow
     /// The plan for the plate (the mock's <c>.card.plan</c>): where it's from, its name (opens it in
     /// the plugin) and whether it's on the plate, its pieces, Another look (and back to the plan).
     /// </summary>
-    private void PlanCard(Look look, Look? planned, bool on)
+    private void PlanCard(Look look, Look? planned, bool on, PlannedPlate? plan = null)
     {
+        var picked = planned == null || look.Id != planned.Id;
+        if (!picked && plan is { Waiting: true })
+        {
+            SentCard(look, plan);
+            return;
+        }
         PaneSec();
         PaneNext();
         Kit.BeginPanel("##c-plan", 12, 12, 12, Palette.Card, Palette.Line, 18);
-        var picked = planned == null || look.Id != planned.Id;
         var at = Kit.At;
         var w = Kit.Width;
         Kit.Eyebrow(at, picked ? "Picked here" : "Planned on the site", Palette.Accent, w);
@@ -577,56 +590,149 @@ public sealed partial class MainWindow
         Kit.EndPanel();
     }
 
-    /// <summary>Slot by slot (the mock's <c>.slotrow</c>s): the slot, the piece (24), its name, a small tag in the honest colours.</summary>
+    /// <summary>
+    /// Slot by slot (the mock's <c>.slotrow</c>s): the slot, the piece (24), its name, a small tag in the honest
+    /// colours: Dresser or Armoire (ice), where else yours is (amber), Left empty or Don't have (pink); the
+    /// weapons kept as one faint row first, the slots emptied as one row last.
+    /// </summary>
     private void SlotRows(PlatePlan plan, Dictionary<Slot, Piece> current)
     {
         PaneNext();
         var first = true;
+        var kept = plan.Steps.Any(s => s.Want == null && s.Kind == StepKind.Keep && Slots.IsWeapon(s.Slot) && current.TryGetValue(s.Slot, out var k) && k.Item != 0);
+        if (kept) SlotRow(ref first, "Weapon", 0, "kept", null, false);
         foreach (var step in plan.Steps)
         {
             current.TryGetValue(step.Slot, out var has);
-            if (step.Want == null && (step.Kind != StepKind.Clear || has.Item == 0)) continue;
+            if (step.Want is not { } want) continue;
             TagSpec tag;
-            if (step.Want is { } want && has.Item != 0 && SamePiece(has, want)) tag = new TagSpec("On it", TagKind.Ok);
+            if (has.Item != 0 && SamePiece(has, want)) tag = new TagSpec("On it", TagKind.Ok);
             else
                 tag = step.Kind switch
                 {
                     StepKind.Set when step.Source == PlateSource.Armoire => new TagSpec("Armoire", TagKind.Ok),
-                    StepKind.Set => new TagSpec("Changes", TagKind.Ink),
-                    StepKind.Clear => new TagSpec("Emptied", TagKind.Plain),
-                    StepKind.Missing when step.Elsewhere is { } place => new TagSpec(place switch
-                    {
-                        Place.Inventory => "In your bags…",
-                        Place.Armoury => "In the armoury chest…",
-                        Place.Saddlebag => "In your saddlebags…",
-                        Place.Retainer => "On a retainer…",
-                        _ => "Elsewhere…",
-                    }, TagKind.Amber),
+                    StepKind.Set => new TagSpec("Dresser", TagKind.Ok),
+                    StepKind.Missing when step.Elsewhere is { } place => new TagSpec(PlaceTag(want.Item, place), TagKind.Amber),
+                    StepKind.Missing when step.Empty => new TagSpec("Left empty", TagKind.Miss),
                     StepKind.Missing => new TagSpec("Don't have", TagKind.Miss),
                     _ => new TagSpec("Kept", TagKind.Plain),
                 };
-            var item = step.Want?.Item ?? 0;
-            var at = Kit.At;
-            var w = Kit.Width;
-            var h = S(34);
-            var dl = Kit.Dl;
-            if (!first) Kit.Divider(at.X, at.X + w, at.Y);
-            first = false;
-            var slotLine = S(11 * 1.1f);
-            Txt.Line(dl, new Vector2(at.X, at.Y + (h - slotLine) / 2), Txt.Fit(SlotShort(Slots.Key(step.Slot)), Face.SansSemibold, 11, S(52)), Face.SansSemibold, 11, Palette.Faint, 11 * 1.1f);
-            var x = at.X + S(52 + 8);
-            var right = at.X + w - TagAtRight(at.X + w, at.Y, h, tag.Text, tag.Kind, null, TagSize.Sm, w * 0.42f) - S(8);
-            if (item != 0)
-            {
-                Kit.Item(new Vector2(x, at.Y + (h - S(24)) / 2), 24, data.Item(item)?.Icon ?? 0, Own.None, step.Kind == StepKind.Missing && step.Elsewhere == null, Palette.Ground);
-                x += S(24 + 8);
-            }
-            var name = item != 0 ? data.ItemName(item) : "emptied";
-            Txt.Line(dl, new Vector2(x, at.Y), Txt.Fit(name, Face.SansMedium, 12, MathF.Max(S(10), right - x)), Face.SansMedium, 12, item != 0 ? Palette.Ink : Palette.Faint, h / S(1));
-            if (step.DyeLeft && !Kit.Blocked && ImGui.IsWindowHovered() && ImGui.IsMouseHoveringRect(at, at + new Vector2(w, h)))
-                Kit.Tooltip("The copy used has other dyes: dye it in the plate editor");
-            Kit.Reserve(at, w, h);
+            var tip = step.DyeLeft ? "The copy used has other dyes: dye it in the plate editor" : null;
+            SlotRow(ref first, Words.Short(step.Slot), want.Item, null, tag, step.Kind == StepKind.Missing && step.Elsewhere == null, tip);
         }
+        var emptied = plan.Steps.Where(s => s.Want == null && s.Kind == StepKind.Clear && current.TryGetValue(s.Slot, out var e) && e.Item != 0).Select(s => s.Slot).ToList();
+        if (emptied.Count > 0)
+        {
+            var (label, text) = Words.Emptied(emptied);
+            SlotRow(ref first, label, 0, text, new TagSpec("Emptied", TagKind.Plain), false);
+        }
+    }
+
+    /// <summary>One slot row: the slot (52 wide), the piece's tile and name (or faint words), its tag at the right.</summary>
+    private void SlotRow(ref bool first, string slot, uint item, string? words, TagSpec? tag, bool ghost, string? tip = null)
+    {
+        var at = Kit.At;
+        var w = Kit.Width;
+        var h = S(34);
+        var dl = Kit.Dl;
+        if (!first) Kit.Divider(at.X, at.X + w, at.Y);
+        first = false;
+        var slotLine = S(11 * 1.1f);
+        Txt.Line(dl, new Vector2(at.X, at.Y + (h - slotLine) / 2), Txt.Fit(slot, Face.SansSemibold, 11, S(52)), Face.SansSemibold, 11, Palette.Faint, 11 * 1.1f);
+        var x = at.X + S(52 + 8);
+        var right = at.X + w - (tag is { } t ? TagAtRight(at.X + w, at.Y, h, t.Text, t.Kind, t.Icon, TagSize.Sm, w * 0.42f) + S(8) : 0);
+        if (item != 0)
+        {
+            Kit.Item(new Vector2(x, at.Y + (h - S(24)) / 2), 24, data.Item(item)?.Icon ?? 0, Own.None, ghost, Palette.Ground);
+            x += S(24 + 8);
+        }
+        var name = item != 0 ? data.ItemName(item) : words ?? string.Empty;
+        Txt.Line(dl, new Vector2(x, at.Y), Txt.Fit(name, Face.SansMedium, 12, MathF.Max(S(10), right - x)), Face.SansMedium, 12, item != 0 ? Palette.Ink : Palette.Faint, h / S(1));
+        if (tip != null && !Kit.Blocked && ImGui.IsWindowHovered() && ImGui.IsMouseHoveringRect(at, at + new Vector2(w, h)))
+            Kit.Tooltip(tip);
+        Kit.Reserve(at, w, h);
+    }
+
+    /// <summary>A piece's place as a slot row's tag: "Bags", "Armoury chest", "On Mog Dahl" (its retainer, when the plugin knows its name).</summary>
+    private string PlaceTag(uint item, Place place) => place switch
+    {
+        Place.Inventory => "Bags",
+        Place.Armoury => "Armoury chest",
+        Place.Saddlebag => "Saddlebags",
+        Place.Retainer => RetainerOf(item) is { } name ? $"On {name}" : "Retainer",
+        Place.Dresser => "Dresser",
+        Place.Armoire => "Armoire",
+        _ => "Elsewhere",
+    };
+
+    /// <summary>Where a piece is, in a sentence: "in the armoury chest", "on Mog Dahl".</summary>
+    private string WhereWords(uint item, Place place) => place switch
+    {
+        Place.Inventory => "in your bags",
+        Place.Armoury => "in the armoury chest",
+        Place.Saddlebag => "in your saddlebags",
+        Place.Retainer => RetainerOf(item) is { } name ? $"on {name}" : "on a retainer",
+        _ => "elsewhere",
+    };
+
+    private (DateTime At, List<(ulong Id, string Name)> List) retainerNames = (DateTime.MinValue, new());
+
+    /// <summary>The name of the retainer that has a piece (as the plugin last read their bags), or null.</summary>
+    private string? RetainerOf(uint item)
+    {
+        var me = wardrobe.Current;
+        if (me == null) return null;
+        var id = LookJson.BaseId(item);
+        foreach (var (key, read) in me.Retainers)
+        {
+            if (!read.Items.Any(i => LookJson.BaseId(i) == id)) continue;
+            if (DateTime.UtcNow - retainerNames.At > TimeSpan.FromSeconds(2)) retainerNames = (DateTime.UtcNow, GameWindows.Retainers());
+            foreach (var (rid, name) in retainerNames.List)
+                if (rid.ToString(En) == key && !string.IsNullOrWhiteSpace(name)) return name;
+            return null;
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// A look sent from the site for this plate (the frame's <c>.card.plan</c> with the lilac edge): Sent from the
+    /// site and when, its name (opens it in the plugin) and For plate N, its pieces, whose it is.
+    /// </summary>
+    private void SentCard(Look look, PlannedPlate plan)
+    {
+        PaneSec();
+        PaneNext();
+        Kit.BeginPanel("##c-sent", 12, 12, 12, Palette.Card, Palette.AccentLine, 18);
+        var at = Kit.At;
+        var w = Kit.Width;
+        Kit.Eyebrow(at, Words.SentFromSite(plan.SentAt, DateTimeOffset.UtcNow), Palette.Accent, w, Icon.Send);
+        Kit.Reserve(at, w, S(11 * 1.3f));
+        Kit.Gap(8);
+
+        at = Kit.At;
+        var rowH = MathF.Max(S(15 * 1.1f), Kit.TagHeight());
+        var tagW = TagAtRight(at.X + w, at.Y, rowH, $"For plate {plan.Plate.ToString(En)}", TagKind.Plain, null, TagSize.Md, w * 0.45f);
+        var nameW = MathF.Max(S(20), w - tagW - S(8));
+        var lineH = S(15 * 1.1f);
+        var namePos = new Vector2(at.X, at.Y + (rowH - lineH) / 2);
+        var hitW = MathF.Min(Kit.DisplayWidth(look.Name, 15), nameW);
+        var (open, hovered, _) = Kit.Hit("##c-sent-open", namePos, new Vector2(hitW, lineH));
+        if (hovered) Kit.Tooltip("Open it in the plugin");
+        Kit.Display(new Vector2(namePos.X, namePos.Y + (lineH - Kit.DisplayHeight(15)) / 2), look.Name, 15, hovered ? Palette.Accent : Palette.Ink, nameW);
+        if (open)
+        {
+            var l = look;
+            Later(() => OpenLook(l, null, Screen.Plates));
+        }
+        Kit.Reserve(at, w, rowH);
+        Kit.Gap(8);
+
+        at = Kit.At;
+        LookIcons(at, look.Pieces, Math.Max(1, (int)((w + S(4)) / S(32))), 28);
+        Kit.Reserve(at, w, S(28));
+        Kit.Gap(8);
+        TextHere(Words.SentBy(look.Mine, look.Maker, plan.Variant), 11, Palette.Faint);
+        Kit.EndPanel();
     }
 
     /// <summary>Filled, not saved yet: the ice edge, the hand voice says the one thing left; Fill it again stays, quiet.</summary>
@@ -662,9 +768,14 @@ public sealed partial class MainWindow
         LookPicker(plate, planned);
     }
 
-    /// <summary>Saved: on the plate, and how to wear it (the game won't change gearset at a dresser).</summary>
-    private void SavedCard(Look look, int plate, Look? planned)
+    /// <summary>
+    /// Saved (the frame's saved panel): on the plate, how much of the look, that the site's been told (0.8.0); then
+    /// what's still to do, piece by piece, and how to wear it (the game won't change gearset at a dresser).
+    /// </summary>
+    private void SavedCard(Look look, int plate, PlatePlan plan, Dictionary<Slot, Piece> current)
     {
+        var wanted = plan.Steps.Where(s => s.Want != null).ToList();
+        var left = wanted.Where(s => !(current.TryGetValue(s.Slot, out var has) && LookJson.BaseId(has.Item) == LookJson.BaseId(s.Want!.Value.Item))).ToList();
         PaneSec();
         PaneNext();
         Kit.BeginPanel("##c-saved", 12, 12, 12, Palette.Card, Palette.Line, 18);
@@ -677,13 +788,50 @@ public sealed partial class MainWindow
         Kit.Display(new Vector2(at.X, at.Y + (S(15 * 1.1f) - Kit.DisplayHeight(15)) / 2), look.Name, 15, Palette.Ink, w);
         Kit.Reserve(at, w, S(15 * 1.1f));
         Kit.Gap(8);
-        TextHere($"To wear it, close Glamour Plates and the dresser, then Wear plate {plate.ToString(En)} in the plugin's Plates (or the Character window's Glamour Plate).", 12, Palette.Muted);
-        Kit.Gap(8);
-        at = Kit.At;
-        if (PaneLink("##c-other", at, "Another look", out _, Icon.ChevronDown)) ImGui.OpenPopup("##c-pick-look");
-        Kit.Reserve(at, w, Txt.Natural(Face.SansSemibold, 12));
+        TextHere(Words.OnIt(wanted.Count - left.Count, wanted.Count), 12, Palette.Muted);
+        switch (sync.ToldOf(plate, look.Id))
+        {
+            case { State: GlamourStudio.Session.SiteSync.Telling.Telling }:
+                Kit.Gap(8);
+                TextHere("Telling the site…", 12, Palette.Faint);
+                break;
+            case { State: GlamourStudio.Session.SiteSync.Telling.Told }:
+                Kit.Gap(8);
+                IconHere(Icon.Check, Palette.Ice, "Told the site");
+                break;
+            case { State: GlamourStudio.Session.SiteSync.Telling.Failed } failed:
+                Kit.Gap(8);
+                IconHere(Icon.AlertTriangle, Palette.Amber, $"Couldn't tell the site: {failed.Why}");
+                at = Kit.At;
+                if (PaneLink("##c-tell-again", at, "Try again", out _))
+                {
+                    var pieces = EditorPieces(plate);
+                    var id = look.Id;
+                    Later(() => sync.PlateSavedAgain(plate, id, pieces));
+                }
+                Kit.Reserve(at, w, Txt.Natural(Face.SansSemibold, 12));
+                break;
+        }
         Kit.EndPanel();
-        LookPicker(plate, planned);
+
+        if (left.Count > 0)
+        {
+            PaneSec();
+            SecHead("Still to do", left.Count.ToString(En));
+            PaneNext();
+            var first = true;
+            foreach (var s in left)
+            {
+                var item = s.Want!.Value.Item;
+                var tag = s.Elsewhere is { } place ? new TagSpec(PlaceTag(item, place), TagKind.Amber)
+                    : sync.Library.Wishes.Contains(LookJson.BaseId(item)) ? new TagSpec("Wishlist", TagKind.Star, Icon.Star)
+                    : new TagSpec("Don't have", TagKind.Miss);
+                SlotRow(ref first, Words.Short(s.Slot), item, null, tag, s.Elsewhere == null);
+            }
+            PaneText($"Got them? Open plate {plate.ToString(En)} again and Fill puts them on.", 11, Palette.Faint);
+        }
+        PaneSec();
+        PaneText($"To wear it: close Glamour Plates and the dresser, then Wear plate {plate.ToString(En)}.", 12, Palette.Muted);
     }
 
     /// <summary>The menu of looks to pick for the plate: the ready ones, then the rest of yours.</summary>

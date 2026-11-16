@@ -46,6 +46,7 @@ public enum DyeOutcome
 /// <param name="Has1">The copy's own first dye (what the plate shows without dyeing).</param>
 /// <param name="Elsewhere">For a missing piece: where else you have it, if anywhere.</param>
 /// <param name="Item">The copy's own item id (a high-quality copy's is its own).</param>
+/// <param name="Empty">For a missing piece you don't have at all: its slot is emptied (the site's "Leave them empty"), not left as it is.</param>
 public sealed record PlateStep(
     Slot Slot,
     Piece? Want,
@@ -58,7 +59,8 @@ public sealed record PlateStep(
     DyeOutcome Dye1 = DyeOutcome.Same,
     DyeOutcome Dye2 = DyeOutcome.Same,
     Place? Elsewhere = null,
-    bool InSet = false)
+    bool InSet = false,
+    bool Empty = false)
 {
     /// <summary>A dye the piece still needs that it won't get (no dye in your bags).</summary>
     public bool DyeLeft => Kind == StepKind.Set && (Dye1 == DyeOutcome.Differs || Dye2 == DyeOutcome.Differs);
@@ -74,6 +76,13 @@ public sealed record PlatePlan(IReadOnlyList<PlateStep> Steps)
 
     public IEnumerable<PlateStep> Missing => Steps.Where(s => s.Kind == StepKind.Missing);
 
+    /// <summary>The slots of pieces you don't have that are emptied (the site's "Leave them empty").</summary>
+    public IEnumerable<PlateStep> LeftEmpty => Steps.Where(s => s.Kind == StepKind.Missing && s.Empty);
+
+    /// <summary>The look's pieces that go on once filled (set from the dresser or armoire).</summary>
+    public int ToPutOn(IReadOnlyDictionary<Slot, Piece> current) => Steps.Count(s => s.Kind == StepKind.Set && s.Want is { } w
+        && !(current.TryGetValue(s.Slot, out var has) && LookJson.BaseId(has.Item) == LookJson.BaseId(w.Item) && has.Dye1 == w.Dye1 && has.Dye2 == w.Dye2));
+
     /// <summary>The look's pieces (each slot it fills).</summary>
     public int Wanted => Steps.Count(s => s.Want != null);
 
@@ -81,7 +90,7 @@ public sealed record PlatePlan(IReadOnlyList<PlateStep> Steps)
     public int Ready => Steps.Count(s => s.Want != null && s.Kind == StepKind.Set);
 
     /// <summary>Anything to do at all (a piece to set or a slot to empty).</summary>
-    public bool Any => Steps.Any(s => s.Kind is StepKind.Set or StepKind.Clear);
+    public bool Any => Steps.Any(s => s.Kind is StepKind.Set or StepKind.Clear || s.Empty);
 
     /// <summary>The dyes taken from your bags: each stain and how many.</summary>
     public IReadOnlyDictionary<byte, int> BagDyes => Steps.Where(s => s.Kind == StepKind.Set)
@@ -92,7 +101,9 @@ public sealed record PlatePlan(IReadOnlyList<PlateStep> Steps)
 /// <summary>The choices that change how a plate is filled (Settings).</summary>
 /// <param name="ClearBare">Empty the armour and accessory slots the look leaves bare (weapons are kept unless the look has one).</param>
 /// <param name="BagDyes">Dye pieces whose copy has other dyes with the dyes in your bags (null: don't).</param>
-public sealed record PlateOptions(bool ClearBare = true, IReadOnlyDictionary<byte, int>? BagDyes = null);
+/// <param name="EmptyMissing">Empty the slots of pieces you don't have anywhere (the site's send said "Leave them empty");
+/// a piece you have elsewhere (bags, armoury chest, a retainer) keeps its slot as it is, to fill later.</param>
+public sealed record PlateOptions(bool ClearBare = true, IReadOnlyDictionary<byte, int>? BagDyes = null, bool EmptyMissing = false);
 
 /// <summary>
 /// Works out how a look goes on a glamour plate, before anything's touched: for each piece, the copy
@@ -154,7 +165,8 @@ public static class PlatePlanner
                 steps.Add(Dyed(new PlateStep(slot, want, StepKind.Set, PlateSource.Armoire, cabinet, id), w1, w2, options.BagDyes != null, bag));
                 continue;
             }
-            steps.Add(new PlateStep(slot, want, StepKind.Missing, Elsewhere: elsewhere(id)));
+            var where = elsewhere(id);
+            steps.Add(new PlateStep(slot, want, StepKind.Missing, Elsewhere: where, Empty: where == null && options.EmptyMissing));
         }
         return new PlatePlan(steps);
     }

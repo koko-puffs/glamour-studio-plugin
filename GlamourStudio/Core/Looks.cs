@@ -53,8 +53,33 @@ public sealed record Look(
 /// <summary>A look sent from the site to the game (<c>gs_plugin_inbox_list</c>), with the plate it was meant for.</summary>
 public sealed record SentLook(string Id, int? Plate, DateTimeOffset CreatedAt, Look Look);
 
-/// <summary>A look planned on the site for one of a character's plates (<c>gs_plugin_plans</c>).</summary>
-public sealed record PlannedPlate(int Plate, Look Look);
+/// <summary>What to do with the slot of a piece you don't have (the site's Send to a plate…).</summary>
+public enum MissingChoice
+{
+    /// <summary>Leave what the plate has there (as before 0.8.0, and for a site that doesn't say).</summary>
+    Keep,
+
+    /// <summary>Empty the slot.</summary>
+    Empty,
+}
+
+/// <summary>
+/// A look planned on the site for one of a character's plates (<c>gs_plugin_plans</c>), or sent
+/// there from the site's Send to a plate… (0.8.0: a send is a plan with <paramref name="SentAt"/>).
+/// </summary>
+/// <param name="Missing">What to do with the slots of pieces you don't have.</param>
+/// <param name="SentAt">When it was sent from the site (null: planned in the site's Closet → Plates).</param>
+/// <param name="SavedAt">When the plugin last told the site it was saved on the plate.</param>
+/// <param name="Waiting">Sent and not saved since: the dresser says it's waiting.</param>
+/// <param name="Variant">The dye variant's name (its dyes are on the look's pieces already).</param>
+public sealed record PlannedPlate(
+    int Plate,
+    Look Look,
+    MissingChoice Missing = MissingChoice.Keep,
+    DateTimeOffset? SentAt = null,
+    DateTimeOffset? SavedAt = null,
+    bool Waiting = false,
+    string? Variant = null);
 
 /// <summary>Your looks and the ones you love (<c>gs_plugin_looks</c>), and what's on your wishlist.</summary>
 public sealed record Library(IReadOnlyList<Look> Mine, IReadOnlyList<Look> Loved, IReadOnlySet<uint> Wishes)
@@ -223,7 +248,12 @@ public static class LookJson
         var list = new List<PlannedPlate>();
         foreach (var r in rows.OfType<JsonObject>())
             if (Long(r["plate"]) is { } p and >= 1 and <= Plates.Count && ReadLook(r["look"]) is { } look && list.All(x => x.Plate != p))
-                list.Add(new PlannedPlate((int)p, look));
+                list.Add(new PlannedPlate((int)p, look,
+                    Str(r["missing"]) == "empty" ? MissingChoice.Empty : MissingChoice.Keep,
+                    Time(r["sent_at"]),
+                    Time(r["saved_at"]),
+                    r["waiting"] is JsonValue w && w.TryGetValue<bool>(out var waiting) && waiting,
+                    Str(r["variant"]) is { Length: > 0 } v ? Named(r["variant"], v) : null));
         return list.OrderBy(p => p.Plate).ToList();
     }
 

@@ -11,7 +11,8 @@ plate.
 
 Linked to your account on the site, it keeps your **closet** there up to date by itself: what's in
 your glamour dresser, armoire, bags, armoury chest, saddlebags and retainers, your glamour plates,
-what you're wearing, and the facewear and fashion accessories you've unlocked. Looks you **Send to game** from the site wait in the plugin, and a plate,
+what you're wearing, and the facewear and fashion accessories you've unlocked. Looks you **send to a plate** from the site wait for you at the glamour dresser (**Open Glamour
+Plates** opens that plate, **Fill plate 4** fills it, you press Save, and the site hears of it), and a plate,
 your outfit or someone you examine can be kept as a new look on the site.
 On each character it hasn't seen before it **asks you first** whether to send that character at
 all, and sends nothing of it until you say yes; what's sent stays private on the site unless you

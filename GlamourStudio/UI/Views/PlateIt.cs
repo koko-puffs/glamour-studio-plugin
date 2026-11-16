@@ -31,6 +31,9 @@ public sealed partial class MainWindow
 
         /// <summary>When the editor's open long enough for its plate to be read (unsaved changes, the plate picked).</summary>
         public DateTime ReadyAt { get; set; }
+
+        /// <summary>Only open Glamour Plates on the plate (the dresser's toast for a send): Fill waits for its press.</summary>
+        public bool OpenOnly { get; init; }
     }
 
     private PlateItJob? plateIt;
@@ -41,8 +44,8 @@ public sealed partial class MainWindow
     /// <summary>Whether a look can go on a plate in one go now: the dresser, or its plate editor, open.</summary>
     private static bool PlateItHere => PlateEditor.IsOpen || GameWindows.IsShown("MiragePrismPrismBox");
 
-    /// <summary>Starts putting <paramref name="look"/> on <paramref name="plate"/>.</summary>
-    private void StartPlateIt(Look look, int plate)
+    /// <summary>Starts putting <paramref name="look"/> on <paramref name="plate"/> (with <paramref name="openOnly"/>, only opening Glamour Plates on it).</summary>
+    private void StartPlateIt(Look look, int plate, bool openOnly = false)
     {
         if (AutoBusy)
         {
@@ -59,8 +62,8 @@ public sealed partial class MainWindow
             Frame.Warn("Open your glamour dresser first");
             return;
         }
-        plateIt = new PlateItJob { Look = look, Plate = plate, Step = PlateItStep.Opening, Until = DateTime.UtcNow + TimeSpan.FromSeconds(6) };
-        recorder.Note($"PLATE IT “{look.Name}” ({look.Id}) on plate {plate}");
+        plateIt = new PlateItJob { Look = look, Plate = plate, Step = PlateItStep.Opening, Until = DateTime.UtcNow + TimeSpan.FromSeconds(6), OpenOnly = openOnly };
+        recorder.Note($"{(openOnly ? "OPEN GLAMOUR PLATES for" : "PLATE IT")} “{look.Name}” ({look.Id}) on plate {plate}");
     }
 
     /// <summary>The next step of putting a look on a plate (every frame).</summary>
@@ -139,6 +142,8 @@ public sealed partial class MainWindow
                     break;
                 }
                 plateIt = null;
+                // Opened for a send: the panel shows it, and Fill plate N waits for its press.
+                if (job.OpenOnly) break;
                 // The plates panel shows this look for that plate.
                 companionPick = job.Look;
                 companionPickPlate = job.Plate;
