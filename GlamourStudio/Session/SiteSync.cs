@@ -156,7 +156,8 @@ public sealed class SiteSync : IDisposable
     /// <summary>
     /// A plate the plugin filled was saved in the game: the site's told (its plates at once, the send done
     /// with, a notification when it was sent a while ago). Only for a character the site takes; once for
-    /// each plate and look, unless it failed.
+    /// each fill saved (the view tells each fill once): a look sent to the same plate again later is told
+    /// again, while one telling is under way it isn't.
     /// </summary>
     public void PlateSaved(int plate, string? lookId, IReadOnlyDictionary<Slot, Piece> pieces)
     {
@@ -168,7 +169,7 @@ public sealed class SiteSync : IDisposable
             platesTold[key] = (Telling.NotSent, null, null);
             return;
         }
-        if (platesTold.TryGetValue(key, out var was) && was.State is Telling.Telling or Telling.Told) return;
+        if (platesTold.TryGetValue(key, out var was) && was.State is Telling.Telling) return;
         platesTold[key] = (Telling.Telling, null, null);
         var savedAt = DateTimeOffset.UtcNow;
         var copy = pieces.ToDictionary(kv => kv.Key, kv => kv.Value);
