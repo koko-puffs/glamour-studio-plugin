@@ -598,7 +598,7 @@ public sealed partial class MainWindow : Window
         return lh * rows.Count;
     }
 
-    /// <summary>The tool's mark: the logo texture (the clothes tag), <paramref name="size"/> screen px across.</summary>
+    /// <summary>The tool's mark: the logo texture (the glamour prism), <paramref name="size"/> screen px across.</summary>
     private static void Mark(ImDrawListPtr dl, Vector2 pos, float size)
     {
         _ = dl;

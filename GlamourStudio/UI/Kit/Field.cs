@@ -447,7 +447,7 @@ public static partial class Kit
     public static void HoloUnderline(float x0, float x1, float bottom) =>
         Holo(new Vector2(x0, bottom - S(3)), new Vector2(x1, bottom), S(3), ImDrawFlags.RoundCornersTop);
 
-    /// <summary>The logo (the clothes tag), <paramref name="sizeCss"/> square (the mock's 18, 22, 30, 48, 96), the texture nearest its drawn size.</summary>
+    /// <summary>The logo (the glamour prism), <paramref name="sizeCss"/> square (the mock's 18, 22, 30, 48, 96), the texture nearest its drawn size.</summary>
     public static void Logo(Vector2 pos, float sizeCss = 30)
     {
         var size = S(sizeCss);
@@ -458,9 +458,10 @@ public static partial class Kit
             dl.AddImage(tex.Handle, pos, pos + new Vector2(size), Vector2.Zero, Vector2.One, Palette.U32(Vector4.One));
             return;
         }
-        // Until it's made: the tag's periwinkle and its hanger.
-        dl.AddRectFilled(pos + new Vector2(size * 0.1f), pos + new Vector2(size * 0.95f, size * 0.9f), Palette.U32(Palette.Field), size * 0.12f);
-        Icons.Draw(dl, Icon.Hanger, pos + new Vector2(size * 0.22f), size * 0.62f, Palette.White, 1.9f);
+        // Until it's made: the prism's two faces, its lit left one lilac, its right periwinkle.
+        Vector2 P(float x, float y) => pos + new Vector2(x, y) * (size / 30f);
+        dl.AddTriangleFilled(P(15.4f, 2), P(1.2f, 18.4f), P(16.2f, 26.6f), Palette.U32(Palette.Hex(0xcbbcff)));
+        dl.AddTriangleFilled(P(15.4f, 2), P(16.2f, 26.6f), P(28.8f, 17.2f), Palette.U32(Palette.Field));
     }
 
     /// <summary>The holo sparkle (new, a wish come true, good news), <paramref name="sizeCss"/> square (the mock's 12, 16, 22).</summary>

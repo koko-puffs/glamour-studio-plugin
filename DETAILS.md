@@ -116,7 +116,7 @@ the browser. On a Japanese client the Figtree sizes are Dalamud's own font (it h
 kanji item names need).
 
 **Textures** (`Resources/Textures`, embedded; made once with the fonts and let go with them,
-`UI/Kit/Textures.cs`): the logo (the site's clothes tag with its hanger) at 32, 64, 128 and 256px,
+`UI/Kit/Textures.cs`): the logo (the site's mark, the glamour prism in the studio's periwinkle) at 32, 64, 128 and 256px,
 the smallest that's big enough drawn at 18 to 96; `holo.png`, a 256px tile of the holo marble;
 `spark.png`, the holo four-point sparkle; `cloud.png`, white, tinted, behind an empty page. Until a
 texture's made the part draws without it (lilac for holo). The game's item icons are the game's.
@@ -938,7 +938,7 @@ words saying to update the plugin.
 | `UI/Model/` | The Kit's game-free parts, tested: SVG paths (`SvgPath`), dashed edges (`Dashes`), which characters a face has and the fallback's ranges (`Glyphs`), the echo's words, initials, turning the seal and sign, the bar's fit (`Sheet`), a look's sheet (`LookSheet`), a recording's clock (`Elapsed`). |
 | `Resources/` | `Fonts/` (Bricolage Grotesque, Shantell Sans, Figtree, Geist Mono, each with its licence) and `Textures/` (the logo at four sizes, `holo.png`, `spark.png`, `cloud.png`), embedded in the DLL. |
 | `images/icon.png` | The icon Dalamud's installer shows (512 × 512). |
-| `tools/make-icon.mjs` | Renders `tools/icon.svg` (the site's mark: kokos-tools `src/features/marks.ts`) with Playwright's Chromium to `images/icon.png` and, without its light, to the logo textures `Resources/Textures/logo-32/64/128/256.png`: `node tools/make-icon.mjs` when the site's mark changes. |
+| `tools/make-icon.mjs` | Renders `tools/icon.svg` (the site's mark: kokos-tools `src/features/marks.ts`) with Playwright's Chromium to `images/icon.png` and to the logo textures `Resources/Textures/logo-32/64/128/256.png`: `node tools/make-icon.mjs` when the site's mark changes. |
 | `GlamourStudio.Tests/` | xUnit over `Core/` and `UI/Model/`: builds and runs without the game or Dalamud. |
 
 ## Releasing
@@ -955,6 +955,16 @@ this one too, within a few minutes of a release.
 The workflows need Settings → Actions → General → Workflow permissions → Read and write.
 
 ## Release notes
+
+### 0.8.1 (not released yet)
+
+- **The new mark** (17 November 2026, the site's: kokos-tools `src/features/marks.ts`): a glamour
+  prism as the game draws it, in the studio's periwinkle (the pyramid from a little above, its lit
+  left face pink up to white, its right ice into deep violet, a holo's colours across both, a
+  sparkle by its peak), for the plugin's icon and the logo the window draws (the clothes tag and
+  its hanger before). The mark has its own light now, so `tools/make-icon.mjs` draws the icon and
+  the logo textures from the one drawing (the logo was the icon without its light). The icon
+  shows in the installer as soon as it's on main (`IconUrl`); the logo comes with the release.
 
 ### 0.8.0
 
