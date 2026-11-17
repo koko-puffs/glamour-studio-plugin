@@ -27,7 +27,7 @@ public enum Body
 }
 
 /// <summary>
-/// A look from Glamour Studio, as the plugin reads it (the site's <c>gs_plugin_look_json</c>): what to
+/// A look from Glamourie, as the plugin reads it (the site's <c>gs_plugin_look_json</c>): what to
 /// show, and its pieces by slot.
 /// </summary>
 /// <param name="Mine">Your own look (else one you love, or one sent to you).</param>

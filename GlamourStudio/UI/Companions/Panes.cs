@@ -157,7 +157,7 @@ public sealed partial class MainWindow
             {
                 const string room = "Make room";
                 var bw = BtnW(room, BtnSize.Tiny, Icon.Package);
-                if (BtnAt("##c-room", new Vector2(right - bw, at.Y), room, BtnSize.Tiny, Btn.Glass, Icon.Package, false, "Make room in Glamour Studio: what could leave, and what the plugin can do for you"))
+                if (BtnAt("##c-room", new Vector2(right - bw, at.Y), room, BtnSize.Tiny, Btn.Glass, Icon.Package, false, "Make room in Glamourie: what could leave, and what the plugin can do for you"))
                     Later(() => Go(Screen.MakeRoom));
                 right -= bw + S(8);
             }

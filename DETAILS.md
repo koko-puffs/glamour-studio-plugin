@@ -1,4 +1,4 @@
-# Glamour Studio plugin: the details
+# Glamourie plugin: the details
 
 The full reference: every screen and setting, how a plate is filled, what the plugin reads and
 sends, how the code is laid out, releasing, and the release notes. The short version is the
@@ -21,7 +21,7 @@ sends, how the code is laid out, releasing, and the release notes. The short ver
 
 ## What it does
 
-Glamour Studio (the site, `kokos-tools.com/glamour-studio`) is where looks are made: a mannequin
+Glamourie (the site, `kokos-tools.com/glamourie`) is where looks are made: a mannequin
 dressed in any piece of gear, dyed, saved, shared. The plugin is its half in the game:
 
 - **Looks on plates.** With the game's plate editor open (a glamour dresser → Glamour Plates),
@@ -60,8 +60,14 @@ dressed in any piece of gear, dyed, saved, shared. The plugin is its half in the
   them, so Wear puts them on after the plate. What you wear and what you've unlocked go to the site
   too (see [Facewear and fashion accessories](#facewear-and-fashion-accessories)).
 
-`/gstudio` opens the window, `/gstudio settings` opens Settings, `/gstudio send` sends your
-closet now, `/gstudio refresh` reads it all again (as the Refresh button does).
+`/glamourie` opens the window, `/glamourie settings` opens Settings, `/glamourie send` sends your
+closet now, `/glamourie refresh` reads it all again (as the Refresh button does). `/gstudio`, the
+command from before, still does all the same (not listed in Dalamud's help).
+
+**Its name.** The plugin, like the site, was Glamour Studio until 17 November 2026. Only what you
+see changed: its internal name (`GlamourStudio`, so an installed copy updates as before), its
+settings and folder (`pluginConfigs/GlamourStudio`), its code's names and the ids the site's calls
+use (`gs_plugin_…`) are the same.
 
 **Refresh** (the round arrows beside Settings at the right of the window's bar, and in each panel's
 header beside the game's windows): your looks, wishlist, plans, the looks sent to you and what you
@@ -116,7 +122,7 @@ the browser. On a Japanese client the Figtree sizes are Dalamud's own font (it h
 kanji item names need).
 
 **Textures** (`Resources/Textures`, embedded; made once with the fonts and let go with them,
-`UI/Kit/Textures.cs`): the logo (the site's mark, the glamour prism in the studio's periwinkle) at 32, 64, 128 and 256px,
+`UI/Kit/Textures.cs`): the logo (the site's mark, the glamour prism in Glamourie's periwinkle) at 32, 64, 128 and 256px,
 the smallest that's big enough drawn at 18 to 96; `holo.png`, a 256px tile of the holo marble;
 `spark.png`, the holo four-point sparkle; `cloud.png`, white, tinted, behind an empty page. Until a
 texture's made the part draws without it (lilac for holo). The game's item icons are the game's.
@@ -138,7 +144,7 @@ The window is 1120 × 760 to start with (fitted to 90% of the screen the first t
 the least. Dalamud's title bar (▼, ☰, ×) stays Dalamud's.
 
 **The bar** (56px under the title bar, its hairline at the foot; `MainWindow.DrawBar`,
-`UI/Kit/Bar.cs`): the logo and GLAMOUR STUDIO, a slash, then the five places, **Home · Looks ·
+`UI/Kit/Bar.cs`): the logo and GLAMOURIE, a slash, then the five places, **Home · Looks ·
 Plates · Closet · Make room**, each its icon, name and count (your looks; plates with something on
 them, of 20; the pieces you have; the dresser's places used, of 800), muted; the one you're on in
 Ink with a lilac icon and count and the holo underline over the bar's line. At the right **your
@@ -150,14 +156,14 @@ first that's true of:
 | --- | --- |
 | Recording what you do · 1,204 lines | red, ringed |
 | Plate editor open · plate 3 | lilac, breathing |
-| Not linked to Glamour Studio | grey |
+| Not linked to Glamourie | grey |
 | Link again: the site doesn't know this token | red |
 | Sending your closet… | lilac, breathing |
 | Closet not sent: see Closet (what went wrong is said in full there) | red |
 | This character isn't sent yet: say yes or no | grey |
 | This character isn't sent to the site | grey |
 | Yes · telling the site… (your answer stands until the site has it) | lilac, breathing |
-| Glamour Studio couldn't ask about this character (the site couldn't be reached for its answer; asked again a minute later) | red |
+| Glamourie couldn't ask about this character (the site couldn't be reached for its answer; asked again a minute later) | red |
 | Closet up to date · sent 4 min ago | ice |
 | Linked · sends your closet as you play ("Linked", with sending by itself off) | ice |
 
@@ -215,7 +221,7 @@ plates you've planned on the site (by number, up to four), and Plan plates on th
 
 **Not linked** (the first run): the field, "Three steps · once", LINK YOUR GAME, what linking brings,
 the three steps as callouts (link your account, open your dresser and armoire once, put a look on a
-plate), the **Link your account** sticker (to Settings → Account) and Open Glamour Studio. With the
+plate), the **Link your account** sticker (to Settings → Account) and Open Glamourie. With the
 plate editor open it's a plain card under the plate's field.
 
 Under it, two columns (the right one 356 wide):
@@ -354,7 +360,7 @@ No field and no sticker: nothing here is the one thing to do. Down the left:
 - The other places: the armoire, armoury chest, bags, saddlebags, retainers and Facewear and
   accessories (the styles and accessories unlocked), each its icon, name, when it was read (retainers: how many read, and when the last was) or, in amber, "not read yet:
   open …", and how many pieces.
-- **Your closet on Glamour Studio**, as it stands:
+- **Your closet on Glamourie**, as it stands:
   - sent: "2,140 pieces, sent 4 min ago (12 new)", that it's sent by itself as it changes, **Send
     now** and **Open** (under 1000 wide, Send, and Open as an icon); "Not sent yet since the plugin
     loaded" before the first send;
@@ -469,22 +475,22 @@ OUT …`). New: not yet watched.
 
 ## Beside the game's windows
 
-A small Glamour Studio panel (300 wide, in the window's look with 14px corners) docked to the edge
+A small Glamourie panel (300 wide, in the window's look with 14px corners) docked to the edge
 of the game window you have open, its top level with the window's, moving with it as you drag it; on
 the side with room (right by default; Settings can pin a side). As tall as what's in it, whatever the
 game window's height (it measures what it drew each frame), scrolling only when the screen runs out.
 It's gone with its window, while the HUD's hidden, in cutscenes and in group pose.
 
-**Its header** (54 tall with its line): the logo, GLAMOUR STUDIO in small lilac spaced capitals over
+**Its header** (54 tall with its line): the logo, GLAMOURIE in small lilac spaced capitals over
 what it's beside in Bricolage capitals (At the dresser, Plate 3, Your plates, by look, the outfit
 set being stored, the piece being dyed, Trying on, At the armoire, Their name's outfit, On Retainer's
-name, Wishlist), then Refresh, **Open Glamour Studio** (the plugin's window on the screen that
+name, Wishlist), then Refresh, **Open Glamourie** (the plugin's window on the screen that
 matches: from Glamour Plates the plate's planned or picked look, else Plates; from the dresser, Make
 room; from the armoire, a retainer, the market board, a shop or the dye window, Closet; from the
 fitting room, the look on; else Home) and the fold, quiet and round. Folded, a slim tab stays on the
 window's edge: the arrow back out, its one number in lilac mono (the looks ready at the dresser, "20+"
 past twenty; the plate open; your wishlist's length at the market board; a retainer's pieces for your
-looks) and the logo under them; pointed at, "Glamour Studio: what it's beside". Folding is remembered
+looks) and the logo under them; pointed at, "Glamourie: what it's beside". Folding is remembered
 for each window.
 
 **Its parts** (the mock's pane parts, `UI/Companions/Companion.cs`): sections 14 apart under a
@@ -521,13 +527,13 @@ is off meanwhile). `UI/Companions/Companion.cs` is the panel, `Panes.cs` what ea
 box in the plugin's look (`UI/Companions/ItemExtras.cs`: the card, the strong hairline, 12px
 corners), as wide as the game's tooltip (220 at least), 4px under it, or above it when there's no
 room below, and kept on the screen whatever the game's tooltip does (a tall one at the top, a narrow
-one at the edge). The logo and GLAMOUR STUDIO in small lilac capitals, then each line with its icon,
+one at the edge). The logo and GLAMOURIE in small lilac capitals, then each line with its icon,
 wrapped: which of your looks have it (a hanger), the plates it's on, on your wishlist (lavender ★;
 "and yours now" once it is), whether your dresser has a copy or it's in your armoire (ice ✓).
 Nothing when none of that's so.
 
 **Right-click menu:** on gear in your bags, the armoury chest, a retainer's, an item linked in chat
-(and the market board, recipes, shops), a **Glamour Studio** entry, its name in the plugin's lilac
+(and the market board, recipes, shops), a **Glamourie** entry, its name in the plugin's lilac
 in the game's own menu (no prefix before it): Add it to a look… (your looks;
 the piece goes in its slot, a ring on the free hand, `gs_plugin_look_put`), Try it on with a look of yours that has it (the
 whole look in the fitting room; a submenu of them, up to twelve, when more than one has it), Which looks use it (a line in chat), Put it on your wishlist (when it isn't
@@ -552,32 +558,32 @@ site; What the plugin has read; Making a report (below).
 | Empty the slots a look leaves bare | on | A look with no earrings empties the plate's earrings, so the plate is the look exactly. Weapons are left alone unless the look has one (a plate's weapon is its job's). |
 | Dye pieces with the dyes in your bags | off | A piece whose copy is dyed otherwise than the look gets the look's dyes from bottles in your bags (the game spends them when the plate is saved). New (an amber tag), and not yet watched in the game: off, the plugin says which pieces to dye in the plate editor. |
 | Open with the plate editor | on | Opening Glamour Plates opens the window, on Home (off, and dimmed, while the Glamour Plates panel is on). |
-| Show Glamour Studio beside the game's windows | on | The panels beside the game's windows (above). |
+| Show Glamourie beside the game's windows | on | The panels beside the game's windows (above). |
 | Side | Auto | Which side of the game window a panel takes: Auto (the side with room), Left or Right. |
 | Start folded | off | A window's panel you haven't opened or folded yourself starts as its tab. |
 | Each window's panel | on | **Choose** unrolls a switch for each: Glamour Dresser, Glamour Plates, Armoire, Storing outfit sets, Fitting Room, Examine, Dye, Plates from the Character window, Retainers' bags, Market board and shops. |
 | Glamour lines under item tooltips | on | The box under a piece's tooltip. |
-| Glamour Studio in the right-click menu | on | The right-click entry on gear. |
+| Glamourie in the right-click menu | on | The right-click entry on gear. |
 | Keep it up to date by itself | on | Sends your closet as it changes (see [The site](#the-site)). |
 | Send my plates and outfit | on | Your plates and what you wear go along, with your character's name and world (only you see them), for the site's Plates and Copy my game outfit. |
 | Say in chat when a wish comes true | on | A line in chat when pieces on your wishlist are seen in your wardrobe (they come off the list either way). |
 | Forget this character | | Forgets what the plugin has read of the character you're playing (it's read again as you play); it asks first. |
 
-**Account:** **Glamour Studio account**: linked, "Linked to Glamour Studio" with the token masked and
+**Account:** **Glamourie account**: linked, "Linked to Glamourie" with the token masked and
 Unlink (it asks; a danger question); a token the site doesn't know, Link again; not linked, "Not
-linked", Get a token (the site's Settings → Glamour Studio → In-game plugin), the token's field and
+linked", Get a token (the site's Settings → Glamourie → In-game plugin), the token's field and
 **Link** (the only sticker in Settings; a token that can't be one says why under it: it starts
-`gsp_` and is 47 letters long). Under it, to keep the token to yourself, Get a token and Open Glamour
-Studio. Then **Characters**: the one you're on first ("you're on it"), then each you've answered for,
+`gsp_` and is 47 letters long). Under it, to keep the token to yourself, Get a token and Open
+Glamourie. Then **Characters**: the one you're on first ("you're on it"), then each you've answered for,
 by name, each its face (on the periwinkle when it's sent), its world, where it stands (Sent to the
 site, Not sent, Not asked yet in amber, Yes · telling the site…, No · telling the site…, Checking with
 the site…, Link your account to send it) and its switch (Send to the site); the card at half strength
-while not linked. What's shown of each on the site is the site's Settings → Glamour Studio →
+while not linked. What's shown of each on the site is the site's Settings → Glamourie →
 Characters.
 
 ## Making a report: the recorder
 
-Settings → General → **Making a report**, or `/gstudio record`. Watch-only, as Housing Studio's
+Settings → General → **Making a report**, or `/glamourie record`. Watch-only, as Housing Studio's
 recorder (`Game/Recorder.cs`): while on it writes down, with the time since it started,
 
 - `OPEN` / `REFRESH` / `CLOSE` of game windows (the glamour ones: the plate editor, the dresser,
@@ -608,31 +614,31 @@ recorder (`Game/Recorder.cs`): while on it writes down, with the time since it s
 - `PLUGIN` what the plugin did (filling a plate slot by slot with the game's answer, dyes from
   bags, storing in the armoire, linking or changing gearsets, wearing a plate, trying on, a shot and
   hiding and showing the HUD for it);
-- `MARK` a step you're about to do (the field in Settings, or `/gstudio mark 2. Fill plate 3`),
+- `MARK` a step you're about to do (the field in Settings, or `/glamourie mark 2. Fill plate 3`),
   each with the whole state.
 
 In Settings it's the last group of General, its card red-edged while it records. Off: **Record
 what I do** and Start (with the red recording dot). Recording: "Recording · 1,204 lines · 4:12" (the
-time from the recorder's own start, `Recorder.StartedAt`, so a recording begun by `/gstudio record`
+time from the recorder's own start, `Recorder.StartedAt`, so a recording begun by `/glamourie record`
 while Settings was shut is timed right too) with Stop, a field to **Mark** a step (Enter marks too;
 an empty mark isn't written), and **Write down the windows' values**. Stopped: "Stopped · 1,204 lines
 · Mark 6 written", Start again (this one goes, so copy or save it first), then **Copy the
 recording** and **Save it as a file** side by side, and once saved where it went (from
 `pluginConfigs` on) with Show, which opens its folder. Copy and Save are offered only once it's
-stopped (`/gstudio save` saves at any time).
+stopped (`/glamourie save` saves at any time).
 
-**Write down the windows' values** (`/gstudio dump`) adds every value the open glamour windows
+**Write down the windows' values** (`/glamourie dump`) adds every value the open glamour windows
 hold and the plate editor, dresser, plates and armoire in full, a hundred values to a line. The
 same line again is counted ("the line above 12 times in all"), not written again. **Copy the
 recording** puts it on the clipboard with what the plugin knows (the plugin's, Dalamud's and the
 game's versions, the plugins loaded, the recorder's hooks, character, settings, what's been read,
-the last send); **Save it as a file** (`/gstudio save`) writes it to
+the last send); **Save it as a file** (`/glamourie save`) writes it to
 `pluginConfigs/GlamourStudio/recordings/gstudio-<time>.txt`. The recording's header (when it started,
 what's been read and when) and that "what the plugin knows" give their times in the PC's local time
 (they're kept in UTC). It keeps the last 20,000 lines and stops
 by itself after two hours. It sends nothing anywhere, and leaves out other people's names (the
-Examine window's words and values, the names in a menu on someone). `/gstudio mark` and
-`/gstudio dump` start a recording when none is going, but not over a stopped one that hasn't been
+Examine window's words and values, the names in a menu on someone). `/glamourie mark` and
+`/glamourie dump` start a recording when none is going, but not over a stopped one that hasn't been
 saved or copied since its last line: a line added after a save or a copy means it isn't handed over
 any more, so a new mark or dump asks you to save it first ("the last recording isn't saved yet").
 
@@ -836,7 +842,7 @@ done yet: Try it on puts on the twelve.
 ## The site
 
 Linked exactly as Housing Studio's and Raid Planner's plugins are: a token made on the site
-(Settings → Glamour Studio → In-game plugin), shown there once (only its SHA-256 is kept),
+(Settings → Glamourie → In-game plugin), shown there once (only its SHA-256 is kept),
 `gsp_` and 43 letters, revoked there. The plugin calls the site's database functions
 (`supabase/migrations/…_gs_plugin.sql` in koko-puffs/kokos-tools) with the site's publishable key,
 the token in the body only (never logged). 120 changes or heavy reads an hour a token.
@@ -850,7 +856,7 @@ runs them off the framework thread and takes the answers back to it.
 | `gs_plugin_character` | you answer the question, or flip a character's switch in Settings → Account; an answer the site hasn't heard yet (a minute after a failed try) | your answer for a character: yes with its name and world; no with its key alone, and the site lets go of what it had of it |
 | `gs_plugin_sync` | your wardrobe changed and settled for 10 s, at most every 3 min (and only when what's sent changed); Send it now; saying yes; linking. **Only for a character the site takes (`yes`)** | the character you're on (key, name, world), its pieces each where they are, the places read in full, its plates and what it wears (its facewear and fashion accessory as `face` and `fashion` among the pieces), with how it looks (`p_outfit.appearance`: its customize bytes and their colours as `#rrggbb`, for the site's dressing room to draw it as its mannequin); the facewear and accessories unlocked as the place `unlocked` |
 | `gs_plugin_looks` | the window opens, every 10 min while it's open, Refresh | your looks (300), the public ones you love (200), your wishlist's items |
-| `gs_plugin_inbox_list` | as the window opens (any way: the plugin list, `/gstudio`, a panel's arrow), every minute while it's open, every 15 otherwise | the looks sent to the game, each whole, with the plate meant |
+| `gs_plugin_inbox_list` | as the window opens (any way: the plugin list, `/glamourie`, a panel's arrow), every minute while it's open, every 15 otherwise | the looks sent to the game, each whole, with the plate meant |
 | `gs_plugin_inbox_remove` | a sent look went on a plate | it's off the list |
 | `gs_plugin_save_look` | Keep it as a look (a plate, someone examined, what the fitting room has on), Copy my game outfit | a new private look of yours, with its facewear and fashion accessory (`face`, `fashion`) when it had them |
 | `gs_plugin_plans` | the window opens and with the looks, when you change character (30 s at most), on coming to a glamour dresser (20 s at most) and every minute while there; only for a character the site takes | that character's plate plans, each look whole; from 0.8.0's site, a plan sent from the site's Send to a plate… says so: `missing` (`empty`: the slots of pieces you don't have are emptied; `keep`, or a site that doesn't say: left as they are), `sent_at`, `saved_at`, `waiting` (sent and not saved since), `variant` (a dye variant's name: its dyes are on the look's pieces already) |
@@ -875,7 +881,7 @@ your closet are made again from all of them, each in its handiest place. So anot
 character played alone, never takes another character's pieces off; pieces you ticked by hand stay
 yours until the plugin sees them somewhere. Plates and what
 you wear are kept per character (eight at most). The site shows a closet per character too (its
-Viewing as switch), and its Settings → Glamour Studio → Characters lists them: whether it takes each
+Viewing as switch), and its Settings → Glamourie → Characters lists them: whether it takes each
 one's data, what's public of each (nothing until you say), and Forget.
 
 ## Asking about each character
@@ -899,7 +905,7 @@ it there too: what to do (`Consent.Decide`) is
 **The question** (`UI/Views/Characters.cs`): while linked, on a character that needs asking, a card
 of its own at the top of the screen, 40px down (440 wide; ink with 28px corners and the strong
 hairline, no glow): the logo and the eyebrow "A new character on Lich", "Send Koko Nyan's wardrobe
-to Glamour Studio?" in display capitals, what goes, and that it stays private and nothing is sent
+to Glamourie?" in display capitals, what goes, and that it stays private and nothing is sent
 until you say yes; whether the window's open or not; gone in cutscenes and group pose and while the
 HUD's hidden, as the panels are. **Yes, send it** (the sticker): told to the site, then the closet
 goes at once, its plans and Wear today read as that character; **No** (outlined): told to the site,
@@ -907,7 +913,7 @@ which lets go of what it had of it; **Not now** (quiet): not asked again about i
 loads again (Closet's **Ask me** asks again). A line in chat says what you chose. Not linked,
 nothing's asked (nothing could be sent); on linking it is. The bar's pill says "This character isn't
 sent yet: say yes or no" or "This character isn't sent to the site"; while a yes is on its way, "Yes ·
-telling the site…"; and when the site couldn't be reached for its answer, "Glamour Studio couldn't
+telling the site…"; and when the site couldn't be reached for its answer, "Glamourie couldn't
 ask about this character" (it's asked again a minute later).
 
 **An answer you give stands until the site has it** (0.6.15). Answering (the question, or Settings →
@@ -958,8 +964,13 @@ The workflows need Settings → Actions → General → Workflow permissions →
 
 ### 0.8.1 (not released yet)
 
+- **Now Glamourie** (17 November 2026, as the site): the installer's name and words, the window's
+  title, GLAMOURIE in the bar and the panels, and every line, tooltip and chat message. The command
+  is `/glamourie` (`/gstudio` still works, not listed in help), and the links the plugin opens are
+  the site's new addresses (`kokos-tools.com/glamourie…`; the old ones redirect). The internal name
+  (`GlamourStudio`) is unchanged, so updates carry on, and your settings and link stay.
 - **The new mark** (17 November 2026, the site's: kokos-tools `src/features/marks.ts`): a glamour
-  prism as the game draws it, in the studio's periwinkle (the pyramid from a little above, its lit
+  prism as the game draws it, in Glamourie's periwinkle (the pyramid from a little above, its lit
   left face pink up to white, its right ice into deep violet, a holo's colours across both, a
   sparkle by its peak), for the plugin's icon and the logo the window draws (the clothes tag and
   its hanger before). The mark has its own light now, so `tools/make-icon.mjs` draws the icon and

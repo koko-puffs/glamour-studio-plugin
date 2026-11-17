@@ -68,7 +68,7 @@ public static unsafe class Examine
         }
         catch (Exception ex)
         {
-            Services.Log.Debug(ex, "Glamour Studio couldn't read the Examine window");
+            Services.Log.Debug(ex, "Glamourie couldn't read the Examine window");
             return null;
         }
     }

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace GlamourStudio.Core;
 
-/// <summary>An outfit's twelve slots, as Glamour Studio has them (the site's <c>SLOTS</c>, in its order).</summary>
+/// <summary>An outfit's twelve slots, as Glamourie has them (the site's <c>SLOTS</c>, in its order).</summary>
 public enum Slot
 {
     Head,

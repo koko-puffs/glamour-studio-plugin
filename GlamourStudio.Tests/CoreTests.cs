@@ -716,8 +716,8 @@ public class ConsentTests
     [Fact]
     public void TheQuestionNamesTheCharacter()
     {
-        Assert.Equal("Send Koko Nyan's wardrobe to Glamour Studio?", Consent.Question("Koko Nyan"));
-        Assert.Equal("Send this character's wardrobe to Glamour Studio?", Consent.Question(""));
+        Assert.Equal("Send Koko Nyan's wardrobe to Glamourie?", Consent.Question("Koko Nyan"));
+        Assert.Equal("Send this character's wardrobe to Glamourie?", Consent.Question(""));
         Assert.Equal("A new character on Lich", Consent.Eyebrow("Lich"));
     }
 

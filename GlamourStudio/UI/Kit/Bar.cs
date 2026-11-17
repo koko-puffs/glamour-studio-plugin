@@ -7,7 +7,7 @@ namespace GlamourStudio.UI;
 
 /// <summary>
 /// The header bar's parts (the mock's <c>.bar</c>, 56 tall under Dalamud's title bar): the brand
-/// (the logo and GLAMOUR STUDIO), a place (a tab with its count and the holo underline), the who-pill
+/// (the logo and GLAMOURIE), a place (a tab with its count and the holo underline), the who-pill
 /// (your character's face, a dot and one line for what's going on). The window lays them
 /// (MainWindow.DrawBar); the companion panels' header uses <see cref="Brand"/>'s pieces too.
 /// </summary>
@@ -17,9 +17,9 @@ public static partial class Kit
     public const float BarHeightCss = 56;
 
     /// <summary>The wordmark's words.</summary>
-    public const string Wordmark = "Glamour Studio";
+    public const string Wordmark = "Glamourie";
 
-    /// <summary>The brand's width: the 30px logo, and with <paramref name="wordmark"/> 10px then GLAMOUR STUDIO (Bricolage 15, 0.04em).</summary>
+    /// <summary>The brand's width: the 30px logo, and with <paramref name="wordmark"/> 10px then GLAMOURIE (Bricolage 15, 0.04em).</summary>
     public static float BrandWidth(bool wordmark) => S(30) + (wordmark ? S(10) + DisplayWidth(Wordmark, 15, 0.04f) : 0);
 
     /// <summary>

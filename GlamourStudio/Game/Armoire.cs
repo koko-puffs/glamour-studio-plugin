@@ -51,7 +51,7 @@ public static unsafe class Armoire
         }
         catch (Exception ex)
         {
-            Services.Log.Debug(ex, "Glamour Studio couldn't read what you wear");
+            Services.Log.Debug(ex, "Glamourie couldn't read what you wear");
         }
         return false;
     }
@@ -69,7 +69,7 @@ public static unsafe class Armoire
         }
         catch (Exception ex)
         {
-            Services.Log.Warning(ex, "Glamour Studio couldn't put a piece in the armoire");
+            Services.Log.Warning(ex, "Glamourie couldn't put a piece in the armoire");
             return false;
         }
     }

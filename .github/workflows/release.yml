@@ -102,7 +102,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.tag }}
-          name: Glamour Studio ${{ steps.version.outputs.tag }}
+          name: Glamourie ${{ steps.version.outputs.tag }}
           target_commitish: ${{ steps.commit.outputs.sha }}
           files: GlamourStudio.zip
           generate_release_notes: true

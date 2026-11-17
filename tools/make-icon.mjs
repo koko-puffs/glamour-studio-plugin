@@ -1,5 +1,5 @@
 // Renders tools/icon.svg (the site's mark: koko-puffs/kokos-tools src/features/marks.ts, the
-// glamour prism in the studio's periwinkle) with Playwright's Chromium (require('playwright') from
+// glamour prism in Glamourie's periwinkle) with Playwright's Chromium (require('playwright') from
 // anywhere it's installed, or PLAYWRIGHT_PATH) to:
 // - GlamourStudio/images/icon.png, 512 × 512 (what Dalamud's installer shows);
 // - GlamourStudio/Resources/Textures/logo-32/64/128/256.png, the logo the window draws (Kit.Logo):

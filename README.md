@@ -1,7 +1,8 @@
-# Glamour Studio (FFXIV plugin)
+# Glamourie (FFXIV plugin)
 
-A Dalamud plugin for [Glamour Studio](https://kokos-tools.com/glamour-studio): your looks on your
-glamour plates, and your wardrobe on the site.
+A Dalamud plugin for [Glamourie](https://kokos-tools.com/glamourie): your looks on your
+glamour plates, and your wardrobe on the site. (It was called Glamour Studio until 17 November
+2026; an installed copy updates as before, and `/gstudio` still works.)
 
 At a glamour dresser, open **Glamour Plates**, pick one of your looks in the plugin and press
 **Put on plate 3**: every piece is found in your glamour dresser or armoire and the plate is filled,
@@ -21,7 +22,7 @@ choose to show it there.
 Most of it is right beside the game's own windows: open the glamour dresser, Glamour Plates, the
 armoire, the fitting room, Examine, a retainer's bags or the market board, and a small panel sits
 next to it with what you need there (Fill plate, Plate it, Store, Wear, your wishlist).
-Gear's tooltips and right-click menu get a few Glamour Studio lines too.
+Gear's tooltips and right-click menu get a few Glamourie lines too.
 
 It also fills plates with the looks you **planned** for them on the site, lists the public looks you
 could **wear today**, ticks off your **wishlist**, helps you **make room** in your dresser, links
@@ -35,12 +36,12 @@ Sheet look (the mock-up it was built from is in [docs/redesign](docs/redesign/RE
 1. In the game, open `/xlsettings` → **Experimental** → **Custom Plugin Repositories**.
 2. Add `https://www.kokos-tools.com/dalamud/repo.json`, tick it, and **Save and Close**.
    (Already there for Housing Studio or Raid Planner? Skip this.)
-3. Open `/xlplugins`, search for **Glamour Studio** and install it.
-4. Type `/gstudio` to open it.
+3. Open `/xlplugins`, search for **Glamourie** and install it.
+4. Type `/glamourie` to open it.
 
 ## Using it
 
-1. Link your account: on the site, Settings → Glamour Studio → In-game plugin → **Make a token**,
+1. Link your account: on the site, Settings → Glamourie → In-game plugin → **Make a token**,
    and paste it in the plugin's Settings → Account.
 2. Open your glamour dresser and armoire once (at an inn): the game only shows them then, and the
    plugin remembers them.
@@ -51,7 +52,7 @@ Sheet look (the mock-up it was built from is in [docs/redesign](docs/redesign/RE
 Closet says what the plugin has read and when, and what to open so it can read the rest.
 
 Something not working? Settings → Making a report records what you do in the game (or
-`/gstudio record`), to copy or save and send along.
+`/glamourie record`), to copy or save and send along.
 
 **Please note:** plugins are against Square Enix's terms of service. This one reads what the game
 already shows you, and only changes things when you press a button for it: a plate (you save it

@@ -521,7 +521,7 @@ public sealed partial class MainWindow
                 var kAt = wrap.Next(kw, Kit.StickerHeight());
                 if (Kit.Button("##keep", kAt + new Vector2(0, (Kit.StickerHeight() - Kit.ButtonHeight(BtnSize.Sm)) / 2), label, Btn.Quiet, BtnSize.Sm, null, 0, !Linked || busy || match != null,
                         match != null ? $"It's your look “{match.Name}” already"
-                        : Linked ? $"Saves it to your looks on Glamour Studio as “Plate {plate}” (private: only you see it)"
+                        : Linked ? $"Saves it to your looks on Glamourie as “Plate {plate}” (private: only you see it)"
                         : "Link your account first (Settings → Account)"))
                     KeepAsLook(me, plate, $"Plate {plate}", pieces);
             }

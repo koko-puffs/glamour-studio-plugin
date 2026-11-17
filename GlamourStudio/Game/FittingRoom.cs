@@ -191,7 +191,7 @@ public static unsafe class FittingRoom
         }
         catch (Exception ex)
         {
-            Services.Log.Warning(ex, "Glamour Studio couldn't try a piece on");
+            Services.Log.Warning(ex, "Glamourie couldn't try a piece on");
             return false;
         }
     }

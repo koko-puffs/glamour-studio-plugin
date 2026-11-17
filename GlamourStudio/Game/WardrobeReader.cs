@@ -96,7 +96,7 @@ public sealed unsafe class WardrobeReader
         }
         catch (Exception ex)
         {
-            Services.Log.Warning(ex, "Glamour Studio couldn't read wardrobe.json: your wardrobe is read again as you open it");
+            Services.Log.Warning(ex, "Glamourie couldn't read wardrobe.json: your wardrobe is read again as you open it");
             store = new Wardrobe();
             // Kept aside, not overwritten by the next save (a newer version's file, say, can be read again by it).
             try
@@ -105,7 +105,7 @@ public sealed unsafe class WardrobeReader
             }
             catch (Exception moveEx)
             {
-                Services.Log.Debug(moveEx, "Glamour Studio couldn't set the unread wardrobe.json aside");
+                Services.Log.Debug(moveEx, "Glamourie couldn't set the unread wardrobe.json aside");
             }
         }
     }
@@ -154,7 +154,7 @@ public sealed unsafe class WardrobeReader
         }
         catch (Exception ex)
         {
-            Services.Log.Warning(ex, "Glamour Studio couldn't read your wardrobe");
+            Services.Log.Warning(ex, "Glamourie couldn't read your wardrobe");
             nextRead = at + TimeSpan.FromSeconds(30);
         }
     }
@@ -402,7 +402,7 @@ public sealed unsafe class WardrobeReader
         }
         catch (Exception ex)
         {
-            Services.Log.Debug(ex, "Glamour Studio couldn't read your facewear and fashion accessory");
+            Services.Log.Debug(ex, "Glamourie couldn't read your facewear and fashion accessory");
             return false;
         }
         if (now == me.OutfitExtras) return false;
@@ -444,7 +444,7 @@ public sealed unsafe class WardrobeReader
         }
         catch (Exception ex)
         {
-            Services.Log.Debug(ex, "Glamour Studio couldn't read how your character looks");
+            Services.Log.Debug(ex, "Glamourie couldn't read how your character looks");
             return false;
         }
         if (now.Length < Appearance.Length || now[0] == 0) return false;
@@ -459,7 +459,7 @@ public sealed unsafe class WardrobeReader
             }
             catch (Exception ex)
             {
-                Services.Log.Debug(ex, "Glamour Studio couldn't read the character creator's colours");
+                Services.Log.Debug(ex, "Glamourie couldn't read the character creator's colours");
             }
         }
         // (Without the creator's palettes, colours worked out now would be none: the stored ones stay.)
@@ -598,7 +598,7 @@ public sealed unsafe class WardrobeReader
         }
         catch (Exception ex)
         {
-            Services.Log.Warning(ex, "Glamour Studio couldn't save your wardrobe");
+            Services.Log.Warning(ex, "Glamourie couldn't save your wardrobe");
         }
     }
 
@@ -612,7 +612,7 @@ public sealed unsafe class WardrobeReader
         }
         catch (Exception ex)
         {
-            Services.Log.Warning(ex, "Glamour Studio couldn't save your wardrobe");
+            Services.Log.Warning(ex, "Glamourie couldn't save your wardrobe");
             return;
         }
         // Numbered: two saves close together can run in either order, and the older mustn't land last.
@@ -632,7 +632,7 @@ public sealed unsafe class WardrobeReader
             }
             catch (Exception ex)
             {
-                Services.Log.Warning(ex, "Glamour Studio couldn't save your wardrobe");
+                Services.Log.Warning(ex, "Glamourie couldn't save your wardrobe");
             }
         });
     }

@@ -19,7 +19,7 @@ using GlamourStudio.Core;
 namespace GlamourStudio.Game;
 
 /// <summary>
-/// Watch-only diagnostics for Glamour Studio, as Housing Studio's recorder is: while on, it writes
+/// Watch-only diagnostics for Glamourie, as Housing Studio's recorder is: while on, it writes
 /// down every game window that opens, refreshes or closes (the glamour windows with all their words),
 /// every click a window sends (its values: what doing it by hand sends, so a recording shows exactly
 /// what to send), every event the glamour agents receive (the plate editor, the dresser, outfit sets,
@@ -183,7 +183,7 @@ public sealed unsafe class Recorder : IDisposable
         catch (Exception ex)
         {
             SetupError = "Couldn't attach to the game's window clicks, so they aren't recorded (windows, events and state still are).";
-            Services.Log.Error(ex, "Glamour Studio's recorder couldn't hook the window callbacks");
+            Services.Log.Error(ex, "Glamourie's recorder couldn't hook the window callbacks");
         }
     }
 
@@ -251,7 +251,7 @@ public sealed unsafe class Recorder : IDisposable
                     catch (Exception ex)
                     {
                         hookReport.Add($"{name}.{which} {rva}: couldn't hook ({ex.GetType().Name})");
-                        Services.Log.Warning(ex, $"Glamour Studio's recorder couldn't hook {name}'s {which}");
+                        Services.Log.Warning(ex, $"Glamourie's recorder couldn't hook {name}'s {which}");
                     }
                 }
             }
@@ -259,7 +259,7 @@ public sealed unsafe class Recorder : IDisposable
         catch (Exception ex)
         {
             hookReport.Add($"couldn't find the glamour agents ({ex.GetType().Name})");
-            Services.Log.Warning(ex, "Glamour Studio's recorder couldn't find the glamour agents");
+            Services.Log.Warning(ex, "Glamourie's recorder couldn't find the glamour agents");
         }
     }
 
@@ -294,7 +294,7 @@ public sealed unsafe class Recorder : IDisposable
         nextState = DateTime.MinValue;
         Recording = true;
         Active = this;
-        Add($"Recording started {DateTime.Now:yyyy-MM-dd HH:mm:ss} (local). Glamour Studio {typeof(Recorder).Assembly.GetName().Version}, client {Services.ClientState.ClientLanguage}.");
+        Add($"Recording started {DateTime.Now:yyyy-MM-dd HH:mm:ss} (local). Glamourie {typeof(Recorder).Assembly.GetName().Version}, client {Services.ClientState.ClientLanguage}.");
         try
         {
             foreach (var h in Header?.Invoke() ?? Array.Empty<string>()) Add(h);
@@ -320,7 +320,7 @@ public sealed unsafe class Recorder : IDisposable
         Services.Chat.LogMessage += OnLogMessage;
         Services.ClientState.Login += OnLogin;
         Services.ClientState.Logout += OnLogout;
-        Add("Write a MARK before each step (Settings → Making a report, or /gstudio mark <what you'll do>), do it by hand, then stop and copy or save.");
+        Add("Write a MARK before each step (Settings → Making a report, or /glamourie mark <what you'll do>), do it by hand, then stop and copy or save.");
         WriteAllState("START");
         // The header and the start's state are kept when old lines go.
         lock (lines) headerCount = lines.Count;
@@ -937,7 +937,7 @@ public sealed unsafe class Recorder : IDisposable
         {
             if (started == default) started = DateTime.UtcNow;
             // Lines after a save or a copy aren't in it: a new recording mustn't wipe them unasked
-            // (saved mid-recording, then stopped, /gstudio mark started over them).
+            // (saved mid-recording, then stopped, /glamourie mark started over them).
             HandedOver = false;
             if (cut && line.Length > LineAtMost) line = $"{line[..LineAtMost]}… (+{line.Length - LineAtMost:N0} characters)";
             if (line == lastBody && lines.Count > headerCount)
@@ -985,7 +985,7 @@ public sealed unsafe class Recorder : IDisposable
     public string AsText()
     {
         var sb = new StringBuilder();
-        sb.AppendLine("Glamour Studio recording");
+        sb.AppendLine("Glamourie recording");
         lock (lines)
         {
             for (var i = 0; i < lines.Count; i++)
@@ -1014,7 +1014,7 @@ public sealed unsafe class Recorder : IDisposable
         }
         catch (Exception ex)
         {
-            Services.Log.Error(ex, "Glamour Studio couldn't save the recording");
+            Services.Log.Error(ex, "Glamourie couldn't save the recording");
             why = $"Couldn't save it ({ex.Message})";
             return null;
         }

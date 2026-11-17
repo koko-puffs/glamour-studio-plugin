@@ -9,7 +9,7 @@ using GlamourStudio.UI.Model;
 
 namespace GlamourStudio.UI;
 
-/// <summary>Glamour Studio's faces, as the site uses them since its "Character Sheet" redesign.</summary>
+/// <summary>Glamourie's faces, as the site uses them since its "Character Sheet" redesign.</summary>
 public enum Face
 {
     /// <summary>Figtree 400: what you read.</summary>
@@ -307,12 +307,12 @@ public sealed class Fonts : IDisposable
                     // The gap is counted from here (a build can take longer than the gap).
                     Interlocked.Exchange(ref lastBuild, DateTime.UtcNow.Ticks);
                     if (t.IsFaulted)
-                        Services.Log.Warning(t.Exception!.GetBaseException(), "Glamour Studio couldn't build its fonts again for new characters");
+                        Services.Log.Warning(t.Exception!.GetBaseException(), "Glamourie couldn't build its fonts again for new characters");
                 }, System.Threading.Tasks.TaskScheduler.Default);
         }
         catch (Exception ex)
         {
-            Services.Log.Warning(ex, "Glamour Studio couldn't build its fonts again for new characters");
+            Services.Log.Warning(ex, "Glamourie couldn't build its fonts again for new characters");
         }
     }
 

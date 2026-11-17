@@ -13,8 +13,8 @@ using static GlamourStudio.UI.Theme;
 namespace GlamourStudio.UI;
 
 /// <summary>
-/// The plugin's one window, in Glamour Studio's "Character Sheet" look (docs/redesign): under
-/// Dalamud's own title bar, the site's bar (the logo and GLAMOUR STUDIO; Home · Looks · Plates ·
+/// The plugin's one window, in Glamourie's "Character Sheet" look (docs/redesign): under
+/// Dalamud's own title bar, the site's bar (the logo and GLAMOURIE; Home · Looks · Plates ·
 /// Closet · Make room with their counts and the holo underline under the one you're on; your
 /// character's pill with what's going on; Refresh and Settings), and the screen under it across the
 /// whole width, most of them a list or grid with the thing picked in a side pane. A look opened and
@@ -48,7 +48,7 @@ public sealed partial class MainWindow : Window
     private Screen lookFrom = Screen.Looks;
 
     public MainWindow(Configuration config, GameData data, WardrobeReader wardrobe, SiteSync sync, Fonts fonts, Shots shots, Recorder recorder)
-        : base("Glamour Studio###GlamourStudioMain")
+        : base("Glamourie###GlamourStudioMain")
     {
         this.config = config;
         this.data = data;
@@ -88,7 +88,7 @@ public sealed partial class MainWindow : Window
     /// <summary>The open plate has changes not saved yet (this frame).</summary>
     private bool editorChanges;
 
-    /// <summary>Opens Settings (Dalamud's cog, /gstudio settings).</summary>
+    /// <summary>Opens Settings (Dalamud's cog, /glamourie settings).</summary>
     public void ShowSettings()
     {
         // Already open somewhere: Settings' back goes there, and a look sent from the site stays sent.
@@ -205,7 +205,7 @@ public sealed partial class MainWindow : Window
                     // Said once (not every frame it fails again), and a note in its place.
                     failed = true;
                     if (failures.Count < 64 && failures.Add($"{drawing}|{ex.GetType().FullName}|{ex.Message}"))
-                        Services.Log.Error(ex, "Glamour Studio's {Screen} screen failed", drawing);
+                        Services.Log.Error(ex, "Glamourie's {Screen} screen failed", drawing);
                 }
                 finally
                 {
@@ -223,7 +223,7 @@ public sealed partial class MainWindow : Window
                         // block the window under it while it stayed), said once.
                         Palette.Opacity = 1f;
                         if (failures.Count < 64 && failures.Add($"question|{ex.GetType().FullName}|{ex.Message}"))
-                            Services.Log.Error(ex, "Glamour Studio's question failed");
+                            Services.Log.Error(ex, "Glamourie's question failed");
                         confirm = null;
                     }
                 }
@@ -306,7 +306,7 @@ public sealed partial class MainWindow : Window
                 }
                 catch (Exception ex)
                 {
-                    Services.Log.Error(ex, "Glamour Studio action failed");
+                    Services.Log.Error(ex, "Glamourie action failed");
                     Frame.Warn("Something went wrong (see /xllog)");
                 }
             }
@@ -445,7 +445,7 @@ public sealed partial class MainWindow : Window
             const string site = "On the site";
             var sw = Kit.ButtonWidth(site, BtnSize.Sm, Icon.ExternalLink, Btn.Quiet);
             if (Kit.Button("##look-site", new Vector2(right - sw, y + (h - Kit.ButtonHeight(BtnSize.Sm)) / 2), site, Btn.Quiet, BtnSize.Sm, Icon.ExternalLink, 0, false,
-                    "The look's page on Glamour Studio", iconCss: 14) && openLook != null)
+                    "The look's page on Glamourie", iconCss: 14) && openLook != null)
                 Dalamud.Utility.Util.OpenLink(SiteLink.LookUrl(openLook.Id));
             right -= sw + S(12);
         }

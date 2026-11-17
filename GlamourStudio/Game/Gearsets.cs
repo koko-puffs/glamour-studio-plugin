@@ -38,7 +38,7 @@ public static unsafe class Gearsets
         }
         catch (Exception ex)
         {
-            Services.Log.Warning(ex, "Glamour Studio couldn't read your gearsets");
+            Services.Log.Warning(ex, "Glamourie couldn't read your gearsets");
         }
         return list;
     }
@@ -57,7 +57,7 @@ public static unsafe class Gearsets
         }
         catch (Exception ex)
         {
-            Services.Log.Warning(ex, "Glamour Studio couldn't link a plate to a gearset");
+            Services.Log.Warning(ex, "Glamourie couldn't link a plate to a gearset");
             return false;
         }
     }
@@ -88,7 +88,7 @@ public static unsafe class Gearsets
         }
         catch (Exception ex)
         {
-            Services.Log.Debug(ex, "Glamour Studio couldn't tell whether a gearset change would work");
+            Services.Log.Debug(ex, "Glamourie couldn't tell whether a gearset change would work");
         }
         return null;
     }
@@ -124,7 +124,7 @@ public static unsafe class Gearsets
         }
         catch (Exception ex)
         {
-            Services.Log.Warning(ex, "Glamour Studio couldn't change gearset");
+            Services.Log.Warning(ex, "Glamourie couldn't change gearset");
             return "The game wouldn't change gearset now";
         }
     }

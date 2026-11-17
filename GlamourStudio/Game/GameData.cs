@@ -60,7 +60,7 @@ public sealed class GameData
         }
         catch (Exception ex)
         {
-            Services.Log.Debug(ex, "Glamour Studio couldn't read item {Id}", id);
+            Services.Log.Debug(ex, "Glamourie couldn't read item {Id}", id);
         }
         items[id] = info;
         return info;
@@ -90,7 +90,7 @@ public sealed class GameData
         }
         catch (Exception ex)
         {
-            Services.Log.Debug(ex, "Glamour Studio couldn't read dye {Id}", id);
+            Services.Log.Debug(ex, "Glamourie couldn't read dye {Id}", id);
         }
         dyes[id] = info;
         return info;
@@ -124,7 +124,7 @@ public sealed class GameData
             }
             catch (Exception ex)
             {
-                Services.Log.Warning(ex, "Glamour Studio couldn't read the dyes");
+                Services.Log.Warning(ex, "Glamourie couldn't read the dyes");
                 stainsRetry = DateTime.UtcNow + RetryEvery;
                 return Array.Empty<byte>();
             }
@@ -173,7 +173,7 @@ public sealed class GameData
         }
         catch (Exception ex)
         {
-            Services.Log.Warning(ex, "Glamour Studio couldn't read the armoire's list");
+            Services.Log.Warning(ex, "Glamourie couldn't read the armoire's list");
             cabinetRetry = DateTime.UtcNow + RetryEvery;
             itemByCabinet ??= new Dictionary<uint, uint>();
         }
@@ -206,7 +206,7 @@ public sealed class GameData
         }
         catch (Exception ex)
         {
-            Services.Log.Debug(ex, "Glamour Studio couldn't read job {Id}", classJob);
+            Services.Log.Debug(ex, "Glamourie couldn't read job {Id}", classJob);
         }
         return jobs[classJob] = abbr;
     }
@@ -226,7 +226,7 @@ public sealed class GameData
         }
         catch (Exception ex)
         {
-            Services.Log.Warning(ex, "Glamour Studio couldn't find the glamour prisms");
+            Services.Log.Warning(ex, "Glamourie couldn't find the glamour prisms");
             prisms = Array.Empty<uint>();
         }
         return prisms;
@@ -274,7 +274,7 @@ public sealed class GameData
             }
             catch (Exception ex)
             {
-                Services.Log.Warning(ex, "Glamour Studio couldn't read the outfit sets");
+                Services.Log.Warning(ex, "Glamourie couldn't read the outfit sets");
                 setsRetry = DateTime.UtcNow + RetryEvery;
                 return Array.Empty<(int, uint)>();
             }
@@ -306,7 +306,7 @@ public sealed class GameData
                     }
                     catch (Exception ex)
                     {
-                        Services.Log.Warning(ex, "Glamour Studio couldn't read the facewear and fashion accessories");
+                        Services.Log.Warning(ex, "Glamourie couldn't read the facewear and fashion accessories");
                         collectionsRetry = DateTime.UtcNow + RetryEvery;
                     }
                     finally
@@ -344,7 +344,7 @@ public sealed class GameData
             if (it.RowId != 0 && actions.TryGetValue(it.ItemAction.RowId, out var act))
                 items.Add(new UnlockItemRow(it.RowId, act.Action, act.Data0, it.AdditionalData.RowId));
         var built = Collections.Build(styles, glasses, ornaments, items);
-        Services.Log.Debug($"Glamour Studio knows {built.Styles.Count} facewear styles and {built.Fashion.Count} fashion accessories");
+        Services.Log.Debug($"Glamourie knows {built.Styles.Count} facewear styles and {built.Fashion.Count} fashion accessories");
         return built;
     }
 

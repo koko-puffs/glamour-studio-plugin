@@ -45,7 +45,7 @@ public sealed partial class MainWindow
     {
         if (recorder.Recording) return ($"Recording what you do · {Words.Count(recorder.LineCount, "line")}", Tone.Recording, true);
         if (editorPlate > 0) return ($"Plate editor open · plate {editorPlate}", Tone.Live, true);
-        if (!sync.Linked) return ("Not linked to Glamour Studio", Tone.Neutral, false);
+        if (!sync.Linked) return ("Not linked to Glamourie", Tone.Neutral, false);
         if (sync.TokenRefused) return ("Link again: the site doesn't know this token", Tone.Danger, false);
         if (sync.Syncing) return ("Sending your closet…", Tone.Live, true);
         // (What went wrong is said in full on Closet; the pill points there.)
@@ -61,7 +61,7 @@ public sealed partial class MainWindow
                 return ("Yes · telling the site…", Tone.Live, true);
             case ConsentStep.Wait when wardrobe.Current != null && sync.CharactersUnreachable:
                 // (Read again a minute later.)
-                return ("Glamour Studio couldn't ask about this character", Tone.Danger, false);
+                return ("Glamourie couldn't ask about this character", Tone.Danger, false);
         }
         if (sync.LastSyncAt is { } at) return ($"Closet up to date · sent {Words.Ago(at, DateTimeOffset.UtcNow)}", Tone.Success, false);
         return (config.AutoSync ? "Linked · sends your closet as you play" : "Linked", Tone.Success, false);
@@ -627,7 +627,7 @@ public sealed partial class MainWindow
         y += Txt.Flow(new Vector2(tx, y), tw, IdleRuns, 19, out _) + S(4);
         Txt.Flow(new Vector2(tx, y), tw, IdleSub, 17, out _);
         if (Kit.Button("##idle-plans", new Vector2(at.X + w - bw, at.Y + (h - Kit.ButtonHeight(BtnSize.Sm)) / 2), plans, Btn.Quiet, BtnSize.Sm, Icon.ExternalLink, 0, false,
-                "Your plates on Glamour Studio: plan a look for each, and it's here at the dresser", iconCss: 14))
+                "Your plates on Glamourie: plan a look for each, and it's here at the dresser", iconCss: 14))
             Dalamud.Utility.Util.OpenLink(PlansUrl);
         Kit.Reserve(at, w, h);
         Kit.EndPanel();
@@ -662,7 +662,7 @@ public sealed partial class MainWindow
 
     private static readonly (string Title, string Line)[] GetStartedSteps =
     {
-        ("Link your account", "Make a token on the site (Settings → Glamour Studio → In-game plugin) and paste it in Settings → Account."),
+        ("Link your account", "Make a token on the site (Settings → Glamourie → In-game plugin) and paste it in Settings → Account."),
         ("Open your dresser and armoire once", "The game only shows them then. The plugin remembers them, and your bags, armoury chest, saddlebags and retainers."),
         ("Put a look on a plate", "At a glamour dresser, open Glamour Plates, pick a look and press Put on plate."),
     };
@@ -674,7 +674,7 @@ public sealed partial class MainWindow
     /// <summary>
     /// Link your game: on the field (the first run's moment), or as a plain card when the plate
     /// editor's field is already there. The three steps as ink callouts, Link your account the
-    /// sticker, Open Glamour Studio beside it.
+    /// sticker, Open Glamourie beside it.
     /// </summary>
     private void DrawGetStarted(bool field)
     {
@@ -714,7 +714,7 @@ public sealed partial class MainWindow
         var titleBox = S(44 * 0.98f);
         Kit.Display(new Vector2(x, y + (titleBox - Kit.DisplayHeight(44)) / 2), "Link your game", 44, null, inner, stacked: field, em: 0.015f);
         y += titleBox + S(10);
-        HeroLineRun[0] = new Run("Your looks from Glamour Studio on your plates, and your closet on the site kept up to date by itself.", Face.SansMedium, 14, Tint.Muted);
+        HeroLineRun[0] = new Run("Your looks from Glamourie on your plates, and your closet on the site kept up to date by itself.", Face.SansMedium, 14, Tint.Muted);
         y += Txt.Flow(new Vector2(x, y), MathF.Min(S(520), inner), HeroLineRun, 20, out _) + S(14);
 
         // The steps, three ink callouts side by side, as tall as the tallest.
@@ -754,7 +754,7 @@ public sealed partial class MainWindow
             Later(() => OpenSettings(SettingsTab.Account));
         var bx = x + Kit.StickerWidth(link, StickerSize.Lg, Icon.Key) + S(10);
         var lgH = Kit.StickerHeight(StickerSize.Lg);
-        if (Kit.Button("##gs-open", new Vector2(bx, y + (lgH - Kit.ButtonHeight(BtnSize.Md)) / 2), "Open Glamour Studio", Btn.Glass, BtnSize.Md, Icon.ExternalLink, iconCss: 14))
+        if (Kit.Button("##gs-open", new Vector2(bx, y + (lgH - Kit.ButtonHeight(BtnSize.Md)) / 2), "Open Glamourie", Btn.Glass, BtnSize.Md, Icon.ExternalLink, iconCss: 14))
             Dalamud.Utility.Util.OpenLink(SiteLink.SiteUrl);
         y += lgH + S(3) + S(24);
         return y - at.Y;
@@ -762,7 +762,7 @@ public sealed partial class MainWindow
 
     /// <summary>The left, not linked: the drawn empty page (the sign and its cloud).</summary>
     private void DrawNotLinkedLooks() =>
-        Kit.EmptyState("##home-none", "Dress the mannequin on Glamour Studio and save a look: it's here, ready for a plate.",
+        Kit.EmptyState("##home-none", "Dress the mannequin on Glamourie and save a look: it's here, ready for a plate.",
             "No looks yet", "link and they're all here", heightCss: 222);
 
     private static readonly (Icon Icon, string Title, string Line, Screen To, string Tip)[] AlreadyHere =

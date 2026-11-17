@@ -10,7 +10,7 @@ public sealed class Configuration : IPluginConfiguration
 {
     public int Version { get; set; } = 1;
 
-    /// <summary>The token from the site (Settings → Glamour Studio → In-game plugin). Never logged.</summary>
+    /// <summary>The token from the site (Settings → Glamourie → In-game plugin). Never logged.</summary>
     public string SiteToken { get; set; } = string.Empty;
 
     /// <summary>Keep your closet on the site up to date by itself (when something changes, at most every few minutes).</summary>
@@ -49,12 +49,12 @@ public sealed class Configuration : IPluginConfiguration
     /// <summary>Lines under the game's item tooltips: which of your looks use the piece, its plate, a copy in the dresser.</summary>
     public bool TooltipLines { get; set; } = true;
 
-    /// <summary>A Glamour Studio entry in the right-click menu on gear.</summary>
+    /// <summary>A Glamourie entry in the right-click menu on gear.</summary>
     public bool ContextMenu { get; set; } = true;
 
     /// <summary>
-    /// Your answer for each character (by its key, never the game's id) to "Send its wardrobe to Glamour
-    /// Studio?", with its name and world to list it in Settings. A character not here hasn't been asked.
+    /// Your answer for each character (by its key, never the game's id) to "Send its wardrobe to
+    /// Glamourie?", with its name and world to list it in Settings. A character not here hasn't been asked.
     /// </summary>
     public Dictionary<string, Core.KnownCharacter> Characters { get; set; } = new();
 

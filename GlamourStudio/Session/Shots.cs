@@ -145,11 +145,11 @@ public sealed class Shots : IDisposable
         {
             grab = Services.Textures.CreateFromImGuiViewportAsync(
                 new ImGuiViewportTextureArgs { ViewportId = ImGui.GetMainViewport().ID, TakeBeforeImGuiRender = true },
-                "Glamour Studio shot", stop.Token);
+                "Glamourie shot", stop.Token);
         }
         catch (Exception ex)
         {
-            Services.Log.Error(ex, "Glamour Studio couldn't grab the game's picture");
+            Services.Log.Error(ex, "Glamourie couldn't grab the game's picture");
             why = "Couldn't take the picture (see /xllog).";
             Failed(why);
             return false;
@@ -203,7 +203,7 @@ public sealed class Shots : IDisposable
         ShowHudAgain();
         if (!t.IsCompletedSuccessfully)
         {
-            if (t.Exception != null) Services.Log.Error(t.Exception, "Glamour Studio couldn't grab the game's picture");
+            if (t.Exception != null) Services.Log.Error(t.Exception, "Glamourie couldn't grab the game's picture");
             Failed("Couldn't take the picture (see /xllog).");
             return;
         }
@@ -242,7 +242,7 @@ public sealed class Shots : IDisposable
         Game.Recorder.Log($"SHOT made: {m.Width}×{m.Height}, {m.Jpeg.Length:N0} bytes, hud hidden now {Services.GameGui.GameUiHidden}");
         // With the HUD hidden (or in Group Pose) Dalamud hides the plugin's windows too.
         if (Services.GameGui.GameUiHidden || Services.ClientState.IsGPosing)
-            Services.Chat.Print("Glamour Studio: shot taken. Show the HUD again (or leave Group Pose) to see it and send it.");
+            Services.Chat.Print("Glamourie: shot taken. Show the HUD again (or leave Group Pose) to see it and send it.");
     }
 
     private void Failed(string why)
@@ -250,7 +250,7 @@ public sealed class Shots : IDisposable
         Game.Recorder.Log($"SHOT failed: {why}");
         Capturing = false;
         Problem = why;
-        Services.Log.Warning($"Glamour Studio: no shot: {why}");
+        Services.Log.Warning($"Glamourie: no shot: {why}");
     }
 
     private static Guid? JpegCodec()
@@ -292,7 +292,7 @@ public sealed class Shots : IDisposable
                 sized = null;
                 sized = Own(await Services.Textures.CreateFromExistingTextureAsync(grabbed,
                     new TextureModificationArgs { NewWidth = fit.Width, NewHeight = fit.Height, MakeOpaque = true, DxgiFormat = format },
-                    leaveWrapOpen: true, "Glamour Studio shot (sized)", cancel).ConfigureAwait(false));
+                    leaveWrapOpen: true, "Glamourie shot (sized)", cancel).ConfigureAwait(false));
                 foreach (var q in Qualities)
                 {
                     using var stream = new MemoryStream();
@@ -308,7 +308,7 @@ public sealed class Shots : IDisposable
             var scale = Math.Min(1.0, 480.0 / Math.Max(sized.Width, sized.Height));
             var thumb = Own(await Services.Textures.CreateFromExistingTextureAsync(sized,
                 new TextureModificationArgs { NewWidth = Math.Max(1, (int)(sized.Width * scale)), NewHeight = Math.Max(1, (int)(sized.Height * scale)), DxgiFormat = format },
-                leaveWrapOpen: true, "Glamour Studio shot (preview)", cancel).ConfigureAwait(false));
+                leaveWrapOpen: true, "Glamourie shot (preview)", cancel).ConfigureAwait(false));
             return new MadeShot(jpeg, sized.Width, sized.Height, thumb, null);
         }
         catch (OperationCanceledException) when (!stopping.IsCancellationRequested)
@@ -326,7 +326,7 @@ public sealed class Shots : IDisposable
         }
         catch (Exception ex)
         {
-            Services.Log.Error(ex, "Glamour Studio couldn't make the picture");
+            Services.Log.Error(ex, "Glamourie couldn't make the picture");
             return new MadeShot(null, 0, 0, null, "Couldn't make the picture (see /xllog).");
         }
         finally
@@ -358,7 +358,7 @@ public sealed class Shots : IDisposable
             catch (Exception ex)
             {
                 // (The call doesn't throw: should it, the shot isn't left "being sent" for good.)
-                Services.Log.Error(ex, "Glamour Studio couldn't send the shot");
+                Services.Log.Error(ex, "Glamourie couldn't send the shot");
                 r = new SiteReply<ShotSent>(null, "Couldn't send the shot (see /xllog). Look on the look's page before sending it again.");
             }
             // Which character wore it (nothing's said if this one doesn't go through: the shot's there either way).
@@ -370,7 +370,7 @@ public sealed class Shots : IDisposable
                 }
                 catch (Exception ex)
                 {
-                    Services.Log.Warning(ex, "Glamour Studio couldn't say which character wore the shot");
+                    Services.Log.Warning(ex, "Glamourie couldn't say which character wore the shot");
                 }
             }
             _ = Services.Framework.RunOnFrameworkThread(() =>
@@ -423,7 +423,7 @@ public sealed class Shots : IDisposable
         }
         catch (Exception ex)
         {
-            Services.Log.Error(ex, $"Glamour Studio couldn't {(visible ? "show" : "hide")} the HUD");
+            Services.Log.Error(ex, $"Glamourie couldn't {(visible ? "show" : "hide")} the HUD");
             return false;
         }
     }

@@ -321,7 +321,7 @@ public sealed partial class MainWindow
         {
             if (sync.TokenRefused) DrawTokenRefused();
             Kit.Gap(16);
-            Kit.EmptyState("##looks-link", "Link your account (Settings → Account) and your looks from Glamour Studio are here, ready to put on a plate.",
+            Kit.EmptyState("##looks-link", "Link your account (Settings → Account) and your looks from Glamourie are here, ready to put on a plate.",
                 title: "Your looks show here once you're linked", heightCss: 190, titleColor: Tint.Muted);
             return;
         }
@@ -336,9 +336,9 @@ public sealed partial class MainWindow
             Kit.Gap(8);
             var (sign, hand, line, action) = looksTab switch
             {
-                1 => ("No loved looks yet", "go find one you love", "Love a look on Glamour Studio's Discover page and it's here.", "Open Discover"),
+                1 => ("No loved looks yet", "go find one you love", "Love a look on Glamourie's Discover page and it's here.", "Open Discover"),
                 2 => ("None yet", "your closet's still growing", "No public look is all yours yet. As your closet grows (open your dresser, armoire and retainers once), they show here.", (string?)null),
-                _ => ("No looks yet", "dress the mannequin", "Dress the mannequin in Glamour Studio's dressing room and save a look: it's here.", "Open the dressing room"),
+                _ => ("No looks yet", "dress the mannequin", "Dress the mannequin in Glamourie's dressing room and save a look: it's here.", "Open the dressing room"),
             };
             var problem = sync.LibraryProblem;
             var h = Math.Clamp(room - 8 - 24 - (problem != null ? 40 : 0), 200, 360);
@@ -710,7 +710,7 @@ public sealed partial class MainWindow
             if (shot) Later(() => OpenLook(look, null, Screen.Looks));
             x += (narrow ? S(34) : Kit.ButtonWidth("Shot", BtnSize.Sm, Icon.Camera)) + S(8);
         }
-        const string siteTip = "The look's page on Glamour Studio";
+        const string siteTip = "The look's page on Glamourie";
         var site = narrow
             ? Kit.IconButton("##pick-site", new Vector2(x, by), Icon.ExternalLink, siteTip, 34, Btn.Glass, false, 14)
             : Kit.Button("##pick-site", new Vector2(x, by), "Site", Btn.Quiet, BtnSize.Sm, Icon.ExternalLink, 0, false, siteTip, iconCss: 14);

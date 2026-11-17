@@ -7,7 +7,7 @@ start of its mark, so each part of a recording can be matched to its step.
 
 ## Before you start
 
-1. Install Glamour Studio **0.3.0** or later. Settings' footer says the version.
+1. Install Glamourie (Glamour Studio before 17 November 2026) **0.3.0** or later. Settings' footer says the version.
 2. Make sure nothing else changes glamour while you record: turn off Glamourer, Glamaholic, Penumbra
    redraws and similar plugins for these sessions, or say which ones were on.
 3. Log in to the character you'll use, and stand where the section says.
@@ -28,10 +28,10 @@ start of its mark, so each part of a recording can be matched to its step.
 **The same from chat** (it works when the plugin's window is hidden: with the HUD hidden, in Group
 Pose, in a cutscene):
 
-- `/gstudio record`: start, or stop.
-- `/gstudio mark <id and what you'll do>`: a mark (starts a recording if none is going).
-- `/gstudio dump`: write down the windows' values (starts a recording if none is going).
-- `/gstudio save`: save it as a file. Chat says where.
+- `/glamourie record`: start, or stop.
+- `/glamourie mark <id and what you'll do>`: a mark (starts a recording if none is going).
+- `/glamourie dump`: write down the windows' values (starts a recording if none is going).
+- `/glamourie save`: save it as a file. Chat says where.
 
 Saved files are in `%AppData%\XIVLauncher\pluginConfigs\GlamourStudio\recordings\`, named
 `gstudio-<date>-<time>.txt`.
@@ -39,24 +39,24 @@ Saved files are in `%AppData%\XIVLauncher\pluginConfigs\GlamourStudio\recordings
 **For every section:**
 
 1. Get the section's "you need" ready **before** starting.
-2. Start a new recording: `/gstudio record`. Chat says it's recording.
+2. Start a new recording: `/glamourie record`. Chat says it's recording.
 3. For **each step**:
-   1. Mark it **before** doing it, with its id first: `/gstudio mark A3 Body from the dresser`.
+   1. Mark it **before** doing it, with its id first: `/glamourie mark A3 Body from the dresser`.
    2. Wait a second.
    3. Do the step **by hand, slowly**, one click at a time: no shortcuts, no dragging when the step
       says click.
    4. Wait **two seconds** after the last click: the game answers the server a moment later.
-   5. Where the step says **DUMP**, run `/gstudio dump` with the window it names still open.
+   5. Where the step says **DUMP**, run `/glamourie dump` with the window it names still open.
 4. If anything unexpected happens (an error, a message, the wrong piece, nothing at all), mark it
-   at once: `/gstudio mark A3 NOTE the slot stayed empty`. Notes are worth more than anything.
-5. When the section's done, `/gstudio record` to stop, then `/gstudio save`.
+   at once: `/glamourie mark A3 NOTE the slot stayed empty`. Notes are worth more than anything.
+5. When the section's done, `/glamourie record` to stop, then `/glamourie save`.
 6. Rename the file after its section (`gstudio-A-plates.txt`, …) and send it.
 
 **Good to know:**
 
 - One recording per section. A recording keeps the last 20,000 lines and stops by itself after two
   hours; one section fits easily.
-- `/gstudio mark` and `/gstudio dump` won't start over a stopped recording that hasn't been saved or
+- `/glamourie mark` and `/glamourie dump` won't start over a stopped recording that hasn't been saved or
   copied: save it first (it says so in chat).
 - A recording has your character's name and world in its header. Other people's names (Examine,
   menus on people) are left out.
@@ -194,7 +194,7 @@ alt on the same account if you have one.
 | Id | Do this | DUMP |
 | --- | --- | --- |
 | I1 | On the site, Closet → Plates: plan a look for plate 4. In the game, **at a glamour dresser** (not the Character window's Glamour Plate, which only applies plates), open Glamour Plates on plate 4 and press **Fill plate 4** in the panel beside it. Then **Save**. | yes, before saving |
-| I2 | The site won't list a piece you already have, so: on the site, put a cheap piece you **don't** have on your shopping list (one sold on the market board). In the game, buy it, then `/gstudio send`. Note whether chat says it came off the list, and check the site. | |
+| I2 | The site won't list a piece you already have, so: on the site, put a cheap piece you **don't** have on your shopping list (one sold on the market board). In the game, buy it, then `/glamourie send`. Note whether chat says it came off the list, and check the site. | |
 | I3 | On the site, open a look → Send to game for plate 5. In the game, open the plugin (any way): it should be first under **Sent from the site**. At a glamour dresser, open Glamour Plates on plate 5, open the sent look in the plugin and press **Put on plate 5**, then **Save**. Check it's gone from Sent from the site. | yes, before saving |
 | I4 | In the plugin's Plates, pick a plate that isn't one of your looks → **Keep it as a look**. Then **Keep it as a look** under What you're wearing. Check both on the site. | |
 | I5 | Press **Send now** in the plugin's Closet. | |
@@ -216,7 +216,7 @@ board (a city); a few looks of yours, one planned for a plate. Turn nothing off 
 | J8 | Open the fitting room with **Try it on** from any panel or the plugin, then use the panel's arrows twice. MARK whether each look shows whole. Try a piece on by hand from your bags, then MARK what the panel says. | yes |
 | J9 | Examine someone. MARK the panel; press **Add … to the shopping list** if it shows. | yes |
 | J10 | Dye a piece of gear from your bags (right-click → Dye). MARK the panel: does it name the right piece? | yes, with the dye window open |
-| J11 | Hover gear in your bags so its tooltip shows: MARK the lines under it. Right-click it → **Glamour Studio**: try **Which looks use it** and **Add it to a look…** (then check the look on the site). | |
+| J11 | Hover gear in your bags so its tooltip shows: MARK the lines under it. Right-click it → **Glamourie**: try **Which looks use it** and **Add it to a look…** (then check the look on the site). | |
 | J12 | At a summoning bell, open a retainer's bags. MARK the panel. | yes |
 | J13 | At a market board, open it. In the panel press **Search** on a piece from your list. MARK whether it searched (or copied the name). Open a result, MARK whether the cheapest price shows. | yes, with results open |
 | J14 | Open any shop that sells gear (a vendor or an exchange). MARK what the panel says. | yes |
@@ -228,7 +228,7 @@ board (a city); a few looks of yours, one planned for a plate. Turn nothing off 
 
 **You need:** a glamour dresser with an outfit set's pieces loose in it (undyed: the plugin leaves
 dyed ones), glamour prisms (one a piece), and free bag places (as many as the biggest set's loose
-pieces). Start the recording (`/gstudio record`) before K1.
+pieces). Start the recording (`/glamourie record`) before K1.
 
 | Id | Do this | DUMP |
 | --- | --- | --- |

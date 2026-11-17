@@ -57,7 +57,7 @@ public sealed class Textures : IDisposable
             var name = Array.Find(names, n => n.EndsWith("Textures." + file, StringComparison.Ordinal));
             if (name == null)
             {
-                Services.Log.Warning("Glamour Studio is missing its texture {File}", file);
+                Services.Log.Warning("Glamourie is missing its texture {File}", file);
                 continue;
             }
             try
@@ -68,13 +68,13 @@ public sealed class Textures : IDisposable
                 var load = Services.Textures.CreateFromImageAsync(ms.ToArray(), $"GlamourStudio {file}", cancel.Token);
                 // One that fails is said in the log (it was an unobserved task's exception: nowhere),
                 // and the part draws without it.
-                load.ContinueWith(t => Services.Log.Warning(t.Exception!.GetBaseException(), "Glamour Studio couldn't make its texture {File}", file),
+                load.ContinueWith(t => Services.Log.Warning(t.Exception!.GetBaseException(), "Glamourie couldn't make its texture {File}", file),
                     CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
                 loads[i] = load;
             }
             catch (Exception ex)
             {
-                Services.Log.Warning(ex, "Glamour Studio couldn't load its texture {File}", file);
+                Services.Log.Warning(ex, "Glamourie couldn't load its texture {File}", file);
             }
         }
     }

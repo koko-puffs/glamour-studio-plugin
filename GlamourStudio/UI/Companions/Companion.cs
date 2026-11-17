@@ -11,7 +11,7 @@ using static GlamourStudio.UI.Theme;
 namespace GlamourStudio.UI;
 
 /// <summary>
-/// The panels beside the game's windows: a small Glamour Studio panel docked to the edge of the
+/// The panels beside the game's windows: a small Glamourie panel docked to the edge of the
 /// game window that's open (the dresser, Glamour Plates, the armoire, the fitting room, Examine…),
 /// its top level with the window's, moving with it as it's dragged; on the side with room (or the
 /// one picked in Settings). It folds to a slim tab on the window's edge, remembered for each window;
@@ -181,7 +181,7 @@ public sealed partial class MainWindow
         {
             storeQueue.Clear();
             storeRefused = default;
-            Services.Log.Warning(ex, "Glamour Studio couldn't store a piece in the armoire");
+            Services.Log.Warning(ex, "Glamourie couldn't store a piece in the armoire");
         }
         try
         {
@@ -191,7 +191,7 @@ public sealed partial class MainWindow
         {
             // Dropped, so it never throws every frame (and Plate it's buttons come back).
             plateIt = null;
-            Services.Log.Warning(ex, "Glamour Studio couldn't put a look on a plate");
+            Services.Log.Warning(ex, "Glamourie couldn't put a look on a plate");
         }
         WatchDresser();
         if (!config.Companions || CompanionsAway())
@@ -254,7 +254,7 @@ public sealed partial class MainWindow
             {
                 paneError = what;
                 paneErrorAt = now;
-                Services.Log.Warning(ex, "Glamour Studio's panel beside the game window failed");
+                Services.Log.Warning(ex, "Glamourie's panel beside the game window failed");
             }
         }
         try
@@ -264,7 +264,7 @@ public sealed partial class MainWindow
         catch (Exception ex)
         {
             Frame.Unwind();
-            Services.Log.Warning(ex, "Glamour Studio's toast at the dresser failed");
+            Services.Log.Warning(ex, "Glamourie's toast at the dresser failed");
         }
         RunLater();
     }
@@ -345,9 +345,9 @@ public sealed partial class MainWindow
     }
 
     /// <summary>
-    /// The panel's header (the mock's <c>.pane .ph</c>): the clothes tag (22), GLAMOUR STUDIO in small
-    /// lilac capitals over what it's beside in Bricolage capitals (15), then Refresh, Open Glamour
-    /// Studio and the fold, quiet and round (28), 9px apart.
+    /// The panel's header (the mock's <c>.pane .ph</c>): the clothes tag (22), GLAMOURIE in small
+    /// lilac capitals over what it's beside in Bricolage capitals (15), then Refresh, Open
+    /// Glamourie and the fold, quiet and round (28), 9px apart.
     /// </summary>
     private void DrawCompanionHeader(Pane pane, string key, Vector2 win, float width, bool right)
     {
@@ -364,7 +364,7 @@ public sealed partial class MainWindow
                 config.Save();
             });
         bx -= btn + gap;
-        if (Kit.IconButton("##c-open", new Vector2(bx, by), Icon.ExternalLink, "Open Glamour Studio", 28, Btn.Quiet, false, 14))
+        if (Kit.IconButton("##c-open", new Vector2(bx, by), Icon.ExternalLink, "Open Glamourie", 28, Btn.Quiet, false, 14))
             Later(() => OpenFromPane(pane));
         bx -= btn + gap;
         // Refresh as the bar's: dimmed while it reads, its arrows turning.
@@ -382,7 +382,7 @@ public sealed partial class MainWindow
         var ebLine = S(10 * 1.3f);
         var tLine = S(15 * 1.05f);
         var ty = win.Y + (inner - ebLine - S(2) - tLine) / 2;
-        var eb = Txt.SpacedFit("Glamour Studio", Face.SansSemibold, 10, 0.1f, tw);
+        var eb = Txt.SpacedFit("Glamourie", Face.SansSemibold, 10, 0.1f, tw);
         Txt.Spaced(dl, new Vector2(tx, ty + (ebLine - Txt.Natural(Face.SansSemibold, 10)) / 2), eb, Face.SansSemibold, 10, Palette.Accent, 0.1f);
         var titleTop = ty + ebLine + S(2);
         Kit.Display(new Vector2(tx, titleTop + (tLine - Kit.DisplayHeight(15)) / 2), PaneTitle(pane), 15, Palette.Ink, tw);
@@ -419,7 +419,7 @@ public sealed partial class MainWindow
                 if (hovered)
                 {
                     dl.AddRectFilled(win, win + new Vector2(w, h), Palette.U32(Palette.RowHover), S(12));
-                    Kit.Tooltip($"Glamour Studio: {PaneTitle(pane)}");
+                    Kit.Tooltip($"Glamourie: {PaneTitle(pane)}");
                 }
                 var cx = win.X + w / 2;
                 var y = win.Y + S(10);

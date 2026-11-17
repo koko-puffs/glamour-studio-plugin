@@ -13,13 +13,16 @@ using GlamourStudio.UI;
 namespace GlamourStudio;
 
 /// <summary>
-/// Glamour Studio: your wardrobe on Koko's Glamour Studio, and its looks on your glamour plates.
-/// /gstudio opens the window; /gstudio settings opens Settings; /gstudio send sends your closet to
-/// the site now.
+/// Glamourie: your wardrobe on Koko's Glamourie, and its looks on your glamour plates.
+/// /glamourie opens the window; /glamourie settings opens Settings; /glamourie send sends your closet
+/// to the site now. /gstudio, its command while it was Glamour Studio, still does the same.
 /// </summary>
 public sealed class Plugin : IDalamudPlugin
 {
-    private const string Command = "/gstudio";
+    private const string Command = "/glamourie";
+
+    /// <summary>The command from before 17 November 2026 (Glamour Studio's): the same, not listed in help.</summary>
+    private const string OldCommand = "/gstudio";
 
     private readonly Configuration config;
     private readonly GameData data;
@@ -62,8 +65,14 @@ public sealed class Plugin : IDalamudPlugin
 
             Services.Commands.AddHandler(Command, new CommandInfo(OnCommand)
             {
-                HelpMessage = "Open Glamour Studio. /gstudio settings opens Settings; /gstudio send sends your closet now; /gstudio refresh reads it all again; "
-                              + "/gstudio record starts or stops a recording for a report; /gstudio mark <what you'll do> notes a step in it; /gstudio dump writes down the glamour windows' values; /gstudio save saves it as a file.",
+                HelpMessage = "Open Glamourie. /glamourie settings opens Settings; /glamourie send sends your closet now; /glamourie refresh reads it all again; "
+                              + "/glamourie record starts or stops a recording for a report; /glamourie mark <what you'll do> notes a step in it; /glamourie dump writes down the glamour windows' values; /glamourie save saves it as a file. "
+                              + "(/gstudio still works.)",
+            });
+            Services.Commands.AddHandler(OldCommand, new CommandInfo(OnCommand)
+            {
+                HelpMessage = "The same as /glamourie.",
+                ShowInHelp = false,
             });
             Services.PluginInterface.UiBuilder.Draw += windows.Draw;
             Services.PluginInterface.UiBuilder.Draw += window.DrawCompanions;
@@ -95,8 +104,8 @@ public sealed class Plugin : IDalamudPlugin
                 if (recorder.Recording) recorder.Stop();
                 else recorder.Start();
                 Services.Chat.Print(recorder.Recording
-                    ? "Glamour Studio: recording. Before each step: /gstudio mark <what you'll do>. /gstudio record again stops it."
-                    : $"Glamour Studio: recording stopped ({recorder.LineCount:N0} lines). /gstudio save saves it as a file; Settings → Making a report copies it.");
+                    ? "Glamourie: recording. Before each step: /glamourie mark <what you'll do>. /glamourie record again stops it."
+                    : $"Glamourie: recording stopped ({recorder.LineCount:N0} lines). /glamourie save saves it as a file; Settings → Making a report copies it.");
                 return;
             case "mark":
             case "dump":
@@ -105,31 +114,31 @@ public sealed class Plugin : IDalamudPlugin
                     // A stopped recording not yet saved isn't wiped by starting a new one.
                     if (recorder.LineCount > 0 && !recorder.HandedOver)
                     {
-                        Services.Chat.Print("Glamour Studio: the last recording isn't saved yet. /gstudio save (or copy it in Settings), then /gstudio record to start a new one.");
+                        Services.Chat.Print("Glamourie: the last recording isn't saved yet. /glamourie save (or copy it in Settings), then /glamourie record to start a new one.");
                         return;
                     }
                     recorder.Start();
-                    Services.Chat.Print("Glamour Studio: recording started.");
+                    Services.Chat.Print("Glamourie: recording started.");
                 }
                 if (verb == "mark")
                 {
                     recorder.Mark(rest);
-                    Services.Chat.Print($"Glamour Studio: mark {recorder.Marks}{(rest.Length > 0 ? $": {rest}" : string.Empty)}");
+                    Services.Chat.Print($"Glamourie: mark {recorder.Marks}{(rest.Length > 0 ? $": {rest}" : string.Empty)}");
                 }
                 else
                 {
                     recorder.DumpWindows();
-                    Services.Chat.Print("Glamour Studio: the glamour windows' values are written down.");
+                    Services.Chat.Print("Glamourie: the glamour windows' values are written down.");
                 }
                 return;
             case "save":
                 if (recorder.LineCount == 0)
                 {
-                    Services.Chat.Print("Glamour Studio: nothing recorded yet (/gstudio record).");
+                    Services.Chat.Print("Glamourie: nothing recorded yet (/glamourie record).");
                     return;
                 }
                 var path = recorder.Save(window.Diagnostics(), out var why);
-                Services.Chat.Print(path != null ? $"Glamour Studio: saved to {path}" : $"Glamour Studio: {why}");
+                Services.Chat.Print(path != null ? $"Glamourie: saved to {path}" : $"Glamourie: {why}");
                 return;
         }
         switch (verb)
@@ -140,7 +149,7 @@ public sealed class Plugin : IDalamudPlugin
                 break;
             case "refresh":
             case "reload":
-                window.RefreshEverything(s => Services.Chat.Print($"Glamour Studio: {s}."));
+                window.RefreshEverything(s => Services.Chat.Print($"Glamourie: {s}."));
                 break;
             case "send":
             case "sync":
@@ -180,7 +189,7 @@ public sealed class Plugin : IDalamudPlugin
         if (!config.ChatNotes || items.Count == 0) return;
         var names = Core.Words.List(items.Take(4).Select(data.ItemName));
         var more = items.Count > 4 ? $" and {items.Count - 4} more" : string.Empty;
-        Services.Chat.Print($"Glamour Studio: {names}{more} came off your wishlist.");
+        Services.Chat.Print($"Glamourie: {names}{more} came off your wishlist.");
     }
 
     /// <summary>Per step: when its next failure may be logged.</summary>
@@ -197,7 +206,7 @@ public sealed class Plugin : IDalamudPlugin
             // Said once every ten seconds at most, should it fail every frame.
             if (quietUntil.TryGetValue(what, out var until) && DateTime.UtcNow < until) return;
             quietUntil[what] = DateTime.UtcNow + TimeSpan.FromSeconds(10);
-            Services.Log.Warning(ex, $"Glamour Studio's update failed ({what})");
+            Services.Log.Warning(ex, $"Glamourie's update failed ({what})");
         }
     }
 
@@ -216,6 +225,7 @@ public sealed class Plugin : IDalamudPlugin
             Safely(() => Services.PluginInterface.UiBuilder.OpenConfigUi -= window.ShowSettings);
         }
         Safely(() => Services.Commands.RemoveHandler(Command));
+        Safely(() => Services.Commands.RemoveHandler(OldCommand));
         Safely(windows.RemoveAllWindows);
         Safely(() => Core.SiteLink.Trace = null);
         Safely(FittingRoom.Stop);
@@ -260,7 +270,7 @@ public sealed class Plugin : IDalamudPlugin
         }
         catch (Exception ex)
         {
-            Services.Log.Warning(ex, "Glamour Studio couldn't let go of something while unloading");
+            Services.Log.Warning(ex, "Glamourie couldn't let go of something while unloading");
         }
     }
 }

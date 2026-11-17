@@ -221,7 +221,7 @@ public sealed partial class MainWindow
     private readonly Run[] siteLines = new Run[1];
 
     /// <summary>
-    /// Your closet on Glamour Studio (the mock's third card, and its states): what was sent and when,
+    /// Your closet on Glamourie (the mock's third card, and its states): what was sent and when,
     /// Send now and Open (under 1000 wide, "Send" and Open as an icon); sending, with a bar; a problem
     /// said as one, with Try again; sending by itself off; this character not asked yet (Ask me) or
     /// said no; not linked (dashed, the way to link).
@@ -254,7 +254,7 @@ public sealed partial class MainWindow
         {
             lead = Icon.Globe;
             leadColor = Palette.Accent;
-            eyebrow = "Your closet on Glamour Studio";
+            eyebrow = "Your closet on Glamourie";
             head = "Sending your closet…";
             line = string.Empty;
             meter = true;
@@ -293,7 +293,7 @@ public sealed partial class MainWindow
             var off = !config.AutoSync;
             lead = Icon.Globe;
             leadColor = off ? Palette.Faint : Palette.Accent;
-            eyebrow = "Your closet on Glamour Studio";
+            eyebrow = "Your closet on Glamourie";
             eyebrowColor = off ? Palette.Faint : Palette.Accent;
             head = sync.LastSync is { } r
                 ? $"{Words.Count(r.Total, "piece")}, sent {Words.Ago(sync.LastSyncAt ?? now, now)}" + (r.Added > 0 ? $" ({r.Added.ToString("N0", En)} new)" : string.Empty)
@@ -408,8 +408,8 @@ public sealed partial class MainWindow
         if (open)
         {
             var pressed = narrow
-                ? Kit.IconButton("##open-closet", new Vector2(bx, by), Icon.ExternalLink, "Your closet on Glamour Studio", 34, Btn.Quiet, false, 14)
-                : Kit.Button("##open-closet", new Vector2(bx, by), "Open", Btn.Quiet, BtnSize.Sm, Icon.ExternalLink, 0, false, "Your closet on Glamour Studio", 0, 14);
+                ? Kit.IconButton("##open-closet", new Vector2(bx, by), Icon.ExternalLink, "Your closet on Glamourie", 34, Btn.Quiet, false, 14)
+                : Kit.Button("##open-closet", new Vector2(bx, by), "Open", Btn.Quiet, BtnSize.Sm, Icon.ExternalLink, 0, false, "Your closet on Glamourie", 0, 14);
             if (pressed) Dalamud.Utility.Util.OpenLink(SiteLink.ClosetUrl);
         }
         Kit.Reserve(at, w, h);

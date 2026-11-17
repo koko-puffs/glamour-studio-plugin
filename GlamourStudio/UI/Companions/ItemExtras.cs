@@ -15,7 +15,7 @@ namespace GlamourStudio.UI;
 /// <summary>
 /// Two small additions to the game's own item windows: lines under an item's tooltip (which of your
 /// looks use the piece, the plates it's on, on your wishlist, a copy in the dresser or armoire), in a
-/// small box in the plugin's look just under the game's tooltip; and a Glamour Studio entry (its name
+/// small box in the plugin's look just under the game's tooltip; and a Glamourie entry (its name
 /// lilac) in the game's right-click menu on gear (in your bags, the armoury chest, a retainer's, and
 /// an item linked in chat).
 /// </summary>
@@ -64,7 +64,7 @@ public sealed partial class MainWindow
     /// The lines under the game's item tooltip (every frame, after Dalamud's windows): a small box in
     /// the plugin's look (the mock's <c>.gs-tip</c>: the card, the strong hairline, 12px corners, 10px
     /// in and 12 across), as wide as the game's tooltip, 4px under it (over it with no room below): the
-    /// tag and GLAMOUR STUDIO, then each line with its icon, wrapped.
+    /// tag and GLAMOURIE, then each line with its icon, wrapped.
     /// </summary>
     public void DrawTooltipLines()
     {
@@ -116,7 +116,7 @@ public sealed partial class MainWindow
                 // As the panels' header: the tag and whose lines these are, in small lilac capitals.
                 Kit.Logo(at, 18);
                 Txt.Spaced(dl, new Vector2(at.X + S(18 + 6), at.Y + (head - Txt.Natural(Face.SansSemibold, 10)) / 2),
-                    Txt.SpacedFit("Glamour Studio", Face.SansSemibold, 10, 0.08f, width - padX * 2 - S(24)), Face.SansSemibold, 10, Palette.Accent, 0.08f);
+                    Txt.SpacedFit("Glamourie", Face.SansSemibold, 10, 0.08f, width - padX * 2 - S(24)), Face.SansSemibold, 10, Palette.Accent, 0.08f);
                 var ly = at.Y + head;
                 var line = S(TipLineCss);
                 foreach (var l in lines)
@@ -134,7 +134,7 @@ public sealed partial class MainWindow
         }
         catch (Exception ex)
         {
-            Services.Log.Debug(ex, "Glamour Studio's tooltip lines failed");
+            Services.Log.Debug(ex, "Glamourie's tooltip lines failed");
         }
     }
 
@@ -144,7 +144,7 @@ public sealed partial class MainWindow
     // ---------------------------------------------------------------------------------------------
     // The right-click menu.
 
-    /// <summary>A Glamour Studio entry on gear you right-click (Dalamud's context menu; the game's thread).</summary>
+    /// <summary>A Glamourie entry on gear you right-click (Dalamud's context menu; the game's thread).</summary>
     public void OnContextMenu(IMenuOpenedArgs args)
     {
         if (!config.ContextMenu) return;
@@ -187,13 +187,13 @@ public sealed partial class MainWindow
         }
         catch (Exception ex)
         {
-            Services.Log.Debug(ex, "Glamour Studio couldn't add to the right-click menu");
+            Services.Log.Debug(ex, "Glamourie couldn't add to the right-click menu");
         }
     }
 
-    /// <summary>"Glamour Studio" in the plugin's lilac, as the game colours text.</summary>
+    /// <summary>"Glamourie" in the plugin's lilac, as the game colours text.</summary>
     private static Dalamud.Game.Text.SeStringHandling.SeString OurName() =>
-        new Lumina.Text.SeStringBuilder().PushColorRgba(0xC9, 0xB8, 0xFF, 0xFF).Append("Glamour Studio").PopColor().ToReadOnlySeString().ToDalamudString();
+        new Lumina.Text.SeStringBuilder().PushColorRgba(0xC9, 0xB8, 0xFF, 0xFF).Append("Glamourie").PopColor().ToReadOnlySeString().ToDalamudString();
 
     private List<MenuItem> MenuFor(ItemInfo info, Piece piece, bool inBags)
     {
@@ -236,8 +236,8 @@ public sealed partial class MainWindow
         {
             Name = "Which looks use it",
             OnClicked = _ => Services.Chat.Print(looks.Count == 0
-                ? $"Glamour Studio: none of your looks uses {name}."
-                : $"Glamour Studio: {name} is in {Words.List(looks.Take(8).Select(l => l.Name))}{(looks.Count > 8 ? $" and {looks.Count - 8} more" : string.Empty)}."),
+                ? $"Glamourie: none of your looks uses {name}."
+                : $"Glamourie: {name} is in {Words.List(looks.Take(8).Select(l => l.Name))}{(looks.Count > 8 ? $" and {looks.Count - 8} more" : string.Empty)}."),
         });
         if (Linked && Where(id) == null && !sync.Library.Wishes.Contains(id))
             items.Add(new MenuItem { Name = "Put it on your wishlist", OnClicked = _ => AddWishes(new[] { piece }, Chat) });
@@ -255,7 +255,7 @@ public sealed partial class MainWindow
     }
 
     /// <summary>A line in chat (what the right-click menu does says how it went there: no window may be open to show a toast).</summary>
-    private static void Chat(string text) => Services.Chat.Print($"Glamour Studio: {text}");
+    private static void Chat(string text) => Services.Chat.Print($"Glamourie: {text}");
 
     /// <summary>Puts a piece on one of your looks, in its slot (a ring on the free hand).</summary>
     private void PutOnLook(Look look, ItemInfo info, Piece piece)
@@ -265,7 +265,7 @@ public sealed partial class MainWindow
         sync.PutOnLook(look.Id, slot, piece, r =>
         {
             recorder.Note($"LOOK PUT {info.Id} on {Slots.Key(slot)} of {look.Id}: {(r.Ok ? "ok" : r.Why)}");
-            Services.Chat.Print(r.Ok ? $"Glamour Studio: {info.Name} is on {r.Value} ({Slots.Word(slot).ToLowerInvariant()})." : $"Glamour Studio: {r.Why ?? "the site said no"}");
+            Services.Chat.Print(r.Ok ? $"Glamourie: {info.Name} is on {r.Value} ({Slots.Word(slot).ToLowerInvariant()})." : $"Glamourie: {r.Why ?? "the site said no"}");
         });
     }
 }

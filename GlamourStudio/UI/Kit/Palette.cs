@@ -4,7 +4,7 @@ using Dalamud.Bindings.ImGui;
 namespace GlamourStudio.UI;
 
 /// <summary>
-/// Glamour Studio's colours, as the site has them since its "Character Sheet" redesign (November
+/// Glamourie's colours, as the site has them since its "Character Sheet" redesign (November
 /// 2026; the plugin's mock-up, docs/redesign/assets/kit.css, holds them as these names): two
 /// grounds, the ink (the studio: <see cref="Ground"/>, cards a step up, opaque lilac-grey hairlines)
 /// and the field (flat periwinkle <see cref="Field"/>, ink-violet words <see cref="OnField"/>: a

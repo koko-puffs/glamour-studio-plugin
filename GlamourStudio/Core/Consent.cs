@@ -64,7 +64,7 @@ public sealed class KnownCharacter
 /// The plugin asks you on each character it hasn't been told about whether to send its data to the site,
 /// and sends nothing for it until you say yes. Your answer is kept here (per character, by its key) and on
 /// the site (which turns away a character you said no to, whatever plugin asks); the site's word wins,
-/// since you can change it there too (Settings → Glamour Studio → Characters), once it has your latest
+/// since you can change it there too (Settings → Glamourie → Characters), once it has your latest
 /// answer here (until then, yours stands). Game-free, tested.
 /// </summary>
 public static class Consent
@@ -123,7 +123,7 @@ public static class Consent
     };
 
     /// <summary>The question's words for a character.</summary>
-    public static string Question(string name) => $"Send {(name.Length > 0 ? name : "this character")}'s wardrobe to Glamour Studio?";
+    public static string Question(string name) => $"Send {(name.Length > 0 ? name : "this character")}'s wardrobe to Glamourie?";
 
     /// <summary>The question's eyebrow: "A new character on Lich".</summary>
     public static string Eyebrow(string world) => world.Length > 0 ? $"A new character on {world}" : "A new character";

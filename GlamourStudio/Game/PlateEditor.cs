@@ -201,7 +201,7 @@ public static unsafe class PlateEditor
                 }
                 catch (Exception ex)
                 {
-                    Services.Log.Warning(ex, "Glamour Studio couldn't fill a plate's {Slot}", step.Slot);
+                    Services.Log.Warning(ex, "Glamourie couldn't fill a plate's {Slot}", step.Slot);
                     problems.Add($"{Slots.Word(step.Slot)} couldn't be set.");
                 }
             }
@@ -307,7 +307,7 @@ public static unsafe class PlateEditor
         }
         catch (Exception ex)
         {
-            Services.Log.Warning(ex, "Glamour Studio couldn't apply a plate");
+            Services.Log.Warning(ex, "Glamourie couldn't apply a plate");
             return "The game wouldn't apply it";
         }
     }
@@ -332,7 +332,7 @@ public static unsafe class PlateEditor
         catch (Exception ex)
         {
             applyAfterPick = null;
-            Services.Log.Warning(ex, "Glamour Studio couldn't apply a plate");
+            Services.Log.Warning(ex, "Glamourie couldn't apply a plate");
         }
     }
 

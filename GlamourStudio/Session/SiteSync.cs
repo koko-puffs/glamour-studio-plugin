@@ -337,7 +337,7 @@ public sealed class SiteSync : IDisposable
             if (r.Value != (send ? SendChoice.Yes : SendChoice.No) && r.Value != SendChoice.No)
             {
                 // The site didn't take the answer (it still has another): your answer stands, nothing's sent, and it's told again later.
-                Services.Log.Warning($"Glamour Studio: the site kept \"{Consent.Key(r.Value)}\" for a character told \"{(send ? "yes" : "no")}\"");
+                Services.Log.Warning($"Glamourie: the site kept \"{Consent.Key(r.Value)}\" for a character told \"{(send ? "yes" : "no")}\"");
                 nextTell = DateTime.UtcNow + TimeSpan.FromMinutes(15);
                 return;
             }
@@ -432,7 +432,7 @@ public sealed class SiteSync : IDisposable
             }
             catch (Exception ex)
             {
-                Services.Log.Warning(ex, "Glamour Studio couldn't take the site's answer in");
+                Services.Log.Warning(ex, "Glamourie couldn't take the site's answer in");
             }
             Version++;
         }
@@ -472,7 +472,7 @@ public sealed class SiteSync : IDisposable
             nextPlans = now + TimeSpan.FromSeconds(30);
             RefreshPlans();
         }
-        // The window just opened (by any way: /gstudio, a panel's arrow, the plugin list): what's
+        // The window just opened (by any way: /glamourie, a panel's arrow, the plugin list): what's
         // been sent is read at once, not at the next quarter hour (a recording saw a look sent from
         // the site never turn up, the last one shown instead).
         if (windowOpen && !windowWasOpen) nextInbox = DateTime.MinValue;
@@ -827,7 +827,7 @@ public sealed class SiteSync : IDisposable
                 });
             else
             {
-                if (t.Exception != null) Services.Log.Warning(t.Exception, "Glamour Studio's call to the site failed");
+                if (t.Exception != null) Services.Log.Warning(t.Exception, "Glamourie's call to the site failed");
                 // (The calls don't throw: should one, nothing's left waiting on it.)
                 answers.Enqueue(() =>
                 {

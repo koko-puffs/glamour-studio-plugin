@@ -103,7 +103,7 @@ public static unsafe class FaceAndFashion
         }
         catch (Exception ex)
         {
-            Services.Log.Warning(ex, "Glamour Studio couldn't put on the look's facewear or fashion accessory");
+            Services.Log.Warning(ex, "Glamourie couldn't put on the look's facewear or fashion accessory");
             Finish(j, "The game wouldn't put on the look's facewear or fashion accessory");
         }
     }

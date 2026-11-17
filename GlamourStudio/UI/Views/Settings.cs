@@ -62,10 +62,10 @@ public sealed partial class MainWindow
         Kit.EndPane();
     }
 
-    /// <summary>"Glamour Studio 0.6.16 ·", made once.</summary>
+    /// <summary>"Glamourie 0.6.16 ·", made once.</summary>
     private static readonly string VersionWords = typeof(MainWindow).Assembly.GetName().Version is { } v
-        ? $"Glamour Studio {v.Major}.{v.Minor}.{v.Build} ·"
-        : "Glamour Studio ·";
+        ? $"Glamourie {v.Major}.{v.Minor}.{v.Build} ·"
+        : "Glamourie ·";
 
     /// <summary>The version and What's new under the column (the 18px logo, faint words, the lilac link).</summary>
     private static void DrawVersionLine(float gapCss)
@@ -142,7 +142,7 @@ public sealed partial class MainWindow
             config.TooltipLines = !config.TooltipLines;
             config.Save();
         }
-        if (SwitchRow(1, "##menu", "Glamour Studio in the right-click menu", "On gear in your bags, the armoury, retainers and chat links.", config.ContextMenu,
+        if (SwitchRow(1, "##menu", "Glamourie in the right-click menu", "On gear in your bags, the armoury, retainers and chat links.", config.ContextMenu,
                 "Right-click a piece: add it to one of your looks, try it on with a look that has it, see which looks use it, put it on your wishlist, or store it in the armoire while that's open."))
         {
             config.ContextMenu = !config.ContextMenu;
@@ -155,7 +155,7 @@ public sealed partial class MainWindow
         const string linkFirst = "Link your account first (Account, above)";
         if (SwitchRow(0, "##auto", "Keep it up to date by itself", Linked ? "Sends what changed, every few minutes at most. Off: only when you press Send now (Closet)." : linkFirst,
                 config.AutoSync,
-                "What's in your glamour dresser, armoire, bags, armoury chest, saddlebags and retainers goes to your closet on Glamour Studio as it changes. Off: only when you press Send now (Closet).",
+                "What's in your glamour dresser, armoire, bags, armoury chest, saddlebags and retainers goes to your closet on Glamourie as it changes. Off: only when you press Send now (Closet).",
                 !Linked))
         {
             config.AutoSync = !config.AutoSync;
@@ -208,7 +208,7 @@ public sealed partial class MainWindow
     {
         GroupLabel("Beside the game's windows");
         BeginRows("##set-companions");
-        if (SwitchRow(0, "##companions", "Show Glamour Studio beside the game's windows",
+        if (SwitchRow(0, "##companions", "Show Glamourie beside the game's windows",
                 "At the dresser, Glamour Plates, the armoire, the fitting room, Examine and the rest: what the plugin knows for that window, beside it.",
                 config.Companions,
                 "A small panel docked to the game's window, moving with it; this window stays closed. Fold one to a tab with its arrow."))
@@ -285,13 +285,13 @@ public sealed partial class MainWindow
         var i = 0;
         if (recording)
         {
-            // (The recorder's own start: one begun by /gstudio record while Settings was shut is timed right too.)
+            // (The recorder's own start: one begun by /glamourie record while Settings was shut is timed right too.)
             var started = recorder.StartedAt;
             var since = started != default ? DateTime.UtcNow - started : TimeSpan.Zero;
             const string stop = "Stop";
             var sw = SmWidth(stop, Icon.Square);
             var r = Row(i++, $"Recording · {Words.Count(lines, "line")} · {Model.Elapsed.Clock(since)}",
-                "Before each step, say what you'll do (or /gstudio mark …): the whole state is written down with it.", sw, Kit.ButtonHeight(BtnSize.Sm), S(10), tip: RecordTip);
+                "Before each step, say what you'll do (or /glamourie mark …): the whole state is written down with it.", sw, Kit.ButtonHeight(BtnSize.Sm), S(10), tip: RecordTip);
             // The recording dot, as any recorder has: red, ringed.
             Kit.Dl.AddCircleFilled(new Vector2(r.LeadX + S(5), r.Mid), S(5) + S(4), Palette.U32(Palette.WithAlpha(Palette.Danger, 0.18f)), 24);
             Kit.Dl.AddCircleFilled(new Vector2(r.LeadX + S(5), r.Mid), S(5), Palette.U32(Palette.Danger), 20);
@@ -301,7 +301,7 @@ public sealed partial class MainWindow
             i++;
             if (ButtonRow(i++, "##rec-dump", "Write down the windows' values",
                     "Every value the open glamour windows hold, and the whole state. Do it with the window you're asked about open.", "Write down", Btn.Glass, null, false, null,
-                    "Adds every value the plate editor, the dresser, the armoire, Examine and the menus hold right now (/gstudio dump)."))
+                    "Adds every value the plate editor, the dresser, the armoire, Examine and the menus hold right now (/glamourie dump)."))
                 Later(() =>
                 {
                     recorder.DumpWindows();
@@ -351,7 +351,7 @@ public sealed partial class MainWindow
         if (Kit.Field("##mark-text", new Vector2(at.X, y), fw, ref text, "e.g. 2. Fill plate 3 from the armoire", null, 160, ImGuiInputTextFlags.None, 34)) markDraft = text;
         var enter = ImGui.IsItemDeactivated() && (ImGui.IsKeyPressed(ImGuiKey.Enter) || ImGui.IsKeyPressed(ImGuiKey.KeypadEnter));
         var pressed = SmButton("##mark-btn", new Vector2(at.X + fw + S(8), y), mark, Btn.Glass, null, false,
-            "Before each step, say what you'll do: the whole state is written down with it (/gstudio mark …)");
+            "Before each step, say what you'll do: the whole state is written down with it (/glamourie mark …)");
         if ((pressed || enter) && markDraft.Trim().Length > 0)
         {
             var what = markDraft;
@@ -381,7 +381,7 @@ public sealed partial class MainWindow
             Notify("Recording copied");
         }
         if (SmButton("##rec-save", new Vector2(at.X + SmWidth(copy, Icon.Copy) + S(8), y), save, Btn.Glass, Icon.Save, false,
-                "Writes it to pluginConfigs/GlamourStudio/recordings, named by the time (/gstudio save). Its folder opens after."))
+                "Writes it to pluginConfigs/GlamourStudio/recordings, named by the time (/glamourie save). Its folder opens after."))
         {
             var path = recorder.Save(Diagnostics(), out var why);
             if (path != null)
@@ -425,7 +425,7 @@ public sealed partial class MainWindow
     {
         var sb = new System.Text.StringBuilder();
         var me = wardrobe.Current;
-        sb.AppendLine($"Glamour Studio {typeof(MainWindow).Assembly.GetName().Version} · Dalamud {typeof(Dalamud.Plugin.IDalamudPlugin).Assembly.GetName().Version} · game {Plugin.GameVersion()} · client {Services.ClientState.ClientLanguage} · {DateTime.Now:yyyy-MM-dd HH:mm}");
+        sb.AppendLine($"Glamourie {typeof(MainWindow).Assembly.GetName().Version} · Dalamud {typeof(Dalamud.Plugin.IDalamudPlugin).Assembly.GetName().Version} · game {Plugin.GameVersion()} · client {Services.ClientState.ClientLanguage} · {DateTime.Now:yyyy-MM-dd HH:mm}");
         try
         {
             // Plugins that touch glamour (Glamourer, Glamaholic…) can change what the game shows.
@@ -455,28 +455,28 @@ public sealed partial class MainWindow
 
     private void DrawAccountTab()
     {
-        GroupLabel("Glamour Studio account");
+        GroupLabel("Glamourie account");
         var refused = sync.Linked && sync.TokenRefused;
         // Refused by the site: the danger edge.
         BeginRows("##set-account", refused ? Palette.DangerEdge : null);
         if (sync.Linked)
         {
             const string unlink = "Unlink";
-            var r = Row(0, refused ? "Link again" : "Linked to Glamour Studio",
+            var r = Row(0, refused ? "Link again" : "Linked to Glamourie",
                 refused ? "The site doesn't know this token any more: unlink, and paste a new one" : SiteLink.Masked(config.SiteToken),
                 SmWidth(unlink, null), Kit.ButtonHeight(BtnSize.Sm), S(7), mono: !refused);
             Kit.StatusDot(new Vector2(r.LeadX + S(3.5f), r.Mid), refused ? DotKind.Danger : DotKind.Ice);
             if (SmButton("##site-unlink", r.Control, unlink, Btn.Glass, null, false, "Forget the token here. Revoke it on the site too if you won't use it again."))
-                Ask("Unlink from Glamour Studio?", "Forget the token here. Revoke it on the site too if you won't use it again.", "Unlink", "Keep", Unlink, danger: true);
+                Ask("Unlink from Glamourie?", "Forget the token here. Revoke it on the site too if you won't use it again.", "Unlink", "Keep", Unlink, danger: true);
             DrawSiteRow(1, getToken: true);
         }
         else
         {
             const string get = "Get a token";
-            var r = Row(0, "Not linked", "Make a token on the site (Settings → Glamour Studio → In-game plugin) and paste it here.",
+            var r = Row(0, "Not linked", "Make a token on the site (Settings → Glamourie → In-game plugin) and paste it here.",
                 SmWidth(get, Icon.ExternalLink), Kit.ButtonHeight(BtnSize.Sm), S(7));
             Kit.StatusDot(new Vector2(r.LeadX + S(3.5f), r.Mid), DotKind.No);
-            if (SmButton("##site-get", r.Control, get, Btn.Quiet, Icon.ExternalLink, false, "Settings → Glamour Studio → In-game plugin on the site"))
+            if (SmButton("##site-get", r.Control, get, Btn.Quiet, Icon.ExternalLink, false, "Settings → Glamourie → In-game plugin on the site"))
                 Dalamud.Utility.Util.OpenLink(SiteLink.TokensUrl);
             DrawTokenRow(1);
             DrawSiteRow(2, getToken: false);
@@ -490,7 +490,7 @@ public sealed partial class MainWindow
         config.SiteToken = string.Empty;
         config.Save();
         sync.Relinked();
-        Notify("Unlinked from Glamour Studio");
+        Notify("Unlinked from Glamourie");
     }
 
     /// <summary>The token's field and Link (the sticker: the only one in Settings); a token that can't be one says why under it, and Link waits.</summary>
@@ -529,16 +529,16 @@ public sealed partial class MainWindow
         Kit.Reserve(at, w, h);
     }
 
-    /// <summary>Keep the token to yourself, with Get a token (once linked) and Open Glamour Studio, quiet.</summary>
+    /// <summary>Keep the token to yourself, with Get a token (once linked) and Open Glamourie, quiet.</summary>
     private static void DrawSiteRow(int index, bool getToken)
     {
-        const string get = "Get a token", open = "Open Glamour Studio";
+        const string get = "Get a token", open = "Open Glamourie";
         var gw = getToken ? SmWidth(get, Icon.ExternalLink) + S(14) : 0;
         var ow = SmWidth(open, Icon.ExternalLink);
         var r = Row(index, string.Empty, TokenWarning, gw + ow, Kit.ButtonHeight(BtnSize.Sm));
-        if (getToken && SmButton("##site-get-2", r.Control, get, Btn.Quiet, Icon.ExternalLink, false, "Settings → Glamour Studio → In-game plugin on the site"))
+        if (getToken && SmButton("##site-get-2", r.Control, get, Btn.Quiet, Icon.ExternalLink, false, "Settings → Glamourie → In-game plugin on the site"))
             Dalamud.Utility.Util.OpenLink(SiteLink.TokensUrl);
-        if (SmButton("##site", new Vector2(r.Control.X + gw, r.Control.Y), open, Btn.Quiet, Icon.ExternalLink, false, "kokos-tools.com/glamour-studio"))
+        if (SmButton("##site", new Vector2(r.Control.X + gw, r.Control.Y), open, Btn.Quiet, Icon.ExternalLink, false, "kokos-tools.com/glamourie"))
             Dalamud.Utility.Util.OpenLink(SiteLink.SiteUrl);
     }
 
@@ -557,7 +557,7 @@ public sealed partial class MainWindow
         sync.Relinked();
         sync.SyncNow();
         sync.RefreshLibrary();
-        Notify("Linked to Glamour Studio");
+        Notify("Linked to Glamourie");
     }
 
     // ---------------------------------------------------------------------------------------------

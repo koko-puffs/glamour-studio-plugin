@@ -157,7 +157,7 @@ public static unsafe class GameWindows
         }
         catch (Exception ex)
         {
-            Services.Log.Warning(ex, "Glamour Studio couldn't open Glamour Plates from the dresser");
+            Services.Log.Warning(ex, "Glamourie couldn't open Glamour Plates from the dresser");
             return false;
         }
     }
@@ -212,7 +212,7 @@ public static unsafe class GameWindows
         }
         catch (Exception ex)
         {
-            Services.Log.Debug(ex, "Glamour Studio couldn't read the outfit set window");
+            Services.Log.Debug(ex, "Glamourie couldn't read the outfit set window");
             return null;
         }
     }
@@ -297,7 +297,7 @@ public static unsafe class GameWindows
         }
         catch (Exception ex)
         {
-            Services.Log.Warning(ex, "Glamour Studio couldn't search the market board");
+            Services.Log.Warning(ex, "Glamourie couldn't search the market board");
             return false;
         }
     }

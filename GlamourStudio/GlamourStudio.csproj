@@ -9,7 +9,7 @@
     <Version>0.8.0.0</Version>
     <AssemblyName>GlamourStudio</AssemblyName>
     <RootNamespace>GlamourStudio</RootNamespace>
-    <Description>Your wardrobe on Glamour Studio, and its looks on your glamour plates.</Description>
+    <Description>Your wardrobe on Glamourie, and its looks on your glamour plates.</Description>
     <PackageProjectUrl>https://github.com/koko-puffs/glamour-studio-plugin</PackageProjectUrl>
     <IsPackable>false</IsPackable>
     <!-- Lets the project build (for checking) on Linux and macOS too; it only runs in the game on Windows. -->

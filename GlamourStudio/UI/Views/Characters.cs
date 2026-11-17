@@ -13,7 +13,7 @@ namespace GlamourStudio.UI;
 /// <summary>
 /// Your characters and the site (docs/redesign/pages/characters.html): on a character the plugin
 /// hasn't been told about (linked), a card of its own at the top of the screen, whether the plugin's
-/// window is open or not, asks whether to send that character's wardrobe to Glamour Studio (Yes, send
+/// window is open or not, asks whether to send that character's wardrobe to Glamourie (Yes, send
 /// it, the sticker · No · Not now); nothing of it is sent until you say yes. Settings → Account lists
 /// every character you answered for, each with its face, where it stands and its switch.
 /// </summary>
@@ -36,7 +36,7 @@ public sealed partial class MainWindow
         catch (Exception ex)
         {
             Frame.Unwind();
-            Services.Log.Warning(ex, "Glamour Studio couldn't ask about this character");
+            Services.Log.Warning(ex, "Glamourie couldn't ask about this character");
         }
     }
 
@@ -93,14 +93,14 @@ public sealed partial class MainWindow
                         Later(() =>
                         {
                             sync.Answer(key, name, world, false);
-                            Services.Chat.Print($"Glamour Studio: nothing of {(name.Length > 0 ? name : "this character")} goes to the site. Change it in Settings → Account.");
+                            Services.Chat.Print($"Glamourie: nothing of {(name.Length > 0 ? name : "this character")} goes to the site. Change it in Settings → Account.");
                         });
                     if (Kit.Sticker("##q-yes", new Vector2(row.X + inner - yesW, row.Y), yes, StickerSize.Md, null, 0, false,
                             "Told to the site, then the closet goes at once, and its plans and Wear today are read as this character."))
                         Later(() =>
                         {
                             sync.Answer(key, name, world, true);
-                            Services.Chat.Print($"Glamour Studio: {(name.Length > 0 ? name : "this character")}'s wardrobe goes to the site now (private unless you show it).");
+                            Services.Chat.Print($"Glamourie: {(name.Length > 0 ? name : "this character")}'s wardrobe goes to the site now (private unless you show it).");
                         });
                     Kit.Reserve(row, inner, rowH);
                     Kit.PopBox();
@@ -135,7 +135,7 @@ public sealed partial class MainWindow
     private static readonly Run[] CharactersNote =
     {
         new("On: its glamour dresser, armoire, bags, armoury chest, saddlebags, retainers, plates and outfit go to your closet on the site, private unless you show the character there. "
-            + "What's shown of each: the site's Settings → Glamour Studio → Characters.", Face.Sans, 12, Palette.Faint),
+            + "What's shown of each: the site's Settings → Glamourie → Characters.", Face.Sans, 12, Palette.Faint),
     };
 
     private const string CharacterTip =

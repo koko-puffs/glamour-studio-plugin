@@ -52,8 +52,8 @@ public sealed record PlateDone(int Plate, bool Kept, int On, int Of);
 public sealed record SavedLook(string Id, string Name);
 
 /// <summary>
-/// Linking the plugin to your Glamour Studio account, with the token made on the site (Settings →
-/// Glamour Studio → In-game plugin), exactly as Housing Studio's and Raid Planner's plugins link. The
+/// Linking the plugin to your Glamourie account, with the token made on the site (Settings →
+/// Glamourie → In-game plugin), exactly as Housing Studio's and Raid Planner's plugins link. The
 /// plugin calls the site's database functions (the contract in the site's <c>…_gs_plugin.sql</c>) with
 /// the site's publishable key, as the site itself would; the token, in the body only, says whose
 /// account it is. None of the calls throws (a lost connection or no answer in time is said in words),
@@ -66,12 +66,12 @@ public static class SiteLink
 
     public const string PublishableKey = "sb_publishable_A-5zpDIk5O6xyKTicipcuA_M3J0sGVP";
 
-    public const string SiteUrl = "https://www.kokos-tools.com/glamour-studio";
+    public const string SiteUrl = "https://www.kokos-tools.com/glamourie";
 
-    /// <summary>Where a token is made: Settings → Glamour Studio → In-game plugin.</summary>
-    public const string TokensUrl = "https://www.kokos-tools.com/glamour-studio?settings=glamour-plugin";
+    /// <summary>Where a token is made: Settings → Glamourie → In-game plugin.</summary>
+    public const string TokensUrl = "https://www.kokos-tools.com/glamourie?settings=glamour-plugin";
 
-    public const string ClosetUrl = "https://www.kokos-tools.com/glamour-studio/closet";
+    public const string ClosetUrl = "https://www.kokos-tools.com/glamourie/closet";
 
     public static string LookUrl(string id) => $"{SiteUrl}/look/{Uri.EscapeDataString(id)}";
 
@@ -212,7 +212,7 @@ public static class SiteLink
     private static string? Text(JsonNode? n) =>
         n is JsonValue v && v.TryGetValue<string>(out var s) && !string.IsNullOrWhiteSpace(s) ? s.Trim() : null;
 
-    private static SiteReply<T> NoToken<T>() => new(default, "That isn't a Glamour Studio token. Link again in Settings.", "token");
+    private static SiteReply<T> NoToken<T>() => new(default, "That isn't a Glamourie token. Link again in Settings.", "token");
 
     private static SiteReply<T> Unreadable<T>() => new(default, "The site answered with something the plugin can't read.", "answer");
 

@@ -69,7 +69,7 @@ public enum Tone
 }
 
 /// <summary>
-/// The site's controls, as Glamour Studio draws them since the "Character Sheet" redesign, with
+/// The site's controls, as Glamourie draws them since the "Character Sheet" redesign, with
 /// ImGui's draw lists: the sticker (the one thing to do) and outlined and quiet pills, round icon
 /// buttons, switches, segmented pills, cards with 1px edges, the dashed "add" outline, the bar,
 /// tick boxes, steppers, text fields, tooltips and menus. Each takes the screen position to draw at
@@ -77,7 +77,7 @@ public enum Tone
 /// and shows hover, press, focus (a 2px lilac ring, 2px out) and disabled (50% for buttons and the
 /// sticker, 40% for small controls). On a field (<see cref="FieldPanel"/>) they turn over to the
 /// field's colours (<see cref="Tint"/>). Made from Housing Studio's plugin kit (by way of Raid
-/// Planner's), in Glamour Studio's colours.
+/// Planner's), in Glamourie's colours.
 /// </summary>
 public static partial class Kit
 {
@@ -953,7 +953,7 @@ public static partial class Kit
             if (!warnedStray)
             {
                 warnedStray = true;
-                Services.Log.Warning(popup ? "Glamour Studio ended a menu with a pane still open in it" : "Glamour Studio ended a pane with a menu still open in it");
+                Services.Log.Warning(popup ? "Glamourie ended a menu with a pane still open in it" : "Glamourie ended a pane with a menu still open in it");
             }
             var stray = Frame.Open.Pop();
             if (!stray && Panes.Count > 0) Panes.Pop();
