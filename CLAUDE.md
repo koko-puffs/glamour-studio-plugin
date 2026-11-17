@@ -21,6 +21,6 @@
 ## The site's side
 
 The site (koko-puffs/kokos-tools) holds the other half: the database functions the plugin calls
-(`supabase/migrations/…_gs_plugin.sql`), Settings → Glamour Studio → In-game plugin (tokens), and
+(`supabase/migrations/…_gs_plugin.sql`), Settings → Glamourie → In-game plugin (tokens), and
 the shared Dalamud repository (`api/dalamud-repo.js`, which lists this repo's `repo.json`). A
 change to what the plugin sends or reads is a change on both sides.
