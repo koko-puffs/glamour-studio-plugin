@@ -962,13 +962,16 @@ The workflows need Settings → Actions → General → Workflow permissions →
 
 ## Release notes
 
-### 0.8.1 (not released yet)
+### 0.8.2 (not released yet)
 
 - **Now Glamourie** (17 November 2026, as the site): the installer's name and words, the window's
   title, GLAMOURIE in the bar and the panels, and every line, tooltip and chat message. The command
   is `/glamourie` (`/gstudio` still works, not listed in help), and the links the plugin opens are
   the site's new addresses (`kokos-tools.com/glamourie…`; the old ones redirect). The internal name
   (`GlamourStudio`) is unchanged, so updates carry on, and your settings and link stay.
+
+### 0.8.1
+
 - **The new mark** (17 November 2026, the site's: kokos-tools `src/features/marks.ts`): a glamour
   prism as the game draws it, in Glamourie's periwinkle (the pyramid from a little above, its lit
   left face pink up to white, its right ice into deep violet, a holo's colours across both, a
